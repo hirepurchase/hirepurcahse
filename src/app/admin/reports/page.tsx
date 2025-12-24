@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, DollarSign, FileText } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, DollarSign, FileText, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -37,6 +37,13 @@ export default function ReportsPage() {
       icon: Package,
       color: 'text-purple-600 bg-purple-100',
       path: '/admin/reports/inventory',
+    },
+    {
+      title: 'Preapprovals Report',
+      description: 'Track Hubtel direct debit mandate approvals and customer authorization status',
+      icon: Shield,
+      color: 'text-teal-600 bg-teal-100',
+      path: '/admin/reports/preapprovals',
     },
     {
       title: 'Dashboard Overview',
