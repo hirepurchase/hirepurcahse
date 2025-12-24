@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, DollarSign, FileText, Shield } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, DollarSign, FileText, Shield, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,13 @@ export default function ReportsPage() {
   const router = useRouter();
 
   const reports = [
+    {
+      title: 'Income Report',
+      description: 'Track payments and revenue by payment method (Direct Debit, Mobile Money, Cash, Bank)',
+      icon: Wallet,
+      color: 'text-emerald-600 bg-emerald-100',
+      path: '/admin/reports/income',
+    },
     {
       title: 'Sales Report',
       description: 'View sales performance, contract values, and sales by category and agent',

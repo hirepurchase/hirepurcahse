@@ -94,12 +94,38 @@ export default function ContractDetailsPage() {
         updateData.paymentMethod = 'NO_PREFERENCE';
       }
 
-      await api.put(`/contracts/${params.id}`, updateData);
+      const response = await api.put(`/contracts/${params.id}`, updateData);
 
-      toast({
-        title: 'Success',
-        description: 'Contract has been updated successfully',
-      });
+      // Check if preapproval was initiated or linked
+      if (response.data.preapproval) {
+        const preapproval = response.data.preapproval;
+
+        if (preapproval.status === 'INITIATED') {
+          toast({
+            title: 'Contract Updated & Preapproval Initiated',
+            description: preapproval.message + '. Customer must approve the direct debit mandate.',
+            duration: 8000,
+          });
+        } else if (preapproval.status === 'ALREADY_APPROVED') {
+          toast({
+            title: 'Contract Updated',
+            description: preapproval.message,
+            duration: 5000,
+          });
+        } else if (preapproval.status === 'FAILED') {
+          toast({
+            title: 'Warning',
+            description: preapproval.message,
+            variant: 'destructive',
+            duration: 8000,
+          });
+        }
+      } else {
+        toast({
+          title: 'Success',
+          description: 'Contract has been updated successfully',
+        });
+      }
 
       setIsEditing(false);
       loadContract();

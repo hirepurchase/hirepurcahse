@@ -21,7 +21,6 @@ import {
   Upload,
   AlertCircle,
   RefreshCw,
-  TestTube2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -34,7 +33,6 @@ const navigation = [
   { name: "Contracts", href: "/admin/contracts", icon: FileText },
   { name: "Payments", href: "/admin/payments", icon: CreditCard },
   { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle },
-  { name: "Hubtel Test", href: "/admin/hubtel-test", icon: TestTube2 },
   { name: "Reports", href: "/admin/reports", icon: BarChart3 },
   { name: "Import Data", href: "/admin/import", icon: Upload },
   { name: "Notifications", href: "/admin/settings/notifications", icon: Bell },
