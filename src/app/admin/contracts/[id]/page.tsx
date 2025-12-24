@@ -394,6 +394,69 @@ export default function ContractDetailsPage() {
               <p className="text-sm text-gray-500">Start Date → End Date</p>
               <p>{formatDate(contract.startDate)} → {formatDate(contract.endDate)}</p>
             </div>
+            {contract.paymentMethod && (
+              <>
+                <div className="border-t pt-3 mt-3">
+                  <p className="text-sm text-gray-500">Payment Method</p>
+                  <p className="font-medium">
+                    {contract.paymentMethod === 'HUBTEL_MOMO' && 'Hubtel Mobile Money'}
+                    {contract.paymentMethod === 'HUBTEL_DIRECT_DEBIT' && 'Hubtel Direct Debit'}
+                    {contract.paymentMethod === 'CASH' && 'Cash'}
+                    {contract.paymentMethod === 'BANK_TRANSFER' && 'Bank Transfer'}
+                  </p>
+                </div>
+                {(contract.paymentMethod === 'HUBTEL_MOMO' || contract.paymentMethod === 'HUBTEL_DIRECT_DEBIT') && (
+                  <>
+                    {contract.mobileMoneyNetwork && (
+                      <div>
+                        <p className="text-sm text-gray-500">Mobile Money Network</p>
+                        <p>{contract.mobileMoneyNetwork}</p>
+                      </div>
+                    )}
+                    {contract.mobileMoneyNumber && (
+                      <div>
+                        <p className="text-sm text-gray-500">Mobile Money Number</p>
+                        <p className="font-mono">{contract.mobileMoneyNumber}</p>
+                      </div>
+                    )}
+                    {contract.paymentMethod === 'HUBTEL_DIRECT_DEBIT' && contract.hubtelPreapproval && (
+                      <div>
+                        <p className="text-sm text-gray-500">Direct Debit Status</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge className={
+                            contract.hubtelPreapproval.status === 'APPROVED' ? 'bg-green-500' :
+                            contract.hubtelPreapproval.status === 'PENDING' ? 'bg-yellow-500' :
+                            contract.hubtelPreapproval.status === 'FAILED' ? 'bg-red-500' :
+                            'bg-gray-500'
+                          }>
+                            {contract.hubtelPreapproval.status}
+                          </Badge>
+                          {contract.hubtelPreapproval.status === 'APPROVED' && contract.hubtelPreapproval.approvedAt && (
+                            <span className="text-xs text-gray-500">
+                              Approved on {formatDate(contract.hubtelPreapproval.approvedAt)}
+                            </span>
+                          )}
+                        </div>
+                        {contract.hubtelPreapproval.status === 'PENDING' && (
+                          <p className="text-xs text-yellow-700 mt-1">
+                            Customer needs to approve the direct debit mandate
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {contract.paymentMethod === 'HUBTEL_DIRECT_DEBIT' && !contract.hubtelPreapproval && (
+                      <div>
+                        <p className="text-sm text-gray-500">Direct Debit Status</p>
+                        <Badge className="bg-orange-500 mt-1">NOT INITIATED</Badge>
+                        <p className="text-xs text-orange-700 mt-1">
+                          Direct debit preapproval has not been set up yet
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
