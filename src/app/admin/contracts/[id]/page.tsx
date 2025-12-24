@@ -52,7 +52,7 @@ export default function ContractDetailsPage() {
       setEditFormData({
         gracePeriodDays: response.data.gracePeriodDays?.toString() || '0',
         penaltyPercentage: response.data.penaltyPercentage?.toString() || '0',
-        paymentMethod: response.data.paymentMethod || '',
+        paymentMethod: response.data.paymentMethod || 'NO_PREFERENCE',
         mobileMoneyNetwork: response.data.mobileMoneyNetwork || '',
         mobileMoneyNumber: response.data.mobileMoneyNumber || '',
       });
@@ -74,7 +74,7 @@ export default function ContractDetailsPage() {
         penaltyPercentage: Number(editFormData.penaltyPercentage),
       };
 
-      if (editFormData.paymentMethod) {
+      if (editFormData.paymentMethod && editFormData.paymentMethod !== 'NO_PREFERENCE') {
         updateData.paymentMethod = editFormData.paymentMethod;
 
         if (editFormData.paymentMethod === 'HUBTEL_MOMO' || editFormData.paymentMethod === 'HUBTEL_DIRECT_DEBIT') {
@@ -89,6 +89,9 @@ export default function ContractDetailsPage() {
           updateData.mobileMoneyNetwork = editFormData.mobileMoneyNetwork;
           updateData.mobileMoneyNumber = editFormData.mobileMoneyNumber;
         }
+      } else if (editFormData.paymentMethod === 'NO_PREFERENCE') {
+        // Explicitly send NO_PREFERENCE to clear the payment method
+        updateData.paymentMethod = 'NO_PREFERENCE';
       }
 
       await api.put(`/contracts/${params.id}`, updateData);
@@ -466,14 +469,14 @@ export default function ContractDetailsPage() {
                 <div>
                   <Label>Payment Method</Label>
                   <Select
-                    value={editFormData.paymentMethod}
+                    value={editFormData.paymentMethod || undefined}
                     onValueChange={(value) => setEditFormData({ ...editFormData, paymentMethod: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No preference</SelectItem>
+                      <SelectItem value="NO_PREFERENCE">No preference</SelectItem>
                       <SelectItem value="HUBTEL_MOMO">Hubtel Mobile Money</SelectItem>
                       <SelectItem value="HUBTEL_DIRECT_DEBIT">Hubtel Direct Debit</SelectItem>
                       <SelectItem value="CASH">Cash</SelectItem>
