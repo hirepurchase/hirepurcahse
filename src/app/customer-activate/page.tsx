@@ -21,10 +21,56 @@ export default function CustomerActivationPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleVerifyMembership = (e: React.FormEvent) => {
+  const handleVerifyMembership = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (membershipId.length > 0) {
-      setStep(2);
+
+    if (membershipId.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please enter your Membership ID',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/customer/verify-membership`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ membershipId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: 'Verification Failed',
+          description: data.error || 'Invalid membership ID',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.valid) {
+        toast({
+          title: 'Success',
+          description: `Welcome ${data.customer.firstName} ${data.customer.lastName}! Please set your credentials.`,
+        });
+        setStep(2);
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to verify membership ID. Please check your connection and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -113,8 +159,8 @@ export default function CustomerActivationPage() {
                   This was provided when you were registered
                 </p>
               </div>
-              <Button type="submit" className="w-full">
-                Continue
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Verifying...' : 'Continue'}
               </Button>
               <div className="text-center text-sm">
                 <p className="text-gray-600">Already activated?</p>
