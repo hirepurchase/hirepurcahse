@@ -279,22 +279,28 @@ export default function CustomerContractPaymentPage() {
         if (attempts < maxAttempts) {
           setTimeout(poll, 2000); // Poll every 2 seconds
         } else {
-          setPaymentStatus('failed');
+          setPaymentStatus('idle');
           setIsProcessing(false);
           toast({
-            title: 'Payment Timeout',
-            description: 'Payment verification timed out. Please check your payment history.',
-            variant: 'destructive',
+            title: 'Payment Pending',
+            description: 'Payment verification timed out. Please check your payment history later.',
+            variant: 'default',
           });
         }
       } catch (error) {
-        console.error('Status check error:', error);
+        // Silently continue polling if status check fails
+        // This is expected when Hubtel hasn't registered the payment yet
         attempts++;
         if (attempts < maxAttempts) {
           setTimeout(poll, 2000);
         } else {
-          setPaymentStatus('failed');
+          setPaymentStatus('idle');
           setIsProcessing(false);
+          toast({
+            title: 'Payment Pending',
+            description: 'Payment verification timed out. Please check your payment history later.',
+            variant: 'default',
+          });
         }
       }
     };

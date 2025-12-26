@@ -752,11 +752,54 @@ function EditInventoryForm({
   onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
+    productId: item.productId || "",
     lockStatus: item.lockStatus || "UNLOCKED",
     registeredUnder: item.registeredUnder || "",
   });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(item.product || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      const productsRes = await api.get("/products", {
+        params: { limit: 1000 },
+      });
+      const productsData = Array.isArray(productsRes.data)
+        ? productsRes.data
+        : productsRes.data?.products || [];
+      setProducts(productsData);
+    } catch (error: any) {
+      console.error("Load products error:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to load products",
+        variant: "destructive",
+      });
+      setProducts([]);
+    }
+  };
+
+  const filteredProducts = products.filter((product) => {
+    const query = searchQuery.toLowerCase();
+    const matchesName = product.name?.toLowerCase().includes(query);
+    const matchesCategory = product.category?.name
+      ?.toLowerCase()
+      .includes(query);
+    return matchesName || matchesCategory;
+  });
+
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setFormData({ ...formData, productId: product.id });
+    setSearchQuery("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -785,13 +828,9 @@ function EditInventoryForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-4">
-        {/* Product Info (Read-only) */}
+        {/* Current Item Info (Read-only) */}
         <div className="bg-gray-50 p-4 rounded-lg space-y-2">
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-gray-600">Product:</span>
-              <p className="font-medium">{item.product?.name}</p>
-            </div>
             <div>
               <span className="text-gray-600">Serial Number:</span>
               <p className="font-mono font-medium">{item.serialNumber}</p>
@@ -801,7 +840,7 @@ function EditInventoryForm({
               <p className="font-medium">{item.status}</p>
             </div>
             {item.contract && (
-              <div>
+              <div className="col-span-2">
                 <span className="text-gray-600">Contract:</span>
                 <p className="font-mono text-sm">
                   {item.contract.contractNumber}
@@ -809,6 +848,93 @@ function EditInventoryForm({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Product Search and Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Product *
+          </label>
+
+          {/* Selected Product Display */}
+          {selectedProduct && (
+            <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold text-lg">
+                    {selectedProduct.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Category: {selectedProduct.category?.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Base Price: GHS {selectedProduct.basePrice}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProduct(null);
+                    setFormData({ ...formData, productId: "" });
+                  }}
+                >
+                  Change
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Product Search Input */}
+          {!selectedProduct && (
+            <>
+              <Input
+                placeholder="Search by product name or category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              {/* Product Search Results */}
+              {searchQuery && (
+                <div className="mt-2 max-h-64 overflow-y-auto border rounded-lg bg-white shadow-lg">
+                  {filteredProducts.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      <p>No products found for "{searchQuery}"</p>
+                      <p className="text-xs mt-1">
+                        Available products: {products.length}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => handleProductSelect(product)}
+                        >
+                          <p className="font-medium">{product.name}</p>
+                          <div className="flex gap-4 text-sm text-gray-600 mt-1">
+                            <span>
+                              Category: {product.category?.name || "N/A"}
+                            </span>
+                            <span>Price: GHS {product.basePrice}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show hint when no search query */}
+              {!searchQuery && products.length > 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Start typing to search from {products.length} available products
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         {/* Lock Status */}
@@ -856,7 +982,7 @@ function EditInventoryForm({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !selectedProduct}>
           {isSubmitting ? "Updating..." : "Update Inventory"}
         </Button>
       </div>
