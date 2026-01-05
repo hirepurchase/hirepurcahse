@@ -81,7 +81,8 @@ export default function PaymentsPage() {
   const loadContracts = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/contracts');
+      // Fetch all contracts (set high limit to get all records)
+      const response = await api.get('/contracts?limit=1000');
       const allContracts = response.data.contracts || [];
 
       // Filter to only show active contracts with outstanding balance
