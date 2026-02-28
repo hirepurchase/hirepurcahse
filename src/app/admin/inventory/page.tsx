@@ -620,7 +620,7 @@ function InventoryForm({
                 <div className="mt-2 max-h-64 overflow-y-auto border rounded-lg bg-white shadow-lg">
                   {filteredProducts.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">
-                      <p>No products found for "{searchQuery}"</p>
+                      <p>No products found for &quot;{searchQuery}&quot;</p>
                       <p className="text-xs mt-1">
                         Available products: {products.length}
                       </p>
@@ -900,7 +900,7 @@ function EditInventoryForm({
                 <div className="mt-2 max-h-64 overflow-y-auto border rounded-lg bg-white shadow-lg">
                   {filteredProducts.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">
-                      <p>No products found for "{searchQuery}"</p>
+                      <p>No products found for &quot;{searchQuery}&quot;</p>
                       <p className="text-xs mt-1">
                         Available products: {products.length}
                       </p>

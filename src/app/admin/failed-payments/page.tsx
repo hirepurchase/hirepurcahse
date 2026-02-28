@@ -583,7 +583,7 @@ function RetrySettingsTab() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Comma-separated days to retry (e.g., "1,3,7" means retry on day 1, 3, and 7)
+            Comma-separated days to retry (e.g., &quot;1,3,7&quot; means retry on day 1, 3, and 7)
           </p>
         </div>
 

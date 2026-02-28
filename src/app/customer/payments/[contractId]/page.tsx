@@ -104,10 +104,15 @@ export default function CustomerContractPaymentPage() {
       setIsLoading(true);
       const response = await api.get(`/customers/me/contracts/${contractId}`);
       setContract(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to load contract',
+        description: message || 'Failed to load contract',
         variant: 'destructive',
       });
     } finally {
@@ -227,12 +232,17 @@ export default function CustomerContractPaymentPage() {
 
       // Start polling for payment status
       pollPaymentStatus(response.data.transactionRef);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       console.error('Payment error:', error);
       setPaymentStatus('failed');
       toast({
         title: 'Payment Failed',
-        description: error.response?.data?.error || 'Failed to initiate payment',
+        description: message || 'Failed to initiate payment',
         variant: 'destructive',
       });
       setIsProcessing(false);

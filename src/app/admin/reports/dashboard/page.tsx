@@ -173,7 +173,7 @@ export default function DashboardStatsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">This Month's Collections</CardTitle>
+            <CardTitle className="text-lg">This Month&apos;s Collections</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -198,7 +198,7 @@ export default function DashboardStatsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">This Week's Collections</CardTitle>
+            <CardTitle className="text-lg">This Week&apos;s Collections</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

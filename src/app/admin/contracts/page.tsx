@@ -1085,7 +1085,7 @@ function CreateHirePurchaseSale({
                           required
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          Customer's mobile money number for payments
+                          Customer&apos;s mobile money number for payments
                         </p>
                       </div>
 
@@ -1093,7 +1093,7 @@ function CreateHirePurchaseSale({
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                           <p className="text-sm text-blue-800">
                             <strong>Direct Debit Setup:</strong> After contract creation,
-                            you'll need to initiate a one-time preapproval request.
+                            you&apos;ll need to initiate a one-time preapproval request.
                             The customer will approve via USSD or OTP, then future
                             installments will be automatically deducted.
                           </p>

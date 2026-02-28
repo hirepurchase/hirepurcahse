@@ -1,254 +1,175 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ShoppingCart,
-  Users,
-  FileText,
-  CreditCard,
-  ArrowRight,
-  Menu,
-  X,
-} from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, CreditCard, FileText, Menu, ShieldCheck, ShoppingCart, Users, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const highlights = [
+  {
+    title: "Customer Management",
+    description: "Complete customer lifecycle, onboarding, and account visibility.",
+    icon: Users,
+  },
+  {
+    title: "Contract Intelligence",
+    description: "Track schedules, balances, and contract performance in one flow.",
+    icon: FileText,
+  },
+  {
+    title: "Integrated Payments",
+    description: "Built for mobile money with live status and retry handling.",
+    icon: CreditCard,
+  },
+];
 
 export default function Home() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Navigation Bar */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <ShoppingCart className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-              <span className="ml-2 text-lg sm:text-xl font-bold text-gray-900">
-                AIDOO TECH
-              </span>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-50 border-b border-white/60 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+          <button
+            className="flex items-center gap-2"
+            onClick={() => router.push("/")}
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_12px_28px_-14px_rgba(13,148,136,0.75)]">
+              <ShoppingCart className="h-5 w-5" />
             </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold tracking-tight text-slate-900">AIDOO TECH</p>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Hire Purchase OS</p>
+            </div>
+          </button>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-4">
+          <nav className="hidden items-center gap-3 md:flex">
+            <Button variant="ghost" onClick={() => router.push("/customer-login")}>
+              Customer Portal
+            </Button>
+            <Button onClick={() => router.push("/admin-login")}>
+              Admin Portal
+            </Button>
+          </nav>
+
+          <button
+            className="rounded-xl border border-slate-200 bg-white p-2 md:hidden"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5 text-slate-700" /> : <Menu className="h-5 w-5 text-slate-700" />}
+          </button>
+        </div>
+        {mobileMenuOpen && (
+          <div className="border-t border-slate-200 bg-white px-4 py-3 md:hidden">
+            <div className="flex flex-col gap-2">
               <Button
                 variant="ghost"
-                onClick={() => router.push("/customer-login")}
-              >
-                Customer Login
-              </Button>
-              <Button onClick={() => router.push("/admin-login")}>
-                Admin Login
-              </Button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6 text-gray-700" />
-              ) : (
-                <Menu className="h-6 w-6 text-gray-700" />
-              )}
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 space-y-2 border-t">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
+                className="justify-start"
                 onClick={() => {
                   router.push("/customer-login");
                   setMobileMenuOpen(false);
                 }}
               >
-                Customer Login
+                Customer Portal
               </Button>
               <Button
-                className="w-full"
+                className="justify-start"
                 onClick={() => {
                   router.push("/admin-login");
                   setMobileMenuOpen(false);
                 }}
               >
-                Admin Login
+                Admin Portal
               </Button>
             </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 sm:mb-6 px-4">
-            AIDOO TECH
-            <span className="block text-blue-600 mt-2">
-              Hire Purchase Solutions
-            </span>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto px-4">
-            Modern hire purchase management system. Manage customers, contracts,
-            and payments with ease.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-            <Button
-              size="lg"
-              className="text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto"
-              onClick={() => router.push("/admin-login")}
-            >
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
           </div>
-        </div>
-      </section>
+        )}
+      </header>
 
-      {/* Features Section - Only show on tablet and up */}
-      <section className="hidden sm:block py-12 md:py-20 px-4 sm:px-6 lg:px-8 bg-white/50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8 md:mb-16">
-            <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2 md:mb-4">
-              Key Features
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600">
-              Everything you need to manage your hire purchase business
-            </p>
-          </div>
+      <main className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:pt-14">
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 p-7 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.65)] backdrop-blur-md sm:p-10 lg:p-14">
+          <div className="absolute -left-24 top-0 h-56 w-56 rounded-full bg-cyan-300/40 blur-3xl" />
+          <div className="absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-amber-200/50 blur-3xl" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            <Card className="border-2 hover:border-blue-500 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-                  <Users className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
-                </div>
-                <CardTitle className="text-lg md:text-xl">Customer Management</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Manage customer profiles and contracts
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-green-500 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-                  <FileText className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
-                </div>
-                <CardTitle className="text-lg md:text-xl">Contract Creation</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Create hire purchase contracts easily
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-purple-500 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-                  <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
-                </div>
-                <CardTitle className="text-lg md:text-xl">Payment Processing</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Mobile money integration with Hubtel
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-orange-500 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-3 md:mb-4">
-                  <ShoppingCart className="h-5 w-5 md:h-6 md:w-6 text-orange-600" />
-                </div>
-                <CardTitle className="text-lg md:text-xl">Inventory Tracking</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Track products and serial numbers
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section for Mobile */}
-      <section className="sm:hidden py-8 px-4">
-        <div className="max-w-md mx-auto space-y-4">
-          <Card className="border-2 hover:border-blue-500 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Admin Portal</CardTitle>
-              <CardDescription className="text-sm">
-                Manage your business operations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                className="w-full"
-                onClick={() => router.push("/admin-login")}
-              >
-                Admin Login
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 hover:border-green-500 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Customer Portal</CardTitle>
-              <CardDescription className="text-sm">
-                View contracts and make payments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                className="w-full"
-                onClick={() => router.push("/customer-login")}
-              >
-                Customer Login
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => router.push("/customer-activate")}
-              >
-                Activate Account
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-8 md:py-12 px-4 sm:px-6 lg:px-8 mt-8 md:mt-0">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 gap-6 md:gap-8 text-center md:text-left">
-            <div>
-              <div className="flex items-center justify-center md:justify-start mb-3 md:mb-4">
-                <ShoppingCart className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-                <span className="ml-2 text-base md:text-lg font-bold text-white">
-                  AIDOO TECH
-                </span>
-              </div>
-              <p className="text-sm md:text-base text-gray-400">
-                Modern hire purchase management system.
+          <div className="relative grid gap-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div className="space-y-5">
+              <p className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-800">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Operational Control Center
               </p>
+              <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                Modern Hire Purchase
+                <span className="block text-primary">Built for Daily Operations</span>
+              </h1>
+              <p className="max-w-xl text-base text-slate-600 sm:text-lg">
+                Manage contracts, payments, inventory, and customer activity from one dependable platform designed for speed and clarity.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button size="lg" onClick={() => router.push("/admin-login")}>
+                  Enter Admin Workspace
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button size="lg" variant="outline" onClick={() => router.push("/customer-login")}>
+                  Open Customer Portal
+                </Button>
+              </div>
             </div>
+
+            <Card className="border-slate-200/70 bg-white/90">
+              <CardHeader className="space-y-3">
+                <CardTitle className="text-xl">Quick Access</CardTitle>
+                <CardDescription>
+                  Pick your workspace to continue.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full justify-start" onClick={() => router.push("/admin-login")}>
+                  <ShieldCheck className="h-4 w-4" />
+                  Admin Login
+                </Button>
+                <Button className="w-full justify-start" variant="secondary" onClick={() => router.push("/customer-login")}>
+                  <Users className="h-4 w-4" />
+                  Customer Login
+                </Button>
+                <p className="pt-1 text-xs text-slate-500">
+                  Customer default username and initial password: phone number.
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-gray-800 text-center">
-            <p className="text-xs md:text-sm text-gray-400">
-              &copy; 2025 AIDOO TECH. All rights reserved.
-            </p>
-            <p className="text-xs md:text-sm text-gray-400 mt-1">
-              Developed By EYO Solutions
-            </p>
+        </section>
+
+        <section className="mt-10 grid gap-4 md:grid-cols-3">
+          {highlights.map((item, index) => (
+            <Card
+              key={item.title}
+              className="translate-y-0 animate-[rise-in_420ms_cubic-bezier(0.19,1,0.22,1)] border-white/70 bg-white/90"
+              style={{ animationDelay: `${index * 110}ms` }}
+            >
+              <CardHeader>
+                <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-cyan-100">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <CardTitle>{item.title}</CardTitle>
+                <CardDescription>{item.description}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </section>
+      </main>
+
+      <footer className="border-t border-white/60 bg-slate-950 px-4 py-9 text-slate-300 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-100">AIDOO TECH</p>
+            <p className="text-xs text-slate-400">Hire Purchase Management Platform</p>
+          </div>
+          <div className="text-xs text-slate-400">
+            <p>&copy; 2026 AIDOO TECH. All rights reserved.</p>
+            <p>Built by EYO Solutions</p>
           </div>
         </div>
       </footer>

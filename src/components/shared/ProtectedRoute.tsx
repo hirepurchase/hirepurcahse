@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import type { AdminUser } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -38,7 +39,7 @@ export default function ProtectedRoute({
     }
 
     if (permissions && currentUserType === 'admin') {
-      const adminUser = user as any;
+      const adminUser = user as AdminUser | null;
       const hasPermission = permissions.some(perm =>
         adminUser?.permissions?.includes(perm) || adminUser?.role === 'SUPER_ADMIN'
       );

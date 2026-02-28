@@ -11,7 +11,7 @@ import { ShoppingCart, ArrowLeft, LogIn, AlertCircle } from "lucide-react";
 
 export default function CustomerLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ export default function CustomerLoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ phone, password }),
       });
 
       if (!response.ok) {
@@ -45,29 +45,31 @@ export default function CustomerLoginPage() {
         localStorage.setItem('userType', 'customer');
         window.location.href = '/customer/dashboard';
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invalid credentials";
+      setError(message || "Invalid credentials");
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back to Home Button */}
         <Button
           variant="ghost"
-          className="mb-4 text-sm sm:text-base"
+          className="mb-4 text-sm sm:text-base text-slate-700"
           onClick={() => router.push('/')}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
         </Button>
 
-        <Card className="shadow-2xl border-0">
+        <Card className="border-white/70 bg-white/90 shadow-[0_30px_60px_-36px_rgba(15,23,42,0.7)]">
           <CardHeader className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 px-4 sm:px-6">
             <div className="flex justify-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-cyan-700 to-emerald-700 rounded-2xl flex items-center justify-center shadow-[0_20px_30px_-20px_rgba(13,148,136,0.8)]">
                 <ShoppingCart className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
             </div>
@@ -93,15 +95,15 @@ export default function CustomerLoginPage() {
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm sm:text-base">Email Address</Label>
+                <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   required
                   disabled={isLoading}
-                  placeholder="your.email@example.com"
+                  placeholder="0246462398"
                   className="h-10 sm:h-11 text-sm sm:text-base"
                 />
               </div>
@@ -123,7 +125,7 @@ export default function CustomerLoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 sm:h-11 text-sm sm:text-base bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                className="w-full h-10 sm:h-11 text-sm sm:text-base"
               >
                 {isLoading ? (
                   <>
@@ -139,29 +141,14 @@ export default function CustomerLoginPage() {
               </Button>
             </form>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">
-                  Don't have an account?
-                </span>
-              </div>
-            </div>
-
-            {/* Activate Account Link */}
-            <div className="text-center space-y-3">
-              <p className="text-xs sm:text-sm text-gray-600">
-                If you're a new customer, activate your account first
-              </p>
+            <div className="text-center text-xs sm:text-sm text-gray-600 space-y-2">
+              <p>Your login username and initial password are your phone number.</p>
               <Button
-                variant="outline"
-                className="w-full h-10 sm:h-11 text-sm sm:text-base"
-                onClick={() => router.push('/customer-activate')}
+                variant="link"
+                className="h-auto p-0 text-primary"
+                onClick={() => router.push('/customer-reset-password')}
               >
-                Activate Your Account
+                Forgot password?
               </Button>
             </div>
           </CardContent>

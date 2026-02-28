@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, DollarSign, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -120,27 +121,27 @@ export default function AdminDashboard() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <a
+            <Link
               href="/admin/customers?action=new"
               className="block p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
             >
               <p className="font-medium text-blue-900">Register New Customer</p>
               <p className="text-sm text-blue-700">Create a customer account and generate membership ID</p>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/contracts?action=new"
               className="block p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
             >
               <p className="font-medium text-green-900">Create Hire Purchase Sale</p>
               <p className="text-sm text-green-700">Initiate a new hire purchase contract</p>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/products?action=new"
               className="block p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
             >
               <p className="font-medium text-purple-900">Add Product</p>
               <p className="text-sm text-purple-700">Add new products to inventory</p>
-            </a>
+            </Link>
           </CardContent>
         </Card>
 

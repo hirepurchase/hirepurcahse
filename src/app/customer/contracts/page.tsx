@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 import { formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import type { HirePurchaseContract } from '@/types';
 
 export default function CustomerContractsPage() {
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [filteredContracts, setFilteredContracts] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<HirePurchaseContract[]>([]);
+  const [filteredContracts, setFilteredContracts] = useState<HirePurchaseContract[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
@@ -42,10 +43,15 @@ export default function CustomerContractsPage() {
       const contractsData = response.data.contracts || [];
       setContracts(contractsData);
       setFilteredContracts(contractsData);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to load contracts',
+        description: message || 'Failed to load contracts',
         variant: 'destructive',
       });
     } finally {
@@ -91,7 +97,7 @@ export default function CustomerContractsPage() {
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium">No contracts found</p>
               <p className="text-sm mt-1">
-                {searchQuery ? 'Try a different search term' : 'You don\'t have any contracts yet'}
+                {searchQuery ? 'Try a different search term' : 'You don&apos;t have any contracts yet'}
               </p>
             </div>
           </CardContent>

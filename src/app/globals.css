@@ -1,26 +1,27 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 3.9%;
+  --background: 205 40% 98%;
+  --foreground: 220 45% 13%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 3.9%;
+  --card-foreground: 220 45% 13%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 3.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
+  --popover-foreground: 220 45% 13%;
+  --primary: 187 96% 28%;
+  --primary-foreground: 185 100% 97%;
+  --secondary: 203 37% 92%;
+  --secondary-foreground: 218 41% 20%;
+  --muted: 207 28% 94%;
+  --muted-foreground: 218 17% 42%;
+  --accent: 27 95% 92%;
+  --accent-foreground: 22 73% 30%;
+  --destructive: 0 79% 56%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  --border: 209 31% 84%;
+  --input: 209 31% 84%;
+  --ring: 187 96% 28%;
+  --radius: 0.95rem;
 }
 
 * {
@@ -28,6 +29,49 @@
 }
 
 body {
+  font-family: "Space Grotesk", "Manrope", "Avenir Next", "Segoe UI", sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  background-image:
+    radial-gradient(circle at 5% 0%, rgba(13, 148, 136, 0.15), transparent 28%),
+    radial-gradient(circle at 95% 15%, rgba(251, 146, 60, 0.16), transparent 25%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.98));
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Sora", "Plus Jakarta Sans", "Space Grotesk", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(13, 148, 136, 0.24);
+  color: hsl(var(--foreground));
+}
+
+.page-shell {
+  animation: rise-in 0.42s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.surface-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

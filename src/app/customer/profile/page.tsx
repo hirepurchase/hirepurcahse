@@ -11,11 +11,32 @@ import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
-import { useAuth } from '@/hooks/useAuth';
+import type { Customer, HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
+
+type ProfileContract = HirePurchaseContract & {
+  amountPaid?: number;
+  installments?: InstallmentSchedule[];
+};
+
+type ProfilePayment = PaymentTransaction & {
+  paymentType?: string;
+  contract?: HirePurchaseContract;
+};
+
+type CustomerProfile = Customer & {
+  address?: string | null;
+  dateOfBirth?: Date | string | null;
+  createdAt?: Date | string;
+  contracts?: ProfileContract[];
+  payments?: ProfilePayment[];
+  contractsCount?: number;
+  activeContracts?: number;
+  totalPaid?: number;
+  nationalId?: string | null;
+};
 
 export default function CustomerProfilePage() {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,10 +69,15 @@ export default function CustomerProfilePage() {
         phone: response.data.phone || '',
         address: response.data.address || '',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to load profile',
+        description: message || 'Failed to load profile',
         variant: 'destructive',
       });
     } finally {
@@ -71,10 +97,15 @@ export default function CustomerProfilePage() {
       });
       setIsEditing(false);
       loadProfile();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to update profile',
+        description: message || 'Failed to update profile',
         variant: 'destructive',
       });
     } finally {
@@ -116,10 +147,15 @@ export default function CustomerProfilePage() {
       });
       setIsChangingPassword(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to change password',
+        description: message || 'Failed to change password',
         variant: 'destructive',
       });
     } finally {
@@ -217,9 +253,9 @@ export default function CustomerProfilePage() {
                       onClick={() => {
                         setIsEditing(false);
                         setFormData({
-                          email: profile.email || '',
-                          phone: profile.phone || '',
-                          address: profile.address || '',
+                          email: profile?.email || '',
+                          phone: profile?.phone || '',
+                          address: profile?.address || '',
                         });
                       }}
                       disabled={isSaving}
@@ -444,7 +480,9 @@ export default function CustomerProfilePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {profile.contracts.map((contract: any) => (
+                    {profile.contracts.map((contract: ProfileContract) => {
+                      const installmentCount = contract.installments?.length ?? 0;
+                      return (
                       <TableRow key={contract.id}>
                         <TableCell className="font-mono text-sm">
                           {contract.contractNumber}
@@ -465,8 +503,8 @@ export default function CustomerProfilePage() {
                           {formatCurrency((contract.totalPrice || 0) - (contract.amountPaid || 0))}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={contract.installments?.length > 0 ? 'default' : 'secondary'}>
-                            {contract.installments?.length || 0}
+                          <Badge variant={installmentCount > 0 ? 'default' : 'secondary'}>
+                            {installmentCount}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -483,7 +521,7 @@ export default function CustomerProfilePage() {
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               </div>
@@ -522,7 +560,7 @@ export default function CustomerProfilePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {profile.payments.slice(0, 20).map((payment: any) => (
+                    {profile.payments.slice(0, 20).map((payment: ProfilePayment) => (
                       <TableRow key={payment.id}>
                         <TableCell className="text-sm">
                           {formatDate(payment.createdAt)}

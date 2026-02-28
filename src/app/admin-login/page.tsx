@@ -45,29 +45,31 @@ export default function AdminLoginPage() {
         localStorage.setItem('userType', 'admin');
         window.location.href = '/admin/dashboard';
       }
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invalid credentials";
+      setError(message || "Invalid credentials");
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back to Home Button */}
         <Button
           variant="ghost"
-          className="mb-4 text-sm sm:text-base"
+          className="mb-4 text-sm sm:text-base text-slate-700"
           onClick={() => router.push('/')}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
         </Button>
 
-        <Card className="shadow-2xl border-0">
+        <Card className="border-white/70 bg-white/90 shadow-[0_30px_60px_-36px_rgba(15,23,42,0.7)]">
           <CardHeader className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 px-4 sm:px-6">
             <div className="flex justify-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-slate-800 to-cyan-700 rounded-2xl flex items-center justify-center shadow-[0_20px_30px_-20px_rgba(8,145,178,0.75)]">
                 <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
             </div>
@@ -123,7 +125,7 @@ export default function AdminLoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 sm:h-11 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="w-full h-10 sm:h-11 text-sm sm:text-base"
               >
                 {isLoading ? (
                   <>

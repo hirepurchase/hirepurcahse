@@ -359,7 +359,7 @@ export default function ImportPage() {
               <div>
                 <p className="font-medium">Download Template</p>
                 <p className="text-gray-600">
-                  Click "Download Template" to get the Excel template with
+                  Click &quot;Download Template&quot; to get the Excel template with
                   sample data
                 </p>
               </div>
@@ -383,7 +383,7 @@ export default function ImportPage() {
               <div>
                 <p className="font-medium">Upload & Import</p>
                 <p className="text-gray-600">
-                  Click "Upload File", select your filled template, and import
+                  Click &quot;Upload File&quot;, select your filled template, and import
                 </p>
               </div>
             </li>

@@ -10,11 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 import { formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import type { HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
 
 export default function CustomerContractDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [contract, setContract] = useState<any>(null);
+  const [contract, setContract] = useState<HirePurchaseContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -27,10 +28,15 @@ export default function CustomerContractDetailPage() {
       setIsLoading(true);
       const response = await api.get(`/customers/me/contracts/${params.id}`);
       setContract(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to load contract',
+        description: message || 'Failed to load contract',
         variant: 'destructive',
       });
     } finally {
@@ -46,8 +52,9 @@ export default function CustomerContractDetailPage() {
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
+      const contractNumber = contract?.contractNumber || 'contract';
       link.href = url;
-      link.setAttribute('download', `statement-${contract.contractNumber}.pdf`);
+      link.setAttribute('download', `statement-${contractNumber}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -56,10 +63,15 @@ export default function CustomerContractDetailPage() {
         title: 'Success',
         description: 'Statement downloaded successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to download statement',
+        description: message || 'Failed to download statement',
         variant: 'destructive',
       });
     }
@@ -203,7 +215,7 @@ export default function CustomerContractDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contract.installments?.map((inst: any) => (
+                  {contract.installments?.map((inst: InstallmentSchedule) => (
                     <TableRow key={inst.id}>
                       <TableCell>{inst.installmentNo}</TableCell>
                       <TableCell>{formatDate(inst.dueDate)}</TableCell>
@@ -241,7 +253,7 @@ export default function CustomerContractDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {contract.payments?.map((payment: any) => (
+                    {contract.payments?.map((payment: PaymentTransaction) => (
                       <TableRow key={payment.id}>
                         <TableCell className="font-mono text-sm">
                           {payment.transactionRef}

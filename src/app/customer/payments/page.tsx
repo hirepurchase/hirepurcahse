@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import api from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 
 interface Contract {
@@ -61,10 +61,15 @@ export default function CustomerPaymentsPage() {
       );
 
       setContracts(activeContracts);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to load contracts',
+        description: message || 'Failed to load contracts',
         variant: 'destructive',
       });
     } finally {

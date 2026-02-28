@@ -16,7 +16,7 @@ export default function CustomerLayout({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.push('/customer/login');
+        router.push('/customer-login');
       } else if (userType !== 'customer') {
         router.push('/admin/dashboard');
       }
@@ -32,10 +32,10 @@ export default function CustomerLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-transparent surface-grid">
       <CustomerSidebar />
       <main className="flex-1 overflow-auto pt-16 lg:pt-0">
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="page-shell p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

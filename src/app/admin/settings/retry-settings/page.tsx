@@ -200,7 +200,7 @@ export default function RetrySettingsPage() {
             </p>
             <div className="mt-2 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-800">
-                <strong>Example:</strong> Schedule "1,3,7" with 3 max retries means:
+                <strong>Example:</strong> Schedule &quot;1,3,7&quot; with 3 max retries means:
                 <br />• Attempt 1: 1 day after failure
                 <br />• Attempt 2: 3 days after failure
                 <br />• Attempt 3: 7 days after failure

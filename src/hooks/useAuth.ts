@@ -21,64 +21,56 @@ export function useAuth() {
     initializeAuth();
   }, [initializeAuth]);
 
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (typeof error === "object" && error !== null) {
+      const response = (error as { response?: { data?: { error?: string } } })
+        .response;
+      if (response?.data?.error) {
+        return response.data.error;
+      }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    return fallback;
+  };
+
   const loginAdmin = async (email: string, password: string) => {
     try {
-      const response = await api.post<LoginResponse>("/auth/admin-login", {
+      const response = await api.post<LoginResponse>("/auth/admin/login", {
         email,
         password,
       });
       const { token, user } = response.data;
       setAuth(user, "admin", token);
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.response?.data?.error || "Login failed",
+        error: getErrorMessage(error, "Login failed"),
       };
     }
   };
 
-  const loginCustomer = async (email: string, password: string) => {
+  const loginCustomer = async (phone: string, password: string) => {
     try {
-      const response = await api.post<LoginResponse>("/auth/customer-login", {
-        email,
+      const response = await api.post<LoginResponse>("/auth/customer/login", {
+        phone,
         password,
       });
       const { token, user } = response.data;
       setAuth(user, "customer", token);
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.response?.data?.error || "Login failed",
+        error: getErrorMessage(error, "Login failed"),
       };
     }
   };
 
-  const activateAccount = async (
-    membershipId: string,
-    email: string,
-    password: string
-  ) => {
-    try {
-      const response = await api.post<LoginResponse>(
-        "/auth/customer/activate",
-        {
-          membershipId,
-          email,
-          password,
-        }
-      );
-      const { token, user } = response.data;
-      setAuth(user, "customer", token);
-      return { success: true };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || "Account activation failed",
-      };
-    }
-  };
 
   const logoutUser = () => {
     logout();
@@ -94,7 +86,6 @@ export function useAuth() {
     isLoading,
     loginAdmin,
     loginCustomer,
-    activateAccount,
     logout: logoutUser,
   };
 }

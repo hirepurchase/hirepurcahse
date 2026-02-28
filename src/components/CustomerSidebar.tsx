@@ -14,39 +14,40 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Customer } from "@/types";
+import type { LucideIcon } from "lucide-react";
 
-export default function CustomerSidebar() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+type NavigationItem = {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+};
 
-  // Type guard to check if user is a customer
-  const customerUser = user && "membershipId" in user ? user : null;
+type SidebarContentProps = {
+  user: Customer | null;
+  navigation: NavigationItem[];
+  pathname: string | null;
+  onNavigate: (href: string) => void;
+  onLogout: () => void;
+};
 
-  const navigation = [
-    { name: "Dashboard", href: "/customer/dashboard", icon: Home },
-    { name: "My Contracts", href: "/customer/contracts", icon: FileText },
-    { name: "Payments", href: "/customer/payments", icon: CreditCard },
-    { name: "Profile", href: "/customer/profile", icon: User },
-  ];
-
-  const handleLogout = () => {
-    logout();
-    setMobileMenuOpen(false);
-    router.push("/customer/login");
-  };
-
-  const SidebarContent = () => (
+function SidebarContent({
+  user,
+  navigation,
+  pathname,
+  onNavigate,
+  onLogout,
+}: SidebarContentProps) {
+  return (
     <>
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-green-700">
-        <h1 className="text-lg sm:text-2xl font-bold">AIDOO TECH</h1>
-        <p className="text-green-100 text-xs sm:text-sm mt-1 truncate">
+      <div className="p-4 sm:p-6 border-b border-amber-200/30 bg-white/5">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight">AIDOO TECH</h1>
+        <p className="text-amber-50/85 text-xs sm:text-sm mt-1 truncate">
           {user?.firstName} {user?.lastName}
         </p>
-        <p className="text-green-200 text-xs font-mono mt-0.5 truncate">
-          ID: {customerUser?.membershipId}
+        <p className="text-amber-100/70 text-xs font-mono mt-0.5 truncate">
+          ID: {user?.membershipId}
         </p>
       </div>
 
@@ -58,15 +59,12 @@ export default function CustomerSidebar() {
           return (
             <button
               key={item.name}
-              onClick={() => {
-                router.push(item.href);
-                setMobileMenuOpen(false);
-              }}
+              onClick={() => onNavigate(item.href)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-colors text-sm sm:text-base",
                 isActive
-                  ? "bg-white text-green-800 font-medium"
-                  : "text-green-100 hover:bg-green-700"
+                  ? "bg-white/15 text-white font-medium ring-1 ring-white/30"
+                  : "text-amber-50/90 hover:bg-white/10"
               )}
             >
               <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
@@ -77,11 +75,11 @@ export default function CustomerSidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="p-3 sm:p-4 border-t border-green-700">
+      <div className="p-3 sm:p-4 border-t border-amber-200/25">
         <Button
           variant="outline"
-          className="w-full bg-transparent border-white text-white hover:bg-green-700 text-sm sm:text-base h-9 sm:h-10"
-          onClick={handleLogout}
+          className="w-full bg-transparent border-white/80 text-white hover:bg-white/12 text-sm sm:text-base h-9 sm:h-10"
+          onClick={onLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Logout
@@ -89,8 +87,8 @@ export default function CustomerSidebar() {
       </div>
 
       {/* Footer */}
-      <div className="p-3 sm:p-4 border-t border-green-700">
-        <p className="text-xs text-green-200">
+      <div className="p-3 sm:p-4 border-t border-amber-200/25">
+        <p className="text-xs text-amber-100/75">
           EYO Solutions
           <br />
           0246-462398
@@ -98,13 +96,36 @@ export default function CustomerSidebar() {
       </div>
     </>
   );
+}
+
+export default function CustomerSidebar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Type guard to check if user is a customer
+  const customerUser = user && "membershipId" in user ? user : null;
+
+  const navigation: NavigationItem[] = [
+    { name: "Dashboard", href: "/customer/dashboard", icon: Home },
+    { name: "My Contracts", href: "/customer/contracts", icon: FileText },
+    { name: "Payments", href: "/customer/payments", icon: CreditCard },
+    { name: "Profile", href: "/customer/profile", icon: User },
+  ];
+
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+    router.push("/customer-login");
+  };
 
   return (
     <>
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-green-600 text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-cyan-800 text-white rounded-xl shadow-[0_12px_26px_-14px_rgba(8,145,178,0.75)]"
       >
         {mobileMenuOpen ? (
           <X className="h-6 w-6" />
@@ -122,18 +143,36 @@ export default function CustomerSidebar() {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex h-screen w-64 flex-col bg-gradient-to-b from-green-600 to-green-800 text-white">
-        <SidebarContent />
+      <div className="hidden lg:flex h-screen w-64 flex-col bg-gradient-to-b from-cyan-900 via-teal-900 to-emerald-900 text-white border-r border-white/10">
+        <SidebarContent
+          user={customerUser}
+          navigation={navigation}
+          pathname={pathname}
+          onNavigate={(href) => {
+            router.push(href);
+            setMobileMenuOpen(false);
+          }}
+          onLogout={handleLogout}
+        />
       </div>
 
       {/* Mobile Sidebar */}
       <div
         className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-gradient-to-b from-green-600 to-green-800 text-white transform transition-transform duration-300 ease-in-out",
+          "lg:hidden fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-gradient-to-b from-cyan-900 via-teal-900 to-emerald-900 text-white transform transition-transform duration-300 ease-in-out",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <SidebarContent />
+        <SidebarContent
+          user={customerUser}
+          navigation={navigation}
+          pathname={pathname}
+          onNavigate={(href) => {
+            router.push(href);
+            setMobileMenuOpen(false);
+          }}
+          onLogout={handleLogout}
+        />
       </div>
     </>
   );

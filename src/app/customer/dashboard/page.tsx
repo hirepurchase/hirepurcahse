@@ -10,15 +10,27 @@ import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import type { HirePurchaseContract, InstallmentSchedule } from '@/types';
+
+type UpcomingInstallment = InstallmentSchedule & {
+  contract?: { contractNumber?: string };
+};
+
+type DashboardStats = {
+  totalContracts: number;
+  activeContracts: number;
+  totalOutstanding: number;
+  nextPaymentDue: UpcomingInstallment | null;
+};
 
 export default function CustomerDashboardPage() {
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [upcomingPayments, setUpcomingPayments] = useState<any[]>([]);
-  const [stats, setStats] = useState({
+  const [contracts, setContracts] = useState<HirePurchaseContract[]>([]);
+  const [upcomingPayments, setUpcomingPayments] = useState<UpcomingInstallment[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
     totalContracts: 0,
     activeContracts: 0,
     totalOutstanding: 0,
-    nextPaymentDue: null as any,
+    nextPaymentDue: null,
   });
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -38,9 +50,9 @@ export default function CustomerDashboardPage() {
       setContracts(contractsData);
 
       // Calculate stats
-      const activeContracts = contractsData.filter((c: any) => c.status === 'ACTIVE');
+      const activeContracts = contractsData.filter((c: HirePurchaseContract) => c.status === 'ACTIVE');
       const totalOutstanding = contractsData.reduce(
-        (sum: number, c: any) => sum + (c.outstandingBalance || 0),
+        (sum: number, c: HirePurchaseContract) => sum + (c.outstandingBalance || 0),
         0
       );
 
@@ -55,10 +67,15 @@ export default function CustomerDashboardPage() {
         totalOutstanding,
         nextPaymentDue: upcomingData[0] || null,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        typeof error === 'object' && error !== null
+          ? (error as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to load dashboard data',
+        description: message || 'Failed to load dashboard data',
         variant: 'destructive',
       });
     } finally {
@@ -236,7 +253,7 @@ export default function CustomerDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingPayments.slice(0, 5).map((inst: any) => (
+                  {upcomingPayments.slice(0, 5).map((inst: UpcomingInstallment) => (
                     <TableRow key={inst.id}>
                       <TableCell className="font-mono text-sm">
                         {inst.contract?.contractNumber}

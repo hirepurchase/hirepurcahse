@@ -2,23 +2,23 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-export interface TableColumn {
+export interface TableColumn<T = Record<string, unknown>> {
   header: string;
-  accessor: string | ((row: any) => string);
+  accessor: keyof T | ((row: T) => string | number);
   align?: 'left' | 'center' | 'right';
 }
 
-export interface ExportOptions {
+export interface ExportOptions<T = Record<string, unknown>> {
   title: string;
   filename: string;
   summary?: Array<{ label: string; value: string | number }>;
-  columns: TableColumn[];
-  data: any[];
+  columns: TableColumn<T>[];
+  data: T[];
   dateRange?: { start: string; end: string };
 }
 
 // Export to PDF
-export function exportToPDF(options: ExportOptions) {
+export function exportToPDF<T>(options: ExportOptions<T>) {
   const { title, filename, summary, columns, data, dateRange } = options;
   const doc = new jsPDF();
 
@@ -59,7 +59,8 @@ export function exportToPDF(options: ExportOptions) {
       if (typeof col.accessor === 'function') {
         return col.accessor(row);
       }
-      return row[col.accessor] || '';
+      const value = row[col.accessor];
+      return value ? String(value) : '';
     })
   );
 
@@ -75,11 +76,22 @@ export function exportToPDF(options: ExportOptions) {
         acc[index] = { halign: col.align };
       }
       return acc;
-    }, {} as any),
+    }, {} as Record<number, { halign: 'left' | 'center' | 'right' }>),
   });
 
   // Add footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
+  const getPageCount = (pdf: jsPDF): number => {
+    const typed = pdf as unknown as {
+      getNumberOfPages?: () => number;
+      internal?: { getNumberOfPages?: () => number };
+    };
+
+    if (typed.getNumberOfPages) return typed.getNumberOfPages();
+    if (typed.internal?.getNumberOfPages) return typed.internal.getNumberOfPages();
+    return 1;
+  };
+
+  const pageCount = getPageCount(doc);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
@@ -100,11 +112,11 @@ export function exportToPDF(options: ExportOptions) {
 }
 
 // Export to Excel
-export function exportToExcel(options: ExportOptions) {
+export function exportToExcel<T>(options: ExportOptions<T>) {
   const { title, filename, summary, columns, data, dateRange } = options;
 
   const workbook = XLSX.utils.book_new();
-  const worksheetData: any[][] = [];
+  const worksheetData: Array<Array<string | number>> = [];
 
   // Add title
   worksheetData.push([title]);
@@ -135,9 +147,10 @@ export function exportToExcel(options: ExportOptions) {
       if (typeof col.accessor === 'function') {
         return col.accessor(row);
       }
-      return row[col.accessor] || '';
+      const value = row[col.accessor];
+      return value ? String(value) : '';
     });
-    worksheetData.push(rowData);
+    worksheetData.push(rowData as Array<string | number>);
   });
 
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
@@ -150,7 +163,7 @@ export function exportToExcel(options: ExportOptions) {
 }
 
 // Export to CSV
-export function exportToCSV(options: ExportOptions) {
+export function exportToCSV<T>(options: ExportOptions<T>) {
   const { filename, columns, data } = options;
 
   const headers = columns.map((col) => col.header);
