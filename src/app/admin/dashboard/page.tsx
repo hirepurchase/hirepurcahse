@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils';
 
 interface DashboardStats {
   totalCustomers: number;
+  totalContracts: number;
   activeContracts: number;
   totalRevenue: number;
   overduePayments: number;
@@ -17,6 +18,7 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
+    totalContracts: 0,
     activeContracts: 0,
     totalRevenue: 0,
     overduePayments: 0,
@@ -29,18 +31,15 @@ export default function AdminDashboard() {
 
   const loadDashboardStats = async () => {
     try {
-      // In a real app, you'd have a dedicated dashboard stats endpoint
-      // For now, we'll fetch from multiple endpoints
-      const [customersRes, contractsRes] = await Promise.all([
-        api.get('/customers?limit=1'),
-        api.get('/contracts?limit=1'),
-      ]);
+      const response = await api.get('/reports/dashboard');
+      const payload = response.data;
 
       setStats({
-        totalCustomers: customersRes.data.pagination?.total || 0,
-        activeContracts: contractsRes.data.pagination?.total || 0,
-        totalRevenue: 0, // Would come from a stats endpoint
-        overduePayments: 0, // Would come from a stats endpoint
+        totalCustomers: payload?.customers?.total || 0,
+        totalContracts: payload?.contracts?.total || 0,
+        activeContracts: payload?.contracts?.active || 0,
+        totalRevenue: payload?.payments?.monthlyTotal || 0,
+        overduePayments: payload?.alerts?.overdueInstallments || 0,
       });
     } catch (error) {
       console.error('Failed to load dashboard stats:', error);
@@ -58,14 +57,15 @@ export default function AdminDashboard() {
       bgColor: 'bg-blue-100',
     },
     {
-      title: 'Active Contracts',
-      value: stats.activeContracts,
+      title: 'Total Contracts',
+      value: stats.totalContracts,
       icon: FileText,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
+      subtitle: `${stats.activeContracts} active`,
     },
     {
-      title: 'Total Revenue',
+      title: 'This Month Revenue',
       value: formatCurrency(stats.totalRevenue),
       icon: DollarSign,
       color: 'text-purple-600',
@@ -109,6 +109,9 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
+              {'subtitle' in stat && stat.subtitle ? (
+                <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
+              ) : null}
             </CardContent>
           </Card>
         ))}
