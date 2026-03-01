@@ -7,6 +7,15 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
+interface RecentContract {
+  id: string;
+  createdAt: string;
+  totalAmount: number;
+  status: string;
+  customer: { firstName: string; lastName: string; membershipId: string };
+  inventoryItem: { product: { name: string } } | null;
+}
+
 interface DashboardStats {
   totalCustomers: number;
   totalContracts: number;
@@ -23,7 +32,9 @@ export default function AdminDashboard() {
     totalRevenue: 0,
     overduePayments: 0,
   });
+  const [recentContracts, setRecentContracts] = useState<RecentContract[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardStats();
@@ -31,18 +42,21 @@ export default function AdminDashboard() {
 
   const loadDashboardStats = async () => {
     try {
+      setError(null);
       const response = await api.get('/reports/dashboard');
       const payload = response.data;
 
       setStats({
-        totalCustomers: payload?.customers?.total || 0,
-        totalContracts: payload?.contracts?.total || 0,
-        activeContracts: payload?.contracts?.active || 0,
-        totalRevenue: payload?.payments?.monthlyTotal || 0,
-        overduePayments: payload?.alerts?.overdueInstallments || 0,
+        totalCustomers: payload?.customers?.total ?? 0,
+        totalContracts: payload?.contracts?.total ?? 0,
+        activeContracts: payload?.contracts?.active ?? 0,
+        totalRevenue: payload?.payments?.monthlyTotal ?? 0,
+        overduePayments: payload?.alerts?.overdueInstallments ?? 0,
       });
-    } catch (error) {
-      console.error('Failed to load dashboard stats:', error);
+      setRecentContracts(payload?.recentContracts ?? []);
+    } catch (err) {
+      console.error('Failed to load dashboard stats:', err);
+      setError('Could not load dashboard statistics. Please refresh the page.');
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +109,19 @@ export default function AdminDashboard() {
         <p className="text-gray-600 mt-1">Welcome to your hire purchase management system</p>
       </div>
 
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            onClick={loadDashboardStats}
+            className="ml-auto text-sm font-medium text-red-700 underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statCards.map((stat) => (
@@ -117,7 +144,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions + Recent Contracts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -150,13 +177,48 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Recent Contracts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              <p>No recent activity</p>
-              <p className="text-sm mt-1">Activity will appear here once you start using the system</p>
-            </div>
+            {recentContracts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No contracts yet</p>
+                <p className="text-sm mt-1">Recent contracts will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentContracts.map((contract) => (
+                  <Link
+                    key={contract.id}
+                    href={`/admin/contracts/${contract.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {contract.customer.firstName} {contract.customer.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {contract.inventoryItem?.product?.name ?? 'Product'} · {contract.customer.membershipId}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatCurrency(contract.totalAmount)}
+                      </p>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        contract.status === 'ACTIVE'
+                          ? 'bg-green-100 text-green-700'
+                          : contract.status === 'COMPLETED'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {contract.status}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
