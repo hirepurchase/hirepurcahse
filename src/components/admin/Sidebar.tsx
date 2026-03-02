@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { AdminUser } from "@/types";
 import type { LucideIcon } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -100,6 +101,14 @@ function SidebarContent({
           );
         })}
       </nav>
+
+      {/* Daily Payments Bell */}
+      <div className="border-t border-cyan-300/20 p-3 sm:p-4">
+        <div className="flex items-center gap-3 px-3 py-1">
+          <NotificationBell />
+          <span className="text-xs sm:text-sm font-medium text-cyan-50/85">Daily Payments</span>
+        </div>
+      </div>
 
       {/* Logout */}
       <div className="border-t border-cyan-300/20 p-3 sm:p-4">

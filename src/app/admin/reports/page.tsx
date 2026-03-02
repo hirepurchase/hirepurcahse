@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, DollarSign, FileText, Shield, Wallet } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,7 @@ export default function ReportsPage() {
     {
       title: 'Payment Report',
       description: 'Track payment collections, transaction status, and payment methods',
-      icon: DollarSign,
+      icon: Banknote,
       color: 'text-blue-600 bg-blue-100',
       path: '/admin/reports/payments',
     },

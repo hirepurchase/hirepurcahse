@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, FileText, User, Package, Calendar, DollarSign, CalendarRange, Pencil } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -490,7 +490,7 @@ export default function ContractDetailsPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <Banknote className="h-5 w-5" />
             Payment Summary
           </CardTitle>
         </CardHeader>

@@ -6,7 +6,7 @@ import {
   Plus,
   FileText,
   Calendar,
-  DollarSign,
+  Banknote,
   Search,
   Trash2,
 } from "lucide-react";
@@ -553,9 +553,7 @@ function CreateHirePurchaseSale({
         submitData.append("signature", signatureFile);
       }
 
-      const response = await api.post("/contracts", submitData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.post("/contracts", submitData);
 
       toast({
         title: "Contract Created!",

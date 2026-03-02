@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreditCard, DollarSign, FileText, AlertCircle } from 'lucide-react';
+import { CreditCard, Banknote, FileText, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -130,7 +130,7 @@ export default function CustomerPaymentsPage() {
                 <p className="text-sm text-gray-600">Total Outstanding</p>
                 <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalOutstanding)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-blue-600" />
+              <Banknote className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>

@@ -2,6 +2,7 @@
 
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import Sidebar from '@/components/admin/Sidebar';
+import DailyPaymentsBanner from '@/components/admin/DailyPaymentsBanner';
 
 export default function AdminLayout({
   children,
@@ -13,6 +14,7 @@ export default function AdminLayout({
       <div className="flex h-screen overflow-hidden surface-grid">
         <Sidebar />
         <main className="flex-1 overflow-y-auto bg-transparent pt-16 lg:pt-0">
+          <DailyPaymentsBanner />
           <div className="page-shell p-4 sm:p-6 lg:p-8">
             {children}
           </div>

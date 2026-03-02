@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, DollarSign, Calendar, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Banknote, Calendar, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -433,7 +433,7 @@ export default function ContractPaymentPage() {
                   <>Processing...</>
                 ) : (
                   <>
-                    <DollarSign className="h-4 w-4 mr-2" />
+                    <Banknote className="h-4 w-4 mr-2" />
                     Process Payment ({selectedInstallments.size})
                   </>
                 )}

@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
-  DollarSign,
   Download,
   TrendingUp,
   CreditCard,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Payment {
   id: string;
@@ -72,6 +72,10 @@ export default function IncomeReportPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [stats, setStats] = useState<IncomeStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 20;
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -80,10 +84,10 @@ export default function IncomeReportPage() {
     search: '',
   });
 
-  const loadReport = async () => {
+  const loadReport = async (page = currentPage) => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: any = { page, limit: itemsPerPage };
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
       if (filters.paymentMethod !== 'ALL') params.paymentMethod = filters.paymentMethod;
@@ -92,6 +96,8 @@ export default function IncomeReportPage() {
       const response = await api.get('/reports/income', { params });
       setPayments(response.data.payments);
       setStats(response.data.stats);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalItems(response.data.pagination?.total || 0);
     } catch (error) {
       console.error('Failed to load income report:', error);
     } finally {
@@ -100,15 +106,20 @@ export default function IncomeReportPage() {
   };
 
   useEffect(() => {
-    loadReport();
-  }, []);
+    loadReport(currentPage);
+  }, [currentPage]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const applyFilters = () => {
-    loadReport();
+    setCurrentPage(1);
+    loadReport(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const resetFilters = () => {
@@ -119,7 +130,8 @@ export default function IncomeReportPage() {
       status: 'SUCCESS',
       search: '',
     });
-    setTimeout(loadReport, 100);
+    setCurrentPage(1);
+    setTimeout(() => loadReport(1), 100);
   };
 
   const exportToCSV = () => {
@@ -243,7 +255,7 @@ export default function IncomeReportPage() {
           <p className="text-gray-500">Track payments and revenue by payment method</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={loadReport} variant="outline">
+          <Button onClick={() => loadReport(currentPage)} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -348,7 +360,7 @@ export default function IncomeReportPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <Banknote className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome)}</div>
@@ -426,7 +438,7 @@ export default function IncomeReportPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Payment Transactions ({filteredPayments.length})
+            Payment Transactions ({totalItems})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -493,6 +505,17 @@ export default function IncomeReportPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
     </div>
   );
 }

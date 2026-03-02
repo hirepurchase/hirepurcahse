@@ -435,9 +435,7 @@ function CustomerRegistrationForm({
         submitData.append("photo", photoFile);
       }
 
-      const response = await api.post("/customers", submitData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.post("/customers", submitData);
       toast({
         title: "Customer Registered",
         description: `Membership ID: ${response.data.membershipId}`,
@@ -694,11 +692,7 @@ function CustomerEditForm({
         submitData.append("photo", photoFile);
       }
 
-      await api.put(`/customers/${customer.id}`, submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.put(`/customers/${customer.id}`, submitData);
       toast({
         title: "Success",
         description: "Customer updated successfully",

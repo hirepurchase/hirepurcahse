@@ -54,11 +54,8 @@ export default function SalesReportPage() {
 
   const loadAgents = async () => {
     try {
-      const response = await api.get('/users');
-      const allUsers = response.data.users || [];
-      // Filter only sales agents
-      const salesAgents = allUsers.filter((u: any) => u.role === 'ADMIN' || u.role === 'AGENT');
-      setAgents(salesAgents);
+      const response = await api.get('/admin-users', { params: { limit: 200 } });
+      setAgents(response.data.users || []);
     } catch (error: any) {
       console.error('Failed to load agents:', error);
     }

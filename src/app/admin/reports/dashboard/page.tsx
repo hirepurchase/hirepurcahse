@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, Users, FileText, Package, DollarSign, AlertTriangle, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Users, FileText, Package, Banknote, AlertTriangle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -184,7 +184,7 @@ export default function DashboardStatsPage() {
                     {formatCurrency(stats?.payments?.monthlyTotal || 0)}
                   </p>
                 </div>
-                <DollarSign className="h-12 w-12 text-green-600" />
+                <Banknote className="h-12 w-12 text-green-600" />
               </div>
               <div className="pt-3 border-t">
                 <div className="flex justify-between text-sm">

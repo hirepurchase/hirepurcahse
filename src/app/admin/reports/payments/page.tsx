@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -279,7 +279,7 @@ export default function PaymentReportPage() {
         <CardContent>
           {payments.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <DollarSign className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+              <Banknote className="h-16 w-16 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium">No transactions found</p>
               <p className="text-sm mt-1">Try adjusting your filters</p>
             </div>

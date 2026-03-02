@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, DollarSign, FileText, Users, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Banknote, FileText, Users, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -180,7 +180,7 @@ export default function PaymentsPage() {
                 <p className="text-sm text-gray-600">With Partial Payments</p>
                 <p className="text-2xl font-bold text-orange-600">{stats.contractsWithPartial}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-orange-600" />
+              <Banknote className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
@@ -194,7 +194,7 @@ export default function PaymentsPage() {
                   {formatCurrency(stats.totalOutstanding)}
                 </p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
+              <Banknote className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>

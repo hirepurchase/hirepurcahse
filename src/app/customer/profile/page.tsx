@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, CreditCard, Lock, FileText, DollarSign } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, CreditCard, Lock, FileText, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -535,14 +535,14 @@ export default function CustomerProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
+              <Banknote className="h-5 w-5" />
               Recent Transactions
             </CardTitle>
           </CardHeader>
           <CardContent>
             {!profile?.payments || profile.payments.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                <DollarSign className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <Banknote className="h-16 w-16 mx-auto mb-4 text-gray-400" />
                 <p className="text-lg font-medium">No transactions yet</p>
                 <p className="text-sm mt-1">Your payment history will appear here</p>
               </div>

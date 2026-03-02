@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, FileText, DollarSign, AlertCircle } from 'lucide-react';
+import { Users, FileText, Banknote, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     {
       title: 'This Month Revenue',
       value: formatCurrency(stats.totalRevenue),
-      icon: DollarSign,
+      icon: Banknote,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
