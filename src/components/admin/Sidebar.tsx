@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import type { AdminUser } from "@/types";
 import type { LucideIcon } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import { useDailyPayments } from "@/hooks/useDailyPayments";
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -53,6 +54,7 @@ type SidebarContentProps = {
   user: AdminUser | null;
   navigation: NavigationItem[];
   pathname: string | null;
+  paymentCount: number;
   onNavigate: () => void;
   onLogout: () => void;
 };
@@ -61,6 +63,7 @@ function SidebarContent({
   user,
   navigation,
   pathname,
+  paymentCount,
   onNavigate,
   onLogout,
 }: SidebarContentProps) {
@@ -83,6 +86,7 @@ function SidebarContent({
       <nav className="flex-1 space-y-1 p-3 sm:p-4 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
+          const isPayments = item.href === "/admin/payments";
           return (
             <Link
               key={item.name}
@@ -96,7 +100,12 @@ function SidebarContent({
               )}
             >
               <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-              <span className="truncate">{item.name}</span>
+              <span className="truncate flex-1">{item.name}</span>
+              {isPayments && paymentCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1 text-[10px] font-bold text-white leading-none">
+                  {paymentCount > 99 ? "99+" : paymentCount}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -137,6 +146,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { count: paymentCount } = useDailyPayments();
 
   const adminUser = user && "role" in user ? user : null;
 
@@ -168,6 +178,7 @@ export default function Sidebar() {
           user={adminUser}
           navigation={navigation}
           pathname={pathname}
+          paymentCount={paymentCount}
           onNavigate={() => setMobileMenuOpen(false)}
           onLogout={() => {
             logout();
@@ -187,6 +198,7 @@ export default function Sidebar() {
           user={adminUser}
           navigation={navigation}
           pathname={pathname}
+          paymentCount={paymentCount}
           onNavigate={() => setMobileMenuOpen(false)}
           onLogout={() => {
             logout();

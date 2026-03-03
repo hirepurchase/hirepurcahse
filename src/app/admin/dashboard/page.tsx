@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/utils';
 interface RecentContract {
   id: string;
   createdAt: string;
-  totalAmount: number;
+  totalPrice: number;
   status: string;
   customer: { firstName: string; lastName: string; membershipId: string };
   inventoryItem: { product: { name: string } } | null;
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(contract.totalAmount)}
+                        {formatCurrency(contract.totalPrice)}
                       </p>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                         contract.status === 'ACTIVE'

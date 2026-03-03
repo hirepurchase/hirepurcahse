@@ -2,25 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Bell, X } from 'lucide-react';
-import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-
-interface DailyPayment {
-  id: string;
-  transactionRef: string;
-  amount: number;
-  paymentMethod: string;
-  createdAt: string;
-  customer: { firstName: string; lastName: string; membershipId: string };
-  contract: { contractNumber: string };
-}
-
-interface DailyPaymentsData {
-  date: string;
-  count: number;
-  totalAmount: number;
-  recentPayments: DailyPayment[];
-}
+import { useDailyPayments } from '@/hooks/useDailyPayments';
 
 function getPaymentMethodLabel(method: string) {
   switch (method) {
@@ -35,25 +18,9 @@ function getPaymentMethodLabel(method: string) {
 }
 
 export default function NotificationBell() {
-  const [data, setData] = useState<DailyPaymentsData | null>(null);
+  const { data, count } = useDailyPayments();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  const load = async () => {
-    try {
-      const res = await api.get('/reports/daily-payments');
-      setData(res.data);
-    } catch {
-      // silently fail — non-critical UI
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // Refresh every 2 minutes
-    const interval = setInterval(load, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -65,8 +32,6 @@ export default function NotificationBell() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const count = data?.count ?? 0;
 
   return (
     <div ref={ref} className="relative">
