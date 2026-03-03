@@ -18,6 +18,7 @@ const MAX_SMS_LENGTH = 160;
 export default function SMSPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filtered, setFiltered] = useState<Customer[]>([]);
+  const [totalAll, setTotalAll] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sendToAll, setSendToAll] = useState(false);
   const [search, setSearch] = useState('');
@@ -37,6 +38,7 @@ export default function SMSPage() {
       const res = await api.get('/sms/customers', { params: q ? { search: q } : {} });
       setCustomers(res.data.customers);
       setFiltered(res.data.customers);
+      setTotalAll(res.data.totalAll ?? res.data.customers.length);
     } catch {
       // ignore
     } finally {
@@ -71,7 +73,7 @@ export default function SMSPage() {
     if (val) setSelected(new Set());
   };
 
-  const recipientCount = sendToAll ? customers.length : selected.size;
+  const recipientCount = sendToAll ? totalAll : selected.size;
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -141,7 +143,7 @@ export default function SMSPage() {
               ) : (
                 <Square className="h-5 w-5 text-gray-400 flex-shrink-0" />
               )}
-              <span>Send to all active customers ({customers.length})</span>
+              <span>Send to all customers ({totalAll})</span>
             </button>
 
             {!sendToAll && (
