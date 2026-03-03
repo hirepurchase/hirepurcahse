@@ -20,6 +20,7 @@ import {
   X,
   Upload,
   AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const navigation = [
   { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle },
   { name: "Reports", href: "/admin/reports", icon: BarChart3 },
   { name: "Import Data", href: "/admin/import", icon: Upload },
+  { name: "Send SMS", href: "/admin/sms", icon: MessageSquare },
   { name: "Notifications", href: "/admin/settings/notifications", icon: Bell },
   { name: "Users", href: "/admin/users", icon: Settings },
   { name: "Roles & Permissions", href: "/admin/roles", icon: Shield },
