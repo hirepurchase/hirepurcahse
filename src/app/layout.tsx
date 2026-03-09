@@ -3,7 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "Hire Purchase Application",
+  title: "AidooTech Hire Purchase",
   description: "Manage hire purchase sales and customer contracts",
 };
 
@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased text-[15px] md:text-[15.5px]">
+      <body className="antialiased">
         {children}
         <Toaster />
       </body>
