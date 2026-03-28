@@ -10,7 +10,22 @@ export function usePermissions() {
     }
 
     const adminUser = user as AdminUser;
+    // SUPER_ADMIN bypasses all permission checks (mirrors backend behaviour)
+    if (adminUser.role === 'SUPER_ADMIN') {
+      return true;
+    }
     return adminUser.permissions?.includes(permission) || false;
+  };
+
+  const isSuperAdmin = (): boolean => {
+    if (userType !== 'admin' || !user) return false;
+    return (user as AdminUser).role === 'SUPER_ADMIN';
+  };
+
+  const isAdmin = (): boolean => {
+    if (userType !== 'admin' || !user) return false;
+    const role = (user as AdminUser).role;
+    return role === 'SUPER_ADMIN' || role === 'ADMIN';
   };
 
   const hasAnyPermission = (permissions: string[]): boolean => {
@@ -25,5 +40,7 @@ export function usePermissions() {
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
+    isSuperAdmin,
+    isAdmin,
   };
 }

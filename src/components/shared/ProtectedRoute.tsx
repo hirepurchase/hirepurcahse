@@ -25,25 +25,23 @@ export default function ProtectedRoute({
     if (isLoading) return;
 
     if (requireAuth && !isAuthenticated) {
-      // Not authenticated, redirect to appropriate login
       const loginPath = userType === 'admin' ? '/admin-login' : '/customer-login';
       router.push(loginPath);
       return;
     }
 
     if (userType && currentUserType !== userType) {
-      // Wrong user type, redirect to appropriate login
       const loginPath = userType === 'admin' ? '/admin-login' : '/customer-login';
       router.push(loginPath);
       return;
     }
 
-    if (permissions && currentUserType === 'admin') {
+    if (permissions && permissions.length > 0 && currentUserType === 'admin') {
       const adminUser = user as AdminUser | null;
-      const hasPermission = permissions.some(perm =>
-        adminUser?.permissions?.includes(perm) || adminUser?.role === 'SUPER_ADMIN'
+      const isSuperAdmin = adminUser?.role === 'SUPER_ADMIN';
+      const hasPermission = isSuperAdmin || permissions.some(perm =>
+        adminUser?.permissions?.includes(perm)
       );
-
       if (!hasPermission) {
         router.push('/admin/dashboard');
         return;
@@ -59,8 +57,35 @@ export default function ProtectedRoute({
     );
   }
 
+  // Not authenticated or wrong user type — render nothing (redirect is in-flight)
   if (!isAuthenticated || (userType && currentUserType !== userType)) {
     return null;
+  }
+
+  // Permission check — render an access denied screen instead of null (prevents flash)
+  if (permissions && permissions.length > 0 && currentUserType === 'admin') {
+    const adminUser = user as AdminUser | null;
+    const isSuperAdmin = adminUser?.role === 'SUPER_ADMIN';
+    const hasPermission = isSuperAdmin || permissions.some(perm =>
+      adminUser?.permissions?.includes(perm)
+    );
+    if (!hasPermission) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Access Denied</h2>
+            <p className="text-gray-500 text-sm">You do not have permission to view this page.</p>
+            <button
+              onClick={() => router.push('/admin/dashboard')}
+              className="mt-6 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
   }
 
   return <>{children}</>;

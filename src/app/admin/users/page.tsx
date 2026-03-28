@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Users as UsersIcon, Plus, Search, Edit, Lock, UserCheck, UserX } from 'lucide-react';
+import { Users as UsersIcon, Plus, Search, Edit, Lock, UserCheck, UserX, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,14 @@ export default function UsersPage() {
     phone: '',
     roleId: '',
     isActive: true,
+  });
+
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetPasswordData, setResetPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
   });
 
   const { toast } = useToast();
@@ -196,6 +204,39 @@ export default function UsersPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const openResetPasswordDialog = (user: AdminUser) => {
+    setResetPasswordUser(user);
+    setResetPasswordData({ newPassword: '', confirmPassword: '' });
+    setShowResetPasswordDialog(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUser) return;
+
+    if (resetPasswordData.newPassword.length < 8) {
+      toast({ title: 'Error', description: 'Password must be at least 8 characters', variant: 'destructive' });
+      return;
+    }
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      toast({ title: 'Error', description: 'Passwords do not match', variant: 'destructive' });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const response = await api.put(`/auth/admin/users/${resetPasswordUser.id}/reset-password`, {
+        newPassword: resetPasswordData.newPassword,
+        confirmPassword: resetPasswordData.confirmPassword,
+      });
+      toast({ title: 'Success', description: response.data.message });
+      setShowResetPasswordDialog(false);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Failed to reset password', variant: 'destructive' });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -381,13 +422,24 @@ export default function UsersPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => openEditDialog(user)}
+                              title="Edit user"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => openResetPasswordDialog(user)}
+                              title="Reset password"
+                              className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => toggleUserStatus(user)}
+                              title={user.isActive ? 'Deactivate user' : 'Activate user'}
                             >
                               {user.isActive ? (
                                 <UserX className="h-4 w-4" />
@@ -624,6 +676,60 @@ export default function UsersPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetPasswordDialog} onOpenChange={(open) => { if (!isResettingPassword) setShowResetPasswordDialog(open); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-amber-500" />
+              Reset Password — {resetPasswordUser?.firstName} {resetPasswordUser?.lastName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Set a new password for <strong>{resetPasswordUser?.email}</strong>.
+              The user will need to use this new password on their next login.
+            </p>
+            <div>
+              <Label>New Password</Label>
+              <input
+                type="password"
+                className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={resetPasswordData.newPassword}
+                onChange={(e) => setResetPasswordData({ ...resetPasswordData, newPassword: e.target.value })}
+                placeholder="Minimum 8 characters"
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <Label>Confirm New Password</Label>
+              <input
+                type="password"
+                className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={resetPasswordData.confirmPassword}
+                onChange={(e) => setResetPasswordData({ ...resetPasswordData, confirmPassword: e.target.value })}
+                placeholder="Repeat new password"
+                autoComplete="new-password"
+              />
+              {resetPasswordData.confirmPassword && resetPasswordData.newPassword !== resetPasswordData.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+              )}
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleResetPassword}
+                disabled={isResettingPassword || !resetPasswordData.newPassword || resetPasswordData.newPassword !== resetPasswordData.confirmPassword}
+                className="bg-amber-500 hover:bg-amber-600 text-white"
+              >
+                {isResettingPassword ? 'Resetting...' : 'Reset Password'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowResetPasswordDialog(false)} disabled={isResettingPassword}>
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

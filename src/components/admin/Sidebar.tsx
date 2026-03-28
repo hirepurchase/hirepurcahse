@@ -24,10 +24,13 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronRight,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { AdminUser } from "@/types";
+import api from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
@@ -37,11 +40,15 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   badge?: (paymentCount: number) => number | null;
+  // Any ONE of these permissions grants access. Empty = visible to all admins.
+  permissions?: string[];
 }
 
 interface NavGroup {
   label: string;
   items: NavItem[];
+  // Any ONE of these permissions makes the whole group visible
+  permissions?: string[];
 }
 
 const navGroups: NavGroup[] = [
@@ -53,51 +60,58 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Customers",
+    permissions: ["VIEW_CUSTOMERS"],
     items: [
-      { name: "Customers", href: "/admin/customers", icon: Users },
+      { name: "Customers", href: "/admin/customers", icon: Users, permissions: ["VIEW_CUSTOMERS"] },
     ],
   },
   {
     label: "Contracts & Payments",
+    permissions: ["VIEW_CONTRACTS", "VIEW_PAYMENTS"],
     items: [
-      { name: "Contracts", href: "/admin/contracts", icon: FileText },
+      { name: "Contracts", href: "/admin/contracts", icon: FileText, permissions: ["VIEW_CONTRACTS"] },
       {
         name: "Payments",
         href: "/admin/payments",
         icon: CreditCard,
         badge: (count) => (count > 0 ? count : null),
+        permissions: ["VIEW_PAYMENTS"],
       },
-      { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle },
+      { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: ["VIEW_FAILED_PAYMENTS"] },
     ],
   },
   {
     label: "Inventory",
+    permissions: ["MANAGE_PRODUCTS", "MANAGE_INVENTORY"],
     items: [
-      { name: "Products", href: "/admin/products", icon: Package },
-      { name: "Inventory", href: "/admin/inventory", icon: Warehouse },
+      { name: "Products", href: "/admin/products", icon: Package, permissions: ["MANAGE_PRODUCTS"] },
+      { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: ["MANAGE_INVENTORY"] },
     ],
   },
   {
     label: "Communications",
+    permissions: ["MANAGE_SETTINGS"],
     items: [
-      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare },
-      { name: "SMS Log", href: "/admin/sms/log", icon: ClipboardList },
-      { name: "Notifications", href: "/admin/settings/notifications", icon: Bell },
+      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: ["MANAGE_SETTINGS"] },
+      { name: "SMS Log", href: "/admin/sms/log", icon: ClipboardList, permissions: ["MANAGE_SETTINGS"] },
+      { name: "Notifications", href: "/admin/settings/notifications", icon: Bell, permissions: ["MANAGE_SETTINGS"] },
     ],
   },
   {
     label: "Reports",
+    permissions: ["VIEW_REPORTS"],
     items: [
-      { name: "Reports", href: "/admin/reports", icon: BarChart3 },
+      { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: ["VIEW_REPORTS"] },
     ],
   },
   {
     label: "Administration",
+    permissions: ["MANAGE_USERS", "MANAGE_ROLES", "VIEW_AUDIT_LOGS", "MANAGE_SETTINGS"],
     items: [
-      { name: "Import Data", href: "/admin/import", icon: Upload },
-      { name: "Users", href: "/admin/users", icon: Settings },
-      { name: "Roles & Permissions", href: "/admin/roles", icon: Shield },
-      { name: "Audit Trail", href: "/admin/audit", icon: History },
+      { name: "Import Data", href: "/admin/import", icon: Upload, permissions: ["MANAGE_SETTINGS"] },
+      { name: "Users", href: "/admin/users", icon: Settings, permissions: ["MANAGE_USERS"] },
+      { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: ["MANAGE_ROLES"] },
+      { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: ["VIEW_AUDIT_LOGS"] },
     ],
   },
 ];
@@ -111,8 +125,23 @@ type SidebarContentProps = {
 };
 
 function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: SidebarContentProps) {
+  const { hasAnyPermission } = usePermissions();
+
+  // Filter groups and items based on the current user's permissions
+  const visibleGroups = navGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item =>
+        !item.permissions || item.permissions.length === 0 || hasAnyPermission(item.permissions)
+      ),
+    }))
+    .filter(group =>
+      group.items.length > 0 &&
+      (!group.permissions || group.permissions.length === 0 || hasAnyPermission(group.permissions))
+    );
+
   // Pre-expand the group containing the active page
-  const activeGroup = navGroups.findIndex(g => g.items.some(i => pathname === i.href || pathname?.startsWith(i.href + '/')));
+  const activeGroup = visibleGroups.findIndex(g => g.items.some(i => pathname === i.href || pathname?.startsWith(i.href + '/')));
   const [openGroups, setOpenGroups] = useState<Set<number>>(() => {
     const s = new Set<number>();
     if (activeGroup >= 0) s.add(activeGroup);
@@ -129,6 +158,43 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
     });
   };
 
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
+  const [isChangingPw, setIsChangingPw] = useState(false);
+
+  const handleChangePassword = async () => {
+    setPwError('');
+    setPwSuccess('');
+    if (!pwForm.currentPassword || !pwForm.newPassword || !pwForm.confirmPassword) {
+      setPwError('All fields are required');
+      return;
+    }
+    if (pwForm.newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters');
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError('Passwords do not match');
+      return;
+    }
+    setIsChangingPw(true);
+    try {
+      await api.put('/auth/admin/me/password', {
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+        confirmPassword: pwForm.confirmPassword,
+      });
+      setPwSuccess('Password changed successfully');
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      setPwError(err.response?.data?.error || 'Failed to change password');
+    } finally {
+      setIsChangingPw(false);
+    }
+  };
+
   return (
     <>
       {/* Logo */}
@@ -142,18 +208,89 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-200">
             {user?.firstName?.[0]}{user?.lastName?.[0]}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white truncate">
               {user?.firstName} {user?.lastName}
             </p>
             <p className="text-xs text-cyan-100/60 truncate">{user?.role}</p>
           </div>
+          <button
+            onClick={() => { setShowChangePassword(true); setPwError(''); setPwSuccess(''); }}
+            title="Change my password"
+            className="shrink-0 p-1.5 rounded-lg text-cyan-100/50 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <KeyRound className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
+      {/* Change My Password Modal */}
+      {showChangePassword && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowChangePassword(false)} />
+          <div className="relative z-10 bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4 text-gray-800">
+            <div className="flex items-center gap-2 mb-4">
+              <KeyRound className="h-5 w-5 text-blue-600" />
+              <h2 className="text-base font-semibold">Change My Password</h2>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600">Current Password</label>
+                <input
+                  type="password"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={pwForm.currentPassword}
+                  onChange={e => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                  autoComplete="current-password"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600">New Password</label>
+                <input
+                  type="password"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={pwForm.newPassword}
+                  onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                  placeholder="Minimum 8 characters"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600">Confirm New Password</label>
+                <input
+                  type="password"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={pwForm.confirmPassword}
+                  onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                  autoComplete="new-password"
+                />
+              </div>
+              {pwError && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-md">{pwError}</p>}
+              {pwSuccess && <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-md">{pwSuccess}</p>}
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={handleChangePassword}
+                disabled={isChangingPw}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {isChangingPw ? 'Saving...' : 'Save Password'}
+              </button>
+              <button
+                onClick={() => setShowChangePassword(false)}
+                disabled={isChangingPw}
+                className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-1">
-        {navGroups.map((group, groupIdx) => {
+        {visibleGroups.map((group, groupIdx) => {
           const isOpen = openGroups.has(groupIdx);
           const isSingleItem = group.items.length === 1;
 
