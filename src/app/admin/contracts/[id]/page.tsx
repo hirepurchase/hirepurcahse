@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,18 @@ export default function ContractDetailsPage() {
   const [installmentEditData, setInstallmentEditData] = useState({
     amount: '',
     dueDate: '',
+  });
+  const [showFinancialAmendDialog, setShowFinancialAmendDialog] = useState(false);
+  const [isAmending, setIsAmending] = useState(false);
+  const [amendSummary, setAmendSummary] = useState<any>(null);
+  const [amendFormData, setAmendFormData] = useState({
+    totalPrice: '',
+    depositAmount: '',
+    totalInstallments: '',
+    paymentFrequency: '',
+    penaltyPercentage: '',
+    gracePeriodDays: '',
+    reason: '',
   });
   const [editFormData, setEditFormData] = useState({
     gracePeriodDays: '',
@@ -174,6 +186,46 @@ export default function ContractDetailsPage() {
     }
   };
 
+  const openFinancialAmendDialog = () => {
+    setAmendFormData({
+      totalPrice: contract.totalPrice?.toString() || '',
+      depositAmount: contract.depositAmount?.toString() || '',
+      totalInstallments: contract.totalInstallments?.toString() || '',
+      paymentFrequency: contract.paymentFrequency || '',
+      penaltyPercentage: contract.penaltyPercentage?.toString() || '',
+      gracePeriodDays: contract.gracePeriodDays?.toString() || '',
+      reason: '',
+    });
+    setAmendSummary(null);
+    setShowFinancialAmendDialog(true);
+  };
+
+  const handleFinancialAmend = async () => {
+    if (!amendFormData.reason.trim()) {
+      toast({ title: 'Error', description: 'A reason is required for amendments', variant: 'destructive' });
+      return;
+    }
+    setIsAmending(true);
+    try {
+      const payload: any = { reason: amendFormData.reason };
+      if (amendFormData.totalPrice) payload.totalPrice = Number(amendFormData.totalPrice);
+      if (amendFormData.depositAmount) payload.depositAmount = Number(amendFormData.depositAmount);
+      if (amendFormData.totalInstallments) payload.totalInstallments = Number(amendFormData.totalInstallments);
+      if (amendFormData.paymentFrequency) payload.paymentFrequency = amendFormData.paymentFrequency;
+      if (amendFormData.penaltyPercentage !== '') payload.penaltyPercentage = Number(amendFormData.penaltyPercentage);
+      if (amendFormData.gracePeriodDays !== '') payload.gracePeriodDays = Number(amendFormData.gracePeriodDays);
+
+      const response = await api.post(`/contracts/${params.id}/amend`, payload);
+      setAmendSummary(response.data.summary);
+      toast({ title: 'Contract Amended', description: 'Financial terms corrected and unpaid installments recalculated.' });
+      loadContract();
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Failed to amend contract', variant: 'destructive' });
+    } finally {
+      setIsAmending(false);
+    }
+  };
+
   const hasPaidInstallments = contract?.installments?.some(
     (i: any) => i.status === 'PAID' || i.paidAmount > 0
   );
@@ -280,6 +332,14 @@ export default function ContractDetailsPage() {
             >
               <CalendarRange className="mr-2 h-4 w-4" />
               Reschedule Installments
+            </Button>
+            <Button
+              variant="outline"
+              className="border-orange-400 text-orange-600 hover:bg-orange-50"
+              onClick={openFinancialAmendDialog}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Correct Financial Terms
             </Button>
             <Button onClick={() => setIsEditing(true)}>
               <Edit className="mr-2 h-4 w-4" />
@@ -771,6 +831,145 @@ export default function ContractDetailsPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Correct Financial Terms Dialog */}
+      <Dialog open={showFinancialAmendDialog} onOpenChange={(open) => { if (!isAmending) setShowFinancialAmendDialog(open); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-5 w-5" />
+              Correct Financial Terms
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm text-orange-800">
+            <strong>Important:</strong> This corrects a mistake in the original contract.
+            Paid installments are preserved unchanged. Only unpaid installments will be recalculated
+            based on the corrected figures. A full audit trail will be recorded.
+          </div>
+
+          {!amendSummary ? (
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Total Price (GHS)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={amendFormData.totalPrice}
+                    onChange={(e) => setAmendFormData({ ...amendFormData, totalPrice: e.target.value })}
+                    placeholder={contract?.totalPrice?.toString()}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave unchanged if correct</p>
+                </div>
+                <div>
+                  <Label>Deposit Amount (GHS)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={amendFormData.depositAmount}
+                    onChange={(e) => setAmendFormData({ ...amendFormData, depositAmount: e.target.value })}
+                    placeholder={contract?.depositAmount?.toString()}
+                  />
+                </div>
+                <div>
+                  <Label>Total Installments</Label>
+                  <Input
+                    type="number"
+                    value={amendFormData.totalInstallments}
+                    onChange={(e) => setAmendFormData({ ...amendFormData, totalInstallments: e.target.value })}
+                    placeholder={contract?.totalInstallments?.toString()}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Already-paid installments are kept</p>
+                </div>
+                <div>
+                  <Label>Payment Frequency</Label>
+                  <Select
+                    value={amendFormData.paymentFrequency}
+                    onValueChange={(v) => setAmendFormData({ ...amendFormData, paymentFrequency: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Grace Period (Days)</Label>
+                  <Input
+                    type="number"
+                    value={amendFormData.gracePeriodDays}
+                    onChange={(e) => setAmendFormData({ ...amendFormData, gracePeriodDays: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Penalty Percentage (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={amendFormData.penaltyPercentage}
+                    onChange={(e) => setAmendFormData({ ...amendFormData, penaltyPercentage: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Reason for Amendment <span className="text-red-500">*</span></Label>
+                <textarea
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  rows={3}
+                  value={amendFormData.reason}
+                  onChange={(e) => setAmendFormData({ ...amendFormData, reason: e.target.value })}
+                  placeholder="Describe the mistake and why this correction is needed..."
+                />
+                <p className="text-xs text-gray-500 mt-1">This is recorded in the audit trail</p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={handleFinancialAmend}
+                  disabled={isAmending || !amendFormData.reason.trim()}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  {isAmending ? 'Applying Correction...' : 'Apply Correction'}
+                </Button>
+                <Button variant="outline" onClick={() => setShowFinancialAmendDialog(false)} disabled={isAmending}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 mt-2">
+              <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                <p className="text-green-800 font-medium mb-3">Amendment applied successfully</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-white rounded p-3 border border-green-100">
+                    <p className="text-gray-500 text-xs">Paid installments preserved</p>
+                    <p className="text-lg font-bold text-gray-800">{amendSummary.paidInstallmentsPreserved}</p>
+                  </div>
+                  <div className="bg-white rounded p-3 border border-green-100">
+                    <p className="text-gray-500 text-xs">Unpaid installments recalculated</p>
+                    <p className="text-lg font-bold text-gray-800">{amendSummary.unpaidInstallmentsRecalculated}</p>
+                  </div>
+                  <div className="bg-white rounded p-3 border border-green-100">
+                    <p className="text-gray-500 text-xs">New installment amount</p>
+                    <p className="text-lg font-bold text-gray-800">GHS {Number(amendSummary.newInstallmentAmount).toFixed(2)}</p>
+                  </div>
+                  <div className="bg-white rounded p-3 border border-green-100">
+                    <p className="text-gray-500 text-xs">New outstanding balance</p>
+                    <p className="text-lg font-bold text-gray-800">GHS {Number(amendSummary.newOutstandingBalance).toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+              <Button onClick={() => setShowFinancialAmendDialog(false)}>Close</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
