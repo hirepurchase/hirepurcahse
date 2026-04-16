@@ -18,8 +18,9 @@ export default function CustomerStatementPage() {
   const [statement, setStatement] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetPhone, setResetPhone] = useState("");
   const [isResetting, setIsResetting] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadStatement();
@@ -48,9 +49,10 @@ export default function CustomerStatementPage() {
   const handleResetAccount = async () => {
     setIsResetting(true);
     try {
-      await api.post(`/customers/${params.id}/reset-account`);
+      const phone = resetPhone.trim() || statement?.customer?.phone;
+      await api.post(`/customers/${params.id}/reset-account`, { phone });
       setShowResetConfirm(false);
-      setResetSuccess(true);
+      setResetSuccess(phone);
       loadStatement();
     } catch (error: any) {
       toast({
@@ -145,7 +147,7 @@ export default function CustomerStatementPage() {
           <Button
             variant="outline"
             className="text-amber-600 border-amber-300 hover:bg-amber-50"
-            onClick={() => setShowResetConfirm(true)}
+            onClick={() => { setShowResetConfirm(true); setResetPhone(statement?.customer?.phone || ""); }}
           >
             <RotateCcw className="h-4 w-4 mr-2" />
             Reset Account
@@ -440,11 +442,23 @@ export default function CustomerStatementPage() {
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
-              <p className="text-sm text-amber-800 mb-2">Both <strong>username</strong> and <strong>password</strong> will be reset to:</p>
-              <div className="bg-white border border-amber-300 rounded px-3 py-2 font-mono font-bold text-amber-900 text-center text-lg">
-                {statement.customer.phone}
-              </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-amber-800 font-medium mb-1">
+                Account: <span className="font-bold">{statement.customer.firstName} {statement.customer.lastName}</span>
+              </p>
+              <p className="text-sm text-amber-700">The <strong>password</strong> will be set to the phone number below. Edit if needed:</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone number (used as password)</label>
+              <input
+                type="text"
+                value={resetPhone}
+                onChange={(e) => setResetPhone(e.target.value)}
+                placeholder="Enter phone number"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">MembershipID is not changed. Only the password is reset.</p>
             </div>
 
             <p className="text-sm text-gray-500 mb-5">The customer can change their password after logging in. This is logged in the audit trail.</p>
@@ -493,19 +507,19 @@ export default function CustomerStatementPage() {
               <p className="text-sm text-green-800 font-semibold mb-3">New Login Credentials:</p>
               <div className="space-y-2">
                 <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
-                  <span className="text-xs text-gray-500">Username</span>
-                  <span className="font-mono font-bold text-gray-800">{statement.customer.phone}</span>
+                  <span className="text-xs text-gray-500">Username (Phone)</span>
+                  <span className="font-mono font-bold text-gray-800">{resetSuccess}</span>
                 </div>
                 <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
                   <span className="text-xs text-gray-500">Password</span>
-                  <span className="font-mono font-bold text-gray-800">{statement.customer.phone}</span>
+                  <span className="font-mono font-bold text-gray-800">{resetSuccess}</span>
                 </div>
               </div>
             </div>
 
             <p className="text-sm text-gray-500 mb-5">Share these credentials with the customer. They should change their password after first login.</p>
 
-            <Button className="w-full" onClick={() => setResetSuccess(false)}>Done</Button>
+            <Button className="w-full" onClick={() => setResetSuccess(null)}>Done</Button>
           </div>
         </div>
       )}

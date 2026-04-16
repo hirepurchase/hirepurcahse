@@ -32,6 +32,7 @@ export default function CustomersPage() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 20;
   const [resetTarget, setResetTarget] = useState<any>(null);
+  const [resetPhone, setResetPhone] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState<any>(null);
   const router = useRouter();
@@ -116,12 +117,15 @@ export default function CustomersPage() {
     if (!resetTarget) return;
     setIsResetting(true);
     try {
-      const response = await api.post(`/customers/${resetTarget.id}/reset-account`);
+      const phone = resetPhone.trim() || resetTarget.phone;
+      await api.post(`/customers/${resetTarget.id}/reset-account`, { phone });
       setResetSuccess({
         name: `${resetTarget.firstName} ${resetTarget.lastName}`,
-        phone: resetTarget.phone,
+        membershipId: resetTarget.membershipId,
+        phone,
       });
       setResetTarget(null);
+      setResetPhone("");
       loadCustomers();
     } catch (error: any) {
       toast({
@@ -281,7 +285,7 @@ export default function CustomersPage() {
                           size="sm"
                           variant="outline"
                           className="text-amber-600 hover:bg-amber-50 border-amber-300"
-                          onClick={() => setResetTarget(customer)}
+                          onClick={() => { setResetTarget(customer); setResetPhone(customer.phone); }}
                         >
                           <RotateCcw className="h-3 w-3 mr-1" />
                           Reset
@@ -329,16 +333,24 @@ export default function CustomersPage() {
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
-              <p className="text-sm text-amber-800 font-medium mb-2">
-                Account to reset: <span className="font-bold">{resetTarget.firstName} {resetTarget.lastName}</span>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-amber-800 font-medium mb-1">
+                Account: <span className="font-bold">{resetTarget.firstName} {resetTarget.lastName}</span>
               </p>
               <p className="text-sm text-amber-700">
-                Both the <strong>username</strong> and <strong>password</strong> will be set to the customer&apos;s phone number:
+                The <strong>password</strong> will be set to the phone number below. Edit if needed:
               </p>
-              <div className="mt-2 bg-white border border-amber-300 rounded px-3 py-2 font-mono text-sm font-bold text-amber-900">
-                {resetTarget.phone}
-              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone number (used as password)</label>
+              <Input
+                value={resetPhone}
+                onChange={(e) => setResetPhone(e.target.value)}
+                placeholder="Enter phone number"
+                className="font-mono"
+              />
+              <p className="text-xs text-gray-400 mt-1">The customer&apos;s MembershipID is not changed. Only the password is reset.</p>
             </div>
 
             <p className="text-sm text-gray-600 mb-5">
@@ -389,7 +401,7 @@ export default function CustomersPage() {
               <p className="text-sm text-green-800 font-semibold mb-3">New Login Credentials:</p>
               <div className="space-y-2">
                 <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
-                  <span className="text-xs text-gray-500">Username</span>
+                  <span className="text-xs text-gray-500">Username (Phone)</span>
                   <span className="font-mono font-bold text-gray-800">{resetSuccess.phone}</span>
                 </div>
                 <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
