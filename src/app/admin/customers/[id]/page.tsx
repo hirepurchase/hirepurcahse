@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, CreditCard, FileText, User, Download, Printer } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, CreditCard, FileText, User, Download, Printer, RotateCcw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,9 @@ export default function CustomerStatementPage() {
   const { toast } = useToast();
   const [statement, setStatement] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     loadStatement();
@@ -40,6 +43,24 @@ export default function CustomerStatementPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleResetAccount = async () => {
+    setIsResetting(true);
+    try {
+      await api.post(`/customers/${params.id}/reset-account`);
+      setShowResetConfirm(false);
+      setResetSuccess(true);
+      loadStatement();
+    } catch (error: any) {
+      toast({
+        title: 'Reset Failed',
+        description: error.response?.data?.error || 'Failed to reset account',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -120,10 +141,20 @@ export default function CustomerStatementPage() {
           </Button>
           <h1 className="text-3xl font-bold">Customer Statement</h1>
         </div>
-        <Button onClick={handlePrint}>
-          <Printer className="h-4 w-4 mr-2" />
-          Print Statement
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+            onClick={() => setShowResetConfirm(true)}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset Account
+          </Button>
+          <Button onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print Statement
+          </Button>
+        </div>
       </div>
 
       {/* Customer Information Card */}
@@ -394,6 +425,90 @@ export default function CustomerStatementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Account Confirm Dialog */}
+      {showResetConfirm && statement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Reset Customer Account</h2>
+                <p className="text-sm text-gray-500">{statement.customer.firstName} {statement.customer.lastName}</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
+              <p className="text-sm text-amber-800 mb-2">Both <strong>username</strong> and <strong>password</strong> will be reset to:</p>
+              <div className="bg-white border border-amber-300 rounded px-3 py-2 font-mono font-bold text-amber-900 text-center text-lg">
+                {statement.customer.phone}
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-5">The customer can change their password after logging in. This is logged in the audit trail.</p>
+
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowResetConfirm(false)} disabled={isResetting}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={handleResetAccount}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Resetting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Reset Account
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Success Dialog */}
+      {resetSuccess && statement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Account Reset Successful</h2>
+                <p className="text-sm text-gray-500">{statement.customer.firstName} {statement.customer.lastName}</p>
+              </div>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-5">
+              <p className="text-sm text-green-800 font-semibold mb-3">New Login Credentials:</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
+                  <span className="text-xs text-gray-500">Username</span>
+                  <span className="font-mono font-bold text-gray-800">{statement.customer.phone}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
+                  <span className="text-xs text-gray-500">Password</span>
+                  <span className="font-mono font-bold text-gray-800">{statement.customer.phone}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-5">Share these credentials with the customer. They should change their password after first login.</p>
+
+            <Button className="w-full" onClick={() => setResetSuccess(false)}>Done</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

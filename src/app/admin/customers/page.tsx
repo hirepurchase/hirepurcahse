@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Eye, RotateCcw, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,9 @@ export default function CustomersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 20;
+  const [resetTarget, setResetTarget] = useState<any>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -106,6 +109,28 @@ export default function CustomersPage() {
         description: error.response?.data?.error || "Failed to delete customer",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleResetAccount = async () => {
+    if (!resetTarget) return;
+    setIsResetting(true);
+    try {
+      const response = await api.post(`/customers/${resetTarget.id}/reset-account`);
+      setResetSuccess({
+        name: `${resetTarget.firstName} ${resetTarget.lastName}`,
+        phone: resetTarget.phone,
+      });
+      setResetTarget(null);
+      loadCustomers();
+    } catch (error: any) {
+      toast({
+        title: "Reset Failed",
+        description: error.response?.data?.error || "Failed to reset account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -255,6 +280,15 @@ export default function CustomersPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className="text-amber-600 hover:bg-amber-50 border-amber-300"
+                          onClick={() => setResetTarget(customer)}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Reset
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="text-red-600 hover:bg-red-50"
                           onClick={() => handleDeleteCustomer(customer)}
                           disabled={customer.contractsCount > 0}
@@ -280,6 +314,101 @@ export default function CustomersPage() {
           />
         )}
       </Card>
+
+      {/* Reset Account Confirm Dialog */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Reset Customer Account</h2>
+                <p className="text-sm text-gray-500">This will reset login credentials</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
+              <p className="text-sm text-amber-800 font-medium mb-2">
+                Account to reset: <span className="font-bold">{resetTarget.firstName} {resetTarget.lastName}</span>
+              </p>
+              <p className="text-sm text-amber-700">
+                Both the <strong>username</strong> and <strong>password</strong> will be set to the customer&apos;s phone number:
+              </p>
+              <div className="mt-2 bg-white border border-amber-300 rounded px-3 py-2 font-mono text-sm font-bold text-amber-900">
+                {resetTarget.phone}
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-5">
+              The customer can change their password after logging in. This action is logged in the audit trail.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setResetTarget(null)} disabled={isResetting}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={handleResetAccount}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Resetting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Reset Account
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Success Dialog */}
+      {resetSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Account Reset Successful</h2>
+                <p className="text-sm text-gray-500">{resetSuccess.name}</p>
+              </div>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-5">
+              <p className="text-sm text-green-800 font-semibold mb-3">New Login Credentials:</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
+                  <span className="text-xs text-gray-500">Username</span>
+                  <span className="font-mono font-bold text-gray-800">{resetSuccess.phone}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white rounded border border-green-200 px-3 py-2">
+                  <span className="text-xs text-gray-500">Password</span>
+                  <span className="font-mono font-bold text-gray-800">{resetSuccess.phone}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-5">
+              Please share these credentials with the customer. They should change their password after first login.
+            </p>
+
+            <Button className="w-full" onClick={() => setResetSuccess(null)}>
+              Done
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
