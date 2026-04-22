@@ -128,10 +128,14 @@ export default function CustomerContractsPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {/* Financial Summary */}
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       <div>
                         <p className="text-gray-600">Total Price</p>
                         <p className="font-semibold">{formatCurrency(contract.totalPrice)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Deposit</p>
+                        <p className="font-semibold text-blue-600">{formatCurrency(contract.depositAmount)}</p>
                       </div>
                       <div>
                         <p className="text-gray-600">Total Paid</p>

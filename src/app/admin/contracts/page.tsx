@@ -190,6 +190,7 @@ export default function ContractsPage() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Total Price</TableHead>
+                  <TableHead>Deposit</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Outstanding</TableHead>
                   <TableHead>Status</TableHead>
@@ -242,6 +243,9 @@ export default function ContractsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
+                    <TableCell className="text-blue-600 font-medium">
+                      {formatCurrency(contract.depositAmount)}
+                    </TableCell>
                     <TableCell className="text-green-600 font-medium">
                       {formatCurrency(contract.totalPaid)}
                     </TableCell>

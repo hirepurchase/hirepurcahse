@@ -121,13 +121,21 @@ export default function CustomerContractDetailPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Total Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(contract.totalPrice)}</p>
+            <p className="text-xl font-bold">{formatCurrency(contract.totalPrice)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600">Deposit Paid</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold text-blue-600">{formatCurrency(contract.depositAmount)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -135,7 +143,7 @@ export default function CustomerContractDetailPage() {
             <CardTitle className="text-sm text-gray-600">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(contract.totalPaid)}</p>
+            <p className="text-xl font-bold text-green-600">{formatCurrency(contract.totalPaid)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -143,7 +151,7 @@ export default function CustomerContractDetailPage() {
             <CardTitle className="text-sm text-gray-600">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600">
+            <p className="text-xl font-bold text-red-600">
               {formatCurrency(contract.outstandingBalance)}
             </p>
           </CardContent>
@@ -154,7 +162,7 @@ export default function CustomerContractDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-2">
-              <p className="text-2xl font-bold">{progress.toFixed(0)}%</p>
+              <p className="text-xl font-bold">{progress.toFixed(0)}%</p>
               <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
                 <div
                   className="h-full bg-green-500 transition-all"

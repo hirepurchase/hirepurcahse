@@ -555,7 +555,13 @@ export default function ContractDetailsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700 font-medium">Deposit Paid</p>
+              <p className="text-2xl font-bold text-blue-700 mt-1">
+                {formatCurrency(contract.depositAmount)}
+              </p>
+            </div>
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-green-700 font-medium">Total Paid</p>
               <p className="text-2xl font-bold text-green-700 mt-1">
@@ -568,9 +574,9 @@ export default function ContractDetailsPage() {
                 {formatCurrency(contract.outstandingBalance)}
               </p>
             </div>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-700 font-medium">Progress</p>
-              <p className="text-2xl font-bold text-blue-700 mt-1">
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <p className="text-sm text-purple-700 font-medium">Progress</p>
+              <p className="text-2xl font-bold text-purple-700 mt-1">
                 {((contract.totalPaid / contract.totalPrice) * 100).toFixed(1)}%
               </p>
             </div>
