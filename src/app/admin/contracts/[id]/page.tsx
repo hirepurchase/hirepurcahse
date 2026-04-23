@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,10 @@ export default function ContractDetailsPage() {
     amount: '',
     dueDate: '',
   });
+  const [showEditPaymentDialog, setShowEditPaymentDialog] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [paymentEditData, setPaymentEditData] = useState({ amount: '', paymentMethod: '', reference: '', notes: '' });
   const [showFinancialAmendDialog, setShowFinancialAmendDialog] = useState(false);
   const [isAmending, setIsAmending] = useState(false);
   const [amendSummary, setAmendSummary] = useState<any>(null);
@@ -289,6 +293,52 @@ export default function ContractDetailsPage() {
       });
     } finally {
       setIsEditingInstallment(false);
+    }
+  };
+
+  const openEditPaymentDialog = (payment: any) => {
+    setEditingPayment(payment);
+    const meta = JSON.parse(payment.metadata || '{}');
+    setPaymentEditData({
+      amount: payment.amount.toString(),
+      paymentMethod: payment.paymentMethod,
+      reference: payment.externalRef || '',
+      notes: meta.notes || '',
+    });
+    setShowEditPaymentDialog(true);
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!editingPayment) return;
+    setIsSavingPayment(true);
+    try {
+      await api.put(`/payments/manual/${editingPayment.id}`, {
+        amount: Number(paymentEditData.amount),
+        paymentMethod: paymentEditData.paymentMethod,
+        reference: paymentEditData.reference,
+        notes: paymentEditData.notes,
+      });
+      toast({ title: 'Success', description: 'Payment updated successfully' });
+      setShowEditPaymentDialog(false);
+      setEditingPayment(null);
+      const response = await api.get(`/contracts/admin/${params.id}`);
+      setContract(response.data);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Failed to update payment', variant: 'destructive' });
+    } finally {
+      setIsSavingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (payment: any) => {
+    if (!confirm(`Delete payment of ${formatCurrency(payment.amount)}? This will reverse the installment allocation.`)) return;
+    try {
+      await api.delete(`/payments/manual/${payment.id}`);
+      toast({ title: 'Success', description: 'Payment deleted successfully' });
+      const response = await api.get(`/contracts/admin/${params.id}`);
+      setContract(response.data);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Failed to delete payment', variant: 'destructive' });
     }
   };
 
@@ -755,6 +805,104 @@ export default function ContractDetailsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Payment History */}
+      {contract.payments && contract.payments.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Banknote className="h-5 w-5" />
+              Payment History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contract.payments.map((payment: any) => {
+                  const meta = JSON.parse(payment.metadata || '{}');
+                  const isManual = !!meta.isManual;
+                  return (
+                    <TableRow key={payment.id}>
+                      <TableCell>{payment.paymentDate ? formatDate(payment.paymentDate) : formatDate(payment.createdAt)}</TableCell>
+                      <TableCell className="font-mono text-xs">{payment.transactionRef}</TableCell>
+                      <TableCell>{payment.paymentMethod?.replace(/_/g, ' ')}</TableCell>
+                      <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {isManual ? (
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => openEditPaymentDialog(payment)} title="Edit payment">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDeletePayment(payment)} title="Delete payment">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">Auto</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Payment Dialog */}
+      <Dialog open={showEditPaymentDialog} onOpenChange={(open) => { if (!isSavingPayment) setShowEditPaymentDialog(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Manual Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Amount (GHS)</Label>
+              <Input type="number" step="0.01" value={paymentEditData.amount} onChange={(e) => setPaymentEditData({ ...paymentEditData, amount: e.target.value })} />
+            </div>
+            <div>
+              <Label>Payment Method</Label>
+              <Select value={paymentEditData.paymentMethod} onValueChange={(v) => setPaymentEditData({ ...paymentEditData, paymentMethod: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                  <SelectItem value="MOBILE_MONEY">Mobile Money</SelectItem>
+                  <SelectItem value="CHEQUE">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Reference</Label>
+              <Input value={paymentEditData.reference} onChange={(e) => setPaymentEditData({ ...paymentEditData, reference: e.target.value })} placeholder="Optional reference number" />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Input value={paymentEditData.notes} onChange={(e) => setPaymentEditData({ ...paymentEditData, notes: e.target.value })} placeholder="Optional notes" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleUpdatePayment} disabled={isSavingPayment}>
+                {isSavingPayment ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowEditPaymentDialog(false)} disabled={isSavingPayment}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {contract.signatureUrl && (
         <Card className="mt-6">
