@@ -87,12 +87,10 @@ export default function CustomerContractDetailPage() {
 
   if (!contract) {
     return (
-      <div className="p-8">
+      <div className="space-y-5">
         <div className="text-center py-12">
-          <p className="text-gray-500">Contract not found</p>
-          <Button className="mt-4" onClick={() => router.push('/customer/contracts')}>
-            Back to Contracts
-          </Button>
+          <p className="text-gray-500 text-sm">Contract not found</p>
+          <Button className="mt-4" onClick={() => router.push('/customer/contracts')}>Back to Contracts</Button>
         </div>
       </div>
     );
@@ -101,245 +99,191 @@ export default function CustomerContractDetailPage() {
   const progress = calculateProgress(contract.totalPaid, contract.totalPrice);
 
   return (
-    <div className="p-8">
-      <Button variant="outline" onClick={() => router.back()} className="mb-6">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-
-      {/* Contract Header */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
+          </Button>
           <div>
-            <h1 className="text-3xl font-bold">Contract {contract.contractNumber}</h1>
-            <p className="text-gray-600 mt-1">Hire purchase agreement details</p>
+            <h1 className="text-xl sm:text-2xl font-bold">Contract {contract.contractNumber}</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Hire purchase agreement details</p>
           </div>
-          <Badge className={getStatusColor(contract.status)} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-            {contract.status}
-          </Badge>
         </div>
+        <Badge className={getStatusColor(contract.status)}>{contract.status}</Badge>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total Price</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">{formatCurrency(contract.totalPrice)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Deposit Paid</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-blue-600">{formatCurrency(contract.depositAmount)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total Paid</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-green-600">{formatCurrency(contract.totalPaid)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Outstanding</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-red-600">
-              {formatCurrency(contract.outstandingBalance)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <p className="text-xl font-bold">{progress.toFixed(0)}%</p>
-              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
-                <div
-                  className="h-full bg-green-500 transition-all"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Total Price</p><p className="text-lg sm:text-xl font-bold mt-1">{formatCurrency(contract.totalPrice)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Deposit Paid</p><p className="text-lg sm:text-xl font-bold mt-1 text-blue-600">{formatCurrency(contract.depositAmount)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Total Paid</p><p className="text-lg sm:text-xl font-bold mt-1 text-green-600">{formatCurrency(contract.totalPaid)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Outstanding</p><p className="text-lg sm:text-xl font-bold mt-1 text-red-600">{formatCurrency(contract.outstandingBalance)}</p></CardContent></Card>
+        <Card className="col-span-2 lg:col-span-1">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-600">Progress</p>
+            <p className="text-lg sm:text-xl font-bold mt-1">{progress.toFixed(0)}%</p>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-green-500 transition-all" style={{ width: `${progress}%` }} />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-5">
           {/* Product Info */}
           <Card>
-            <CardHeader>
-              <CardTitle>Product Information</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Product Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Product</p>
-                  <p className="font-medium">{contract.inventoryItem?.product?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Category</p>
-                  <p className="font-medium">{contract.inventoryItem?.product?.category?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Serial/IMEI</p>
-                  <p className="font-medium font-mono">{contract.inventoryItem?.serialNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Ownership Transferred</p>
-                  <Badge variant={contract.ownershipTransferred ? 'default' : 'secondary'}>
-                    {contract.ownershipTransferred ? 'Yes' : 'No'}
-                  </Badge>
-                </div>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-xs text-gray-500">Product</p><p className="font-medium">{contract.inventoryItem?.product?.name}</p></div>
+                <div><p className="text-xs text-gray-500">Category</p><p className="font-medium">{contract.inventoryItem?.product?.category?.name}</p></div>
+                <div><p className="text-xs text-gray-500">Serial/IMEI</p><p className="font-medium font-mono text-xs">{contract.inventoryItem?.serialNumber}</p></div>
+                <div><p className="text-xs text-gray-500">Ownership</p><Badge variant={contract.ownershipTransferred ? 'default' : 'secondary'} className="text-xs">{contract.ownershipTransferred ? 'Transferred' : 'Pending'}</Badge></div>
               </div>
             </CardContent>
           </Card>
 
           {/* Installment Schedule */}
           <Card>
-            <CardHeader>
-              <CardTitle>Installment Schedule</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Installment Schedule</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Paid</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {contract.installments?.map((inst: InstallmentSchedule) => (
-                    <TableRow key={inst.id}>
-                      <TableCell>{inst.installmentNo}</TableCell>
-                      <TableCell>{formatDate(inst.dueDate)}</TableCell>
-                      <TableCell>{formatCurrency(inst.amount)}</TableCell>
-                      <TableCell className="text-green-600">
-                        {formatCurrency(inst.paidAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(inst.status)}>{inst.status}</Badge>
-                      </TableCell>
+            <CardContent className="p-0">
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {contract.installments?.map((inst: InstallmentSchedule) => (
+                  <div key={inst.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold">#{inst.installmentNo}</span>
+                        <Badge className={`text-xs ${getStatusColor(inst.status)}`}>{inst.status}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">Due: {formatDate(inst.dueDate)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{formatCurrency(inst.amount)}</p>
+                      {inst.paidAmount > 0 && <p className="text-xs text-green-600">{formatCurrency(inst.paidAmount)} paid</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Paid</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {contract.installments?.map((inst: InstallmentSchedule) => (
+                      <TableRow key={inst.id}>
+                        <TableCell>{inst.installmentNo}</TableCell>
+                        <TableCell>{formatDate(inst.dueDate)}</TableCell>
+                        <TableCell>{formatCurrency(inst.amount)}</TableCell>
+                        <TableCell className="text-green-600">{formatCurrency(inst.paidAmount)}</TableCell>
+                        <TableCell><Badge className={getStatusColor(inst.status)}>{inst.status}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
           {/* Payment History */}
           <Card>
-            <CardHeader>
-              <CardTitle>Payment History</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Payment History</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {contract.payments?.length === 0 ? (
-                <p className="text-center py-8 text-gray-500">No payments yet</p>
+                <p className="text-center py-8 text-gray-500 text-sm">No payments yet</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction Ref</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Mobile */}
+                  <div className="sm:hidden divide-y divide-gray-100">
                     {contract.payments?.map((payment: PaymentTransaction) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-sm">
-                          {payment.transactionRef}
-                        </TableCell>
-                        <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                        <TableCell>{payment.paymentMethod}</TableCell>
-                        <TableCell>{formatDate(payment.paymentDate)}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(payment.status)}>
-                            {payment.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
+                      <div key={payment.id} className="px-4 py-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
+                          <Badge className={`text-xs ${getStatusColor(payment.status)}`}>{payment.status}</Badge>
+                        </div>
+                        <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
+                        <p className="text-xs text-gray-400">{payment.paymentMethod} · {formatDate(payment.paymentDate)}</p>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                  {/* Desktop */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Transaction Ref</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Method</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contract.payments?.map((payment: PaymentTransaction) => (
+                          <TableRow key={payment.id}>
+                            <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
+                            <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                            <TableCell>{payment.paymentMethod}</TableCell>
+                            <TableCell>{formatDate(payment.paymentDate)}</TableCell>
+                            <TableCell><Badge className={getStatusColor(payment.status)}>{payment.status}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Contract Terms */}
           <Card>
-            <CardHeader>
-              <CardTitle>Contract Terms</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Contract Terms</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <p className="text-gray-600">Payment Frequency</p>
-                <p className="font-medium">{contract.paymentFrequency}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Installment Amount</p>
-                <p className="font-medium">{formatCurrency(contract.installmentAmount)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Total Installments</p>
-                <p className="font-medium">{contract.totalInstallments}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Start Date</p>
-                <p className="font-medium">{formatDate(contract.startDate)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">End Date</p>
-                <p className="font-medium">{formatDate(contract.endDate)}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Grace Period</p>
-                <p className="font-medium">{contract.gracePeriodDays} days</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Penalty Rate</p>
-                <p className="font-medium">{contract.penaltyPercentage}%</p>
-              </div>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-500">Frequency</span><span className="font-medium">{contract.paymentFrequency}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Installment</span><span className="font-medium">{formatCurrency(contract.installmentAmount)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Installments</span><span className="font-medium">{contract.totalInstallments}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Start Date</span><span className="font-medium">{formatDate(contract.startDate)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">End Date</span><span className="font-medium">{formatDate(contract.endDate)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Grace Period</span><span className="font-medium">{contract.gracePeriodDays} days</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Penalty Rate</span><span className="font-medium">{contract.penaltyPercentage}%</span></div>
             </CardContent>
           </Card>
 
           {/* Actions */}
           <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleDownloadStatement}
-              >
+              <Button variant="outline" className="w-full" onClick={handleDownloadStatement}>
                 <Download className="mr-2 h-4 w-4" />
                 Download Statement
               </Button>
-              <Button
-                className="w-full bg-green-600 hover:bg-green-700"
-                onClick={() => router.push('/customer/payments')}
-              >
+              <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => router.push('/customer/payments')}>
                 <CreditCard className="mr-2 h-4 w-4" />
                 Make Payment
               </Button>

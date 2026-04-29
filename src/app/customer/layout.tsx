@@ -26,7 +26,7 @@ export default function CustomerLayout({
   if (isLoading || !isAuthenticated || userType !== 'customer') {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
@@ -34,7 +34,8 @@ export default function CustomerLayout({
   return (
     <div className="flex h-screen bg-transparent surface-grid">
       <CustomerSidebar />
-      <main className="flex-1 overflow-auto pt-16 lg:pt-0">
+      {/* pb-16 reserves space for the mobile bottom tab bar */}
+      <main className="flex-1 overflow-auto pb-16 lg:pb-0">
         <div className="page-shell p-4 sm:p-6 lg:p-8">
           {children}
         </div>

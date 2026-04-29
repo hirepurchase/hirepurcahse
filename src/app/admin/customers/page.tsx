@@ -164,148 +164,185 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
-          <p className="text-gray-600 mt-1">
-            Manage customer accounts and memberships
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customers</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage customer accounts and memberships</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Register Customer
+        <Button onClick={() => setShowForm(true)} size="sm" className="shrink-0">
+          <Plus className="mr-1.5 h-4 w-4" />
+          <span className="hidden sm:inline">Register Customer</span>
+          <span className="sm:hidden">New</span>
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search by name, membership ID, phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10"
-                />
-              </div>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search name, ID, phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="pl-10"
+              />
             </div>
-            <Button onClick={handleSearch}>Search</Button>
+            <Button onClick={handleSearch} size="sm" className="shrink-0">Search</Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             </div>
           ) : customers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No customers found</p>
-              <Button className="mt-4" onClick={() => setShowForm(true)}>
+            <div className="text-center py-12 px-4">
+              <p className="text-gray-500 mb-4">No customers found</p>
+              <Button onClick={() => setShowForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Register First Customer
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Photo</TableHead>
-                  <TableHead>Membership ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Contracts</TableHead>
-                  <TableHead>Registered</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile card list */}
+              <div className="sm:hidden divide-y divide-gray-100">
                 {customers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
-                        {customer.photoUrl ? (
-                          <img
-                            src={customer.photoUrl}
-                            alt={`${customer.firstName} ${customer.lastName}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">' + customer.firstName.charAt(0) + customer.lastName.charAt(0) + '</div>';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">
-                            {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {customer.membershipId}
-                    </TableCell>
-                    <TableCell>
-                      {customer.firstName} {customer.lastName}
-                    </TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>{customer.email || "-"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={customer.isActivated ? "default" : "secondary"}
-                      >
+                  <div key={customer.id} className="flex items-center gap-3 px-4 py-3">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
+                      {customer.photoUrl ? (
+                        <img src={customer.photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-bold">
+                          {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {customer.firstName} {customer.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500 font-mono truncate">{customer.membershipId}</p>
+                      <p className="text-xs text-gray-400">{customer.phone}</p>
+                    </div>
+                    {/* Status + actions */}
+                    <div className="shrink-0 flex flex-col items-end gap-2">
+                      <Badge variant={customer.isActivated ? "default" : "secondary"} className="text-[10px]">
                         {customer.isActivated ? "Active" : "Pending"}
                       </Badge>
-                    </TableCell>
-                    <TableCell>{customer.contractsCount || 0}</TableCell>
-                    <TableCell>{formatDate(customer.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
+                      <div className="flex gap-1.5">
+                        <button
                           onClick={() => router.push(`/admin/customers/${customer.id}`)}
+                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="View"
                         >
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => setEditingCustomer(customer)}
+                          className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                          title="Edit"
                         >
-                          <Pencil className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-amber-600 hover:bg-amber-50 border-amber-300"
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => { setResetTarget(customer); setResetPhone(customer.phone); }}
+                          className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                          title="Reset"
                         >
-                          <RotateCcw className="h-3 w-3 mr-1" />
-                          Reset
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:bg-red-50"
+                          <RotateCcw className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteCustomer(customer)}
                           disabled={customer.contractsCount > 0}
+                          className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-30"
+                          title="Delete"
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Photo</TableHead>
+                      <TableHead>Membership ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Contracts</TableHead>
+                      <TableHead>Registered</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell>
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
+                            {customer.photoUrl ? (
+                              <img
+                                src={customer.photoUrl}
+                                alt={`${customer.firstName} ${customer.lastName}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">' + customer.firstName.charAt(0) + customer.lastName.charAt(0) + '</div>';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">
+                                {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{customer.membershipId}</TableCell>
+                        <TableCell>{customer.firstName} {customer.lastName}</TableCell>
+                        <TableCell>{customer.phone}</TableCell>
+                        <TableCell>{customer.email || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant={customer.isActivated ? "default" : "secondary"}>
+                            {customer.isActivated ? "Active" : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{customer.contractsCount || 0}</TableCell>
+                        <TableCell>{formatDate(customer.createdAt)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1.5">
+                            <Button size="sm" variant="outline" onClick={() => router.push(`/admin/customers/${customer.id}`)}>
+                              <Eye className="h-3 w-3 mr-1" /> View
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingCustomer(customer)}>
+                              <Pencil className="h-3 w-3 mr-1" /> Edit
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-amber-600 hover:bg-amber-50 border-amber-300" onClick={() => { setResetTarget(customer); setResetPhone(customer.phone); }}>
+                              <RotateCcw className="h-3 w-3 mr-1" /> Reset
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteCustomer(customer)} disabled={customer.contractsCount > 0}>
+                              <Trash2 className="h-3 w-3 mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
         {!isLoading && customers.length > 0 && (
@@ -595,52 +632,40 @@ function CustomerRegistrationForm({
   };
 
   return (
-    <div className="p-8">
+    <div>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Register New Customer</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  First Name *
-                </label>
+                <label className="block text-sm font-medium mb-2">First Name *</label>
                 <Input
                   required
                   value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstName: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Last Name *
-                </label>
+                <label className="block text-sm font-medium mb-2">Last Name *</label>
                 <Input
                   required
                   value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastName: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Phone Number *
-                </label>
+                <label className="block text-sm font-medium mb-2">Phone Number *</label>
                 <Input
                   required
                   type="tel"
                   placeholder="0200000000"
                   value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
               <div>
@@ -649,9 +674,7 @@ function CustomerRegistrationForm({
                   type="email"
                   placeholder="customer@example.com"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
             </div>
@@ -734,41 +757,28 @@ function CustomerRegistrationForm({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  National ID
-                </label>
+                <label className="block text-sm font-medium mb-2">National ID</label>
                 <Input
                   value={formData.nationalId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nationalId: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Date of Birth
-                </label>
+                <label className="block text-sm font-medium mb-2">Date of Birth</label>
                 <Input
                   type="date"
                   value={formData.dateOfBirth}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dateOfBirth: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                 />
               </div>
             </div>
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? "Registering..." : "Register Customer"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-              >
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </Button>
             </div>
@@ -851,126 +861,60 @@ function CustomerEditForm({
   };
 
   return (
-    <div className="p-8">
+    <div>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Edit Customer - {customer.membershipId}</CardTitle>
+          <CardTitle>Edit Customer — {customer.membershipId}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Photo Upload */}
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Customer Photo
-              </label>
+              <label className="block text-sm font-medium mb-2">Customer Photo</label>
               <div className="flex items-center gap-4">
                 {photoPreview && (
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-300">
-                    <img
-                      src={photoPreview}
-                      alt="Customer"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-300 shrink-0">
+                    <img src={photoPreview} alt="Customer" className="w-full h-full object-cover" />
                   </div>
                 )}
                 <div className="flex-1">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Upload a new photo to update (optional)
-                  </p>
+                  <Input type="file" accept="image/*" onChange={handlePhotoChange} className="cursor-pointer" />
+                  <p className="text-xs text-gray-500 mt-1">Upload to update (optional)</p>
                 </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  First Name *
-                </label>
-                <Input
-                  required
-                  value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstName: e.target.value })
-                  }
-                />
+                <label className="block text-sm font-medium mb-2">First Name *</label>
+                <Input required value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Last Name *
-                </label>
-                <Input
-                  required
-                  value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastName: e.target.value })
-                  }
-                />
+                <label className="block text-sm font-medium mb-2">Last Name *</label>
+                <Input required value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Phone Number *
-                </label>
-                <Input
-                  required
-                  type="tel"
-                  placeholder="0200000000"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
+                <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                <Input required type="tel" placeholder="0200000000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  National ID
-                </label>
-                <Input
-                  value={formData.nationalId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nationalId: e.target.value })
-                  }
-                />
+                <label className="block text-sm font-medium mb-2">National ID</label>
+                <Input value={formData.nationalId} onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })} />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Address</label>
-              <Input
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-              />
+              <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Date of Birth
-              </label>
-              <Input
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) =>
-                  setFormData({ ...formData, dateOfBirth: e.target.value })
-                }
-              />
+              <label className="block text-sm font-medium mb-2">Date of Birth</label>
+              <Input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} />
             </div>
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? "Updating..." : "Update Customer"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-              >
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 Cancel
               </Button>
             </div>

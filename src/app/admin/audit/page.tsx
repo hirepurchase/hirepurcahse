@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Filter, Download } from 'lucide-react';
+import { FileText, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Pagination } from '@/components/ui/pagination';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
@@ -121,61 +120,56 @@ export default function AuditTrailPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Audit Trail</h1>
-          <p className="text-gray-600 mt-1">System activity and change history</p>
-        </div>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Audit Trail</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">System activity and change history</p>
       </div>
 
       {/* Statistics Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Logs</p>
-                  <p className="text-2xl font-bold mt-1">{stats.totalLogs?.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Logs</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.totalLogs?.toLocaleString()}</p>
                 </div>
-                <FileText className="h-8 w-8 text-blue-600" />
+                <FileText className="h-6 w-6 text-blue-600" />
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Unique Actions</p>
-                  <p className="text-2xl font-bold mt-1">{stats.actionCounts?.length || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Unique Actions</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.actionCounts?.length || 0}</p>
                 </div>
-                <Filter className="h-8 w-8 text-green-600" />
+                <Filter className="h-6 w-6 text-green-600" />
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Entities Tracked</p>
-                  <p className="text-2xl font-bold mt-1">{stats.entityCounts?.length || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Entities Tracked</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.entityCounts?.length || 0}</p>
                 </div>
-                <FileText className="h-8 w-8 text-purple-600" />
+                <FileText className="h-6 w-6 text-purple-600" />
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Active Users</p>
-                  <p className="text-2xl font-bold mt-1">{stats.userActivity?.length || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Active Users</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.userActivity?.length || 0}</p>
                 </div>
-                <FileText className="h-8 w-8 text-orange-600" />
+                <FileText className="h-6 w-6 text-orange-600" />
               </div>
             </CardContent>
           </Card>
@@ -183,12 +177,12 @@ export default function AuditTrailPage() {
       )}
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Filters</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <CardContent className="pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
             <div>
               <label className="block text-sm font-medium mb-2">Action</label>
               <select
@@ -202,7 +196,6 @@ export default function AuditTrailPage() {
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Entity</label>
               <select
@@ -216,29 +209,16 @@ export default function AuditTrailPage() {
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Start Date</label>
-              <Input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              />
+              <Input type="date" value={filters.startDate} onChange={(e) => handleFilterChange('startDate', e.target.value)} />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">End Date</label>
-              <Input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              />
+              <Input type="date" value={filters.endDate} onChange={(e) => handleFilterChange('endDate', e.target.value)} />
             </div>
-
-            <div className="flex items-end">
-              <Button variant="outline" onClick={clearFilters} className="w-full">
-                Clear Filters
-              </Button>
+            <div className="flex items-end col-span-2 sm:col-span-1">
+              <Button variant="outline" onClick={clearFilters} className="w-full">Clear</Button>
             </div>
           </div>
         </CardContent>
@@ -246,79 +226,85 @@ export default function AuditTrailPage() {
 
       {/* Audit Logs Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Activity Log</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Activity Log <span className="text-sm font-normal text-gray-400">({totalItems.toLocaleString()} total)</span></CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium">No audit logs found</p>
-              <p className="text-sm mt-1">Activity logs will appear here</p>
+            <div className="text-center py-12 text-gray-500 text-sm">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+              <p>No audit logs found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Entity ID</TableHead>
-                    <TableHead>IP Address</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm">
-                        {formatDate(log.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        {log.user ? (
-                          <div>
-                            <p className="font-medium text-sm">
-                              {log.user.firstName} {log.user.lastName}
-                            </p>
-                            <p className="text-xs text-gray-500">{log.user.email}</p>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">System</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getActionColor(log.action)}>
-                          {log.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{log.entity}</TableCell>
-                      <TableCell className="font-mono text-xs text-gray-600">
-                        {log.entityId ? log.entityId.substring(0, 8) + '...' : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {log.ipAddress || '-'}
-                      </TableCell>
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {logs.map((log) => (
+                  <div key={log.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <Badge className={`text-xs ${getActionColor(log.action)}`}>{log.action}</Badge>
+                      <span className="text-xs text-gray-400">{formatDate(log.createdAt)}</span>
+                    </div>
+                    <p className="text-xs font-medium mt-0.5">{log.entity}{log.entityId ? ` · ${log.entityId.substring(0, 8)}…` : ''}</p>
+                    <p className="text-xs text-gray-500">
+                      {log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}
+                      {log.ipAddress ? ` · ${log.ipAddress}` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Entity</TableHead>
+                      <TableHead>Entity ID</TableHead>
+                      <TableHead>IP Address</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {logs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-sm">{formatDate(log.createdAt)}</TableCell>
+                        <TableCell>
+                          {log.user ? (
+                            <div>
+                              <p className="font-medium text-sm">{log.user.firstName} {log.user.lastName}</p>
+                              <p className="text-xs text-gray-500">{log.user.email}</p>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">System</span>
+                          )}
+                        </TableCell>
+                        <TableCell><Badge className={getActionColor(log.action)}>{log.action}</Badge></TableCell>
+                        <TableCell className="font-medium">{log.entity}</TableCell>
+                        <TableCell className="font-mono text-xs text-gray-600">{log.entityId ? log.entityId.substring(0, 8) + '...' : '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{log.ipAddress || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">Page {currentPage} of {totalPages}</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                  <span className="text-xs text-gray-500">{currentPage}/{totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
-        {!isLoading && logs.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
       </Card>
     </div>
   );

@@ -82,141 +82,109 @@ export default function DashboardStatsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-            <p className="text-gray-600 mt-1">Business metrics at a glance</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Business metrics at a glance</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={loadStats}>
-            Refresh
-          </Button>
+          <Button size="sm" variant="outline" onClick={loadStats}>Refresh</Button>
           <ExportButtons exportOptions={exportOptions} />
         </div>
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Customers</p>
-                <p className="text-3xl font-bold mt-2">{stats?.customers?.total || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Customers</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1">{stats?.customers?.total || 0}</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Users className="h-8 w-8 text-blue-600" />
-              </div>
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg"><Users className="h-5 w-5 sm:h-8 sm:w-8 text-blue-600" /></div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Contracts</p>
-                <p className="text-3xl font-bold mt-2">{stats?.contracts?.total || 0}</p>
-                <p className="text-xs text-green-600 mt-1">
-                  {stats?.contracts?.active || 0} active
-                </p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Contracts</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1">{stats?.contracts?.total || 0}</p>
+                <p className="text-xs text-green-600 mt-0.5">{stats?.contracts?.active || 0} active</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <FileText className="h-8 w-8 text-green-600" />
-              </div>
+              <div className="p-2 sm:p-3 bg-green-100 rounded-lg"><FileText className="h-5 w-5 sm:h-8 sm:w-8 text-green-600" /></div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Available Inventory</p>
-                <p className="text-3xl font-bold mt-2">{stats?.inventory?.availableItems || 0}</p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {stats?.inventory?.totalProducts || 0} products
-                </p>
+                <p className="text-xs sm:text-sm text-gray-600">Available Inventory</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1">{stats?.inventory?.availableItems || 0}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{stats?.inventory?.totalProducts || 0} products</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Package className="h-8 w-8 text-purple-600" />
-              </div>
+              <div className="p-2 sm:p-3 bg-purple-100 rounded-lg"><Package className="h-5 w-5 sm:h-8 sm:w-8 text-purple-600" /></div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Overdue Installments</p>
-                <p className="text-3xl font-bold mt-2 text-red-600">
-                  {stats?.alerts?.overdueInstallments || 0}
-                </p>
+                <p className="text-xs sm:text-sm text-gray-600">Overdue Installments</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1 text-red-600">{stats?.alerts?.overdueInstallments || 0}</p>
               </div>
-              <div className="p-3 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-              </div>
+              <div className="p-2 sm:p-3 bg-red-100 rounded-lg"><AlertTriangle className="h-5 w-5 sm:h-8 sm:w-8 text-red-600" /></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Payment Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">This Month&apos;s Collections</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">This Month&apos;s Collections</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Collected</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(stats?.payments?.monthlyTotal || 0)}
-                  </p>
-                </div>
-                <Banknote className="h-12 w-12 text-green-600" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Total Collected</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(stats?.payments?.monthlyTotal || 0)}</p>
               </div>
-              <div className="pt-3 border-t">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Total Transactions</span>
-                  <span className="font-medium">{stats?.payments?.monthlyCount || 0}</span>
-                </div>
-              </div>
+              <Banknote className="h-8 w-8 text-green-600" />
+            </div>
+            <div className="flex justify-between text-sm pt-3 mt-3 border-t">
+              <span className="text-gray-500">Transactions</span>
+              <span className="font-medium">{stats?.payments?.monthlyCount || 0}</span>
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">This Week&apos;s Collections</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">This Week&apos;s Collections</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Collected</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(stats?.payments?.weeklyTotal || 0)}
-                  </p>
-                </div>
-                <TrendingUp className="h-12 w-12 text-blue-600" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Total Collected</p>
+                <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats?.payments?.weeklyTotal || 0)}</p>
               </div>
-              <div className="pt-3 border-t">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Total Transactions</span>
-                  <span className="font-medium">{stats?.payments?.weeklyCount || 0}</span>
-                </div>
-              </div>
+              <TrendingUp className="h-8 w-8 text-blue-600" />
+            </div>
+            <div className="flex justify-between text-sm pt-3 mt-3 border-t">
+              <span className="text-gray-500">Transactions</span>
+              <span className="font-medium">{stats?.payments?.weeklyCount || 0}</span>
             </div>
           </CardContent>
         </Card>
@@ -224,54 +192,59 @@ export default function DashboardStatsPage() {
 
       {/* Recent Contracts */}
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Contracts</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Recent Contracts</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {stats?.recentContracts?.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <div className="text-center py-8 text-gray-500 text-sm">
+              <FileText className="h-10 w-10 mx-auto mb-3 text-gray-400" />
               <p>No recent contracts</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Contract #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Total Price</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
                 {stats?.recentContracts?.map((contract: any) => (
-                  <TableRow key={contract.id}>
-                    <TableCell className="text-sm">
-                      {formatDate(contract.createdAt)}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {contract.contractNumber}
-                    </TableCell>
-                    <TableCell>
-                      {contract.customer?.firstName} {contract.customer?.lastName}
-                    </TableCell>
-                    <TableCell>
-                      {contract.inventoryItem?.product?.name || '-'}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(contract.totalPrice)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                        {contract.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
+                  <div key={contract.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-mono font-medium">{contract.contractNumber}</p>
+                      <Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">{contract.status}</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">{contract.customer?.firstName} {contract.customer?.lastName}</p>
+                    <p className="text-xs text-gray-400">{contract.inventoryItem?.product?.name || '-'} · {formatDate(contract.createdAt)}</p>
+                    <p className="text-sm font-medium mt-0.5">{formatCurrency(contract.totalPrice)}</p>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Contract #</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right">Total Price</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stats?.recentContracts?.map((contract: any) => (
+                      <TableRow key={contract.id}>
+                        <TableCell className="text-sm">{formatDate(contract.createdAt)}</TableCell>
+                        <TableCell className="font-mono text-sm">{contract.contractNumber}</TableCell>
+                        <TableCell>{contract.customer?.firstName} {contract.customer?.lastName}</TableCell>
+                        <TableCell>{contract.inventoryItem?.product?.name || '-'}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(contract.totalPrice)}</TableCell>
+                        <TableCell><Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'}>{contract.status}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

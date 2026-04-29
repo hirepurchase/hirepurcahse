@@ -343,127 +343,133 @@ export default function CustomerContractPaymentPage() {
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="mb-6">
-        <Button variant="outline" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Payments
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Back</span>
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Make Payment</h1>
-        <p className="text-gray-600 mt-1">Contract #{contract.contractNumber}</p>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Make Payment</h1>
+          <p className="text-xs sm:text-sm text-gray-500">Contract #{contract.contractNumber}</p>
+        </div>
       </div>
 
-      {/* Payment Status Alert */}
+      {/* Payment Status Alerts */}
       {paymentStatus === 'pending' && (
-        <Alert className="mb-6 border-blue-500 bg-blue-50">
+        <Alert className="border-blue-500 bg-blue-50">
           <Clock className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-900">
-            Waiting for payment approval on your phone. Transaction Reference: <strong>{transactionRef}</strong>
+          <AlertDescription className="text-blue-900 text-sm">
+            Waiting for approval on your phone. Ref: <strong>{transactionRef}</strong>
           </AlertDescription>
         </Alert>
       )}
-
       {paymentStatus === 'success' && (
-        <Alert className="mb-6 border-green-500 bg-green-50">
+        <Alert className="border-green-500 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-900">
-            Payment successful! Your contract has been updated.
-          </AlertDescription>
+          <AlertDescription className="text-green-900 text-sm">Payment successful! Your contract has been updated.</AlertDescription>
         </Alert>
       )}
-
       {paymentStatus === 'failed' && (
-        <Alert className="mb-6 border-red-500 bg-red-50">
+        <Alert className="border-red-500 bg-red-50">
           <XCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-900">
-            Payment failed. Please try again or contact support if the problem persists.
-          </AlertDescription>
+          <AlertDescription className="text-red-900 text-sm">Payment failed. Please try again or contact support.</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left Column - Installments */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Select Installments to Pay</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Select Installments to Pay</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {pendingInstallments.length === 0 ? (
                 <div className="text-center py-12">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">All installments are paid!</p>
-                  <p className="text-sm text-gray-500">This contract is up to date.</p>
+                  <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-3" />
+                  <p className="text-gray-600 text-sm">All installments are paid!</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead>#</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Paid</TableHead>
-                        <TableHead>Balance</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Pay Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingInstallments.map((installment) => {
-                        const isSelected = selectedInstallments.has(installment.id);
-                        const selected = selectedInstallments.get(installment.id);
-                        const remainingAmount = installment.amount - installment.paidAmount;
-
-                        return (
-                          <TableRow key={installment.id}>
-                            <TableCell>
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={(checked) =>
-                                  handleInstallmentToggle(installment, checked as boolean)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>{installment.installmentNo}</TableCell>
-                            <TableCell>{formatDate(installment.dueDate)}</TableCell>
-                            <TableCell>{formatCurrency(installment.amount)}</TableCell>
-                            <TableCell className="text-green-600">
-                              {formatCurrency(installment.paidAmount)}
-                            </TableCell>
-                            <TableCell className="font-semibold text-orange-600">
-                              {formatCurrency(remainingAmount)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={getInstallmentStatusColor(installment.status)}>
-                                {installment.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {isSelected ? (
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  max={remainingAmount}
-                                  value={selected?.paymentAmount || 0}
-                                  onChange={(e) =>
-                                    handlePaymentAmountChange(installment.id, e.target.value)
-                                  }
-                                  className="w-28"
-                                />
-                              ) : (
-                                <span className="text-gray-400">-</span>
+                <>
+                  {/* Mobile */}
+                  <div className="sm:hidden divide-y divide-gray-100">
+                    {pendingInstallments.map((installment) => {
+                      const isSelected = selectedInstallments.has(installment.id);
+                      const selected = selectedInstallments.get(installment.id);
+                      const remainingAmount = installment.amount - installment.paidAmount;
+                      return (
+                        <div key={installment.id} className={`px-4 py-3 ${isSelected ? 'bg-blue-50' : ''}`}>
+                          <div className="flex items-start gap-3">
+                            <Checkbox checked={isSelected} onCheckedChange={(checked) => handleInstallmentToggle(installment, checked as boolean)} className="mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold">#{installment.installmentNo}</span>
+                                  <Badge className={`text-xs ${getInstallmentStatusColor(installment.status)}`}>{installment.status}</Badge>
+                                </div>
+                                <span className="text-sm font-bold text-orange-600">{formatCurrency(remainingAmount)}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5">Due: {formatDate(installment.dueDate)}</p>
+                              {installment.paidAmount > 0 && <p className="text-xs text-green-600">{formatCurrency(installment.paidAmount)} paid</p>}
+                              {isSelected && (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <Label className="text-xs shrink-0">Pay:</Label>
+                                  <Input type="number" step="0.01" min="0" max={remainingAmount} value={selected?.paymentAmount || 0} onChange={(e) => handlePaymentAmountChange(installment.id, e.target.value)} className="h-8 text-sm" />
+                                </div>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Desktop */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>#</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Paid</TableHead>
+                          <TableHead>Balance</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Pay Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingInstallments.map((installment) => {
+                          const isSelected = selectedInstallments.has(installment.id);
+                          const selected = selectedInstallments.get(installment.id);
+                          const remainingAmount = installment.amount - installment.paidAmount;
+                          return (
+                            <TableRow key={installment.id} className={isSelected ? 'bg-blue-50' : ''}>
+                              <TableCell>
+                                <Checkbox checked={isSelected} onCheckedChange={(checked) => handleInstallmentToggle(installment, checked as boolean)} />
+                              </TableCell>
+                              <TableCell>{installment.installmentNo}</TableCell>
+                              <TableCell>{formatDate(installment.dueDate)}</TableCell>
+                              <TableCell>{formatCurrency(installment.amount)}</TableCell>
+                              <TableCell className="text-green-600">{formatCurrency(installment.paidAmount)}</TableCell>
+                              <TableCell className="font-semibold text-orange-600">{formatCurrency(remainingAmount)}</TableCell>
+                              <TableCell><Badge className={getInstallmentStatusColor(installment.status)}>{installment.status}</Badge></TableCell>
+                              <TableCell>
+                                {isSelected ? (
+                                  <Input type="number" step="0.01" min="0" max={remainingAmount} value={selected?.paymentAmount || 0} onChange={(e) => handlePaymentAmountChange(installment.id, e.target.value)} className="w-28" />
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -471,86 +477,48 @@ export default function CustomerContractPaymentPage() {
 
         {/* Right Column - Payment Form */}
         <div>
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Payment Details</CardTitle>
+          <Card className="lg:sticky lg:top-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Payment Details</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePayment} className="space-y-4">
-                {/* Product Info */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Product</p>
+                <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                  <p className="text-xs text-gray-500">Product</p>
                   <p className="font-semibold">{contract.inventoryItem.product.name}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Serial: {contract.inventoryItem.serialNumber}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">Serial: {contract.inventoryItem.serialNumber}</p>
                 </div>
 
-                {/* Contract Summary */}
-                <div className="space-y-2 border-t pt-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Total Price:</span>
-                    <span className="font-semibold">{formatCurrency(contract.totalPrice)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Already Paid:</span>
-                    <span className="text-green-600">{formatCurrency(contract.totalPaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Outstanding:</span>
-                    <span className="text-orange-600 font-semibold">
-                      {formatCurrency(contract.outstandingBalance)}
-                    </span>
-                  </div>
+                <div className="space-y-1.5 text-sm border-t pt-3">
+                  <div className="flex justify-between"><span className="text-gray-500">Total Price:</span><span className="font-medium">{formatCurrency(contract.totalPrice)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Paid:</span><span className="text-green-600">{formatCurrency(contract.totalPaid)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Outstanding:</span><span className="text-orange-600 font-semibold">{formatCurrency(contract.outstandingBalance)}</span></div>
                 </div>
 
-                {/* Selected Installments */}
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium mb-2">Selected Installments</p>
-                  {selectedInstallments.size === 0 ? (
-                    <p className="text-sm text-gray-500">No installments selected</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {Array.from(selectedInstallments.values()).map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            Installment #{item.installmentNo}
-                            {item.isPartial && ' (Partial)'}
-                          </span>
-                          <span className="font-semibold">
-                            {formatCurrency(item.paymentAmount)}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                        <span>Total Payment:</span>
-                        <span className="text-blue-600">{formatCurrency(getTotalPaymentAmount())}</span>
+                {selectedInstallments.size > 0 && (
+                  <div className="border-t pt-3 space-y-1.5 text-sm">
+                    {Array.from(selectedInstallments.values()).map((item) => (
+                      <div key={item.id} className="flex justify-between">
+                        <span className="text-gray-500">Inst. #{item.installmentNo}{item.isPartial ? ' (Partial)' : ''}</span>
+                        <span className="font-medium">{formatCurrency(item.paymentAmount)}</span>
                       </div>
+                    ))}
+                    <div className="flex justify-between font-bold text-base pt-1 border-t">
+                      <span>Total:</span>
+                      <span className="text-blue-600">{formatCurrency(getTotalPaymentAmount())}</span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* Mobile Money Details */}
-                <div className="space-y-4 border-t pt-4">
+                <div className="space-y-3 border-t pt-3">
                   <div>
                     <Label htmlFor="phoneNumber">Mobile Money Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="0244123456"
-                      required
-                      disabled={isProcessing}
-                    />
+                    <Input id="phoneNumber" type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="0244123456" required disabled={isProcessing} />
                   </div>
-
                   <div>
                     <Label htmlFor="network">Network</Label>
                     <Select value={network} onValueChange={setNetwork} disabled={isProcessing}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="MTN">MTN Mobile Money</SelectItem>
                         <SelectItem value="VODAFONE">Vodafone Cash</SelectItem>
@@ -560,30 +528,16 @@ export default function CustomerContractPaymentPage() {
                   </div>
                 </div>
 
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isProcessing || selectedInstallments.size === 0}
-                >
+                <Button type="submit" className="w-full" disabled={isProcessing || selectedInstallments.size === 0}>
                   {isProcessing ? (
-                    <>
-                      <Clock className="h-4 w-4 mr-2 animate-spin" />
-                      Processing Payment...
-                    </>
+                    <><Clock className="h-4 w-4 mr-2 animate-spin" />Processing...</>
                   ) : (
-                    <>
-                      <Smartphone className="h-4 w-4 mr-2" />
-                      Pay {formatCurrency(getTotalPaymentAmount())}
-                    </>
+                    <><Smartphone className="h-4 w-4 mr-2" />Pay {formatCurrency(getTotalPaymentAmount())}</>
                   )}
                 </Button>
 
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-xs text-blue-900">
-                    <AlertCircle className="h-3 w-3 inline mr-1" />
-                    You will receive a prompt on your phone to approve this payment.
-                  </p>
+                  <p className="text-xs text-blue-900"><AlertCircle className="h-3 w-3 inline mr-1" />You will receive a prompt on your phone to approve this payment.</p>
                 </div>
               </form>
             </CardContent>

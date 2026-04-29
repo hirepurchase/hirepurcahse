@@ -127,30 +127,28 @@ export default function InventoryReportPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventory Report</h1>
-            <p className="text-gray-600 mt-1">Stock levels and inventory valuation</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventory Report</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Stock levels and inventory valuation</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={loadReport}>
-            Refresh
-          </Button>
+          <Button size="sm" variant="outline" onClick={loadReport}>Refresh</Button>
           <ExportButtons exportOptions={exportOptions} />
         </div>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium mb-2">Category</label>
               <select
@@ -164,7 +162,6 @@ export default function InventoryReportPage() {
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>
               <select
@@ -178,13 +175,8 @@ export default function InventoryReportPage() {
                 <option value="RESERVED">Reserved</option>
               </select>
             </div>
-
             <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => setFilters({ categoryId: '', status: '' })}
-                className="w-full"
-              >
+              <Button variant="outline" onClick={() => setFilters({ categoryId: '', status: '' })} className="w-full">
                 Clear Filters
               </Button>
             </div>
@@ -193,111 +185,107 @@ export default function InventoryReportPage() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Total Products</p>
-              <p className="text-2xl font-bold mt-1">{report?.summary?.totalProducts || 0}</p>
-              <p className="text-xs text-green-600 mt-1">
-                {report?.summary?.activeProducts || 0} active
-              </p>
-            </div>
+            <p className="text-xs sm:text-sm text-gray-600">Total Products</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{report?.summary?.totalProducts || 0}</p>
+            <p className="text-xs text-green-600 mt-1">{report?.summary?.activeProducts || 0} active</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Total Items</p>
-              <p className="text-2xl font-bold mt-1">{report?.summary?.totalItems || 0}</p>
-            </div>
+            <p className="text-xs sm:text-sm text-gray-600">Total Items</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{report?.summary?.totalItems || 0}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Available Items</p>
-              <p className="text-2xl font-bold mt-1 text-green-600">
-                {report?.summary?.availableItems || 0}
-              </p>
-            </div>
+            <p className="text-xs sm:text-sm text-gray-600">Available Items</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1 text-green-600">{report?.summary?.availableItems || 0}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Stock Value</p>
-              <p className="text-2xl font-bold mt-1 text-blue-600">
-                {formatCurrency(report?.summary?.totalStockValue || 0)}
-              </p>
-            </div>
+            <p className="text-xs sm:text-sm text-gray-600">Stock Value</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1 text-blue-600">{formatCurrency(report?.summary?.totalStockValue || 0)}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Stock Alerts */}
       {(report?.summary?.lowStock?.length > 0 || report?.summary?.outOfStock?.length > 0) && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600">
-              <AlertCircle className="h-5 w-5" />
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base text-orange-600">
+              <AlertCircle className="h-4 w-4" />
               Stock Alerts
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {report?.summary?.outOfStock?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-red-600 mb-2">
-                    Out of Stock ({report.summary.outOfStock.length})
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {report.summary.outOfStock.map((item: any) => (
-                      <Badge key={item.product.id} variant="destructive">
-                        {item.product.name}
-                      </Badge>
-                    ))}
-                  </div>
+          <CardContent className="space-y-3">
+            {report?.summary?.outOfStock?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-red-600 mb-2">Out of Stock ({report.summary.outOfStock.length})</p>
+                <div className="flex flex-wrap gap-2">
+                  {report.summary.outOfStock.map((item: any) => (
+                    <Badge key={item.product.id} variant="destructive">{item.product.name}</Badge>
+                  ))}
                 </div>
-              )}
-
-              {report?.summary?.lowStock?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-orange-600 mb-2">
-                    Low Stock - Less than 5 items ({report.summary.lowStock.length})
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {report.summary.lowStock.map((item: any) => (
-                      <Badge key={item.product.id} className="bg-orange-100 text-orange-800">
-                        {item.product.name} ({item.inventory.available})
-                      </Badge>
-                    ))}
-                  </div>
+              </div>
+            )}
+            {report?.summary?.lowStock?.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-orange-600 mb-2">Low Stock — less than 5 ({report.summary.lowStock.length})</p>
+                <div className="flex flex-wrap gap-2">
+                  {report.summary.lowStock.map((item: any) => (
+                    <Badge key={item.product.id} className="bg-orange-100 text-orange-800">
+                      {item.product.name} ({item.inventory.available})
+                    </Badge>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Inventory Details */}
       <Card>
-        <CardHeader>
-          <CardTitle>Inventory by Product ({inventoryItems.length})</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Inventory by Product <span className="text-sm font-normal text-gray-400">({inventoryItems.length})</span></CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {inventoryItems.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Package className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium">No inventory found</p>
-              <p className="text-sm mt-1">Try adjusting your filters</p>
+            <div className="text-center py-12 text-gray-500 text-sm">
+              <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+              <p>No inventory found. Try adjusting your filters.</p>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {paginatedInventory.map((item: any) => (
+                  <div key={item.product.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">{item.product.name}</p>
+                      {item.product.isActive ? <Badge variant="default" className="text-xs">Active</Badge> : <Badge variant="secondary" className="text-xs">Inactive</Badge>}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge variant="outline" className="text-xs">{item.product.category}</Badge>
+                      <span className="text-xs text-gray-500">{formatCurrency(item.product.basePrice)}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs">
+                      <span className="text-green-600 font-medium">{item.inventory.available} avail</span>
+                      <span className="text-gray-500">{item.inventory.total} total</span>
+                      <span className="text-gray-400">{item.inventory.sold} sold</span>
+                      {item.inventory.reserved > 0 && <span className="text-yellow-600">{item.inventory.reserved} rsv</span>}
+                    </div>
+                    <p className="text-xs font-medium text-blue-600 mt-0.5">{formatCurrency(item.stockValue)}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -316,70 +304,27 @@ export default function InventoryReportPage() {
                     {paginatedInventory.map((item: any) => (
                       <TableRow key={item.product.id}>
                         <TableCell className="font-medium">{item.product.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.product.category}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(item.product.basePrice)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {item.inventory.total}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-green-600 font-medium">
-                            {item.inventory.available}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right text-gray-600">
-                          {item.inventory.sold}
-                        </TableCell>
-                        <TableCell className="text-right text-yellow-600">
-                          {item.inventory.reserved}
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-blue-600">
-                          {formatCurrency(item.stockValue)}
-                        </TableCell>
-                        <TableCell>
-                          {item.product.isActive ? (
-                            <Badge variant="default">Active</Badge>
-                          ) : (
-                            <Badge variant="secondary">Inactive</Badge>
-                          )}
-                        </TableCell>
+                        <TableCell><Badge variant="outline">{item.product.category}</Badge></TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.product.basePrice)}</TableCell>
+                        <TableCell className="text-right font-medium">{item.inventory.total}</TableCell>
+                        <TableCell className="text-right"><span className="text-green-600 font-medium">{item.inventory.available}</span></TableCell>
+                        <TableCell className="text-right text-gray-600">{item.inventory.sold}</TableCell>
+                        <TableCell className="text-right text-yellow-600">{item.inventory.reserved}</TableCell>
+                        <TableCell className="text-right font-medium text-blue-600">{formatCurrency(item.stockValue)}</TableCell>
+                        <TableCell>{item.product.isActive ? <Badge variant="default">Active</Badge> : <Badge variant="secondary">Inactive</Badge>}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
 
-              {/* Pagination Controls */}
               {inventoryItems.length > 0 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <div className="text-sm text-gray-600">
-                    Showing {startIndex + 1} to {Math.min(endIndex, inventoryItems.length)} of {inventoryItems.length} products
-                  </div>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">{startIndex + 1}–{Math.min(endIndex, inventoryItems.length)} of {inventoryItems.length}</p>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviousPage}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    <div className="text-sm text-gray-600">
-                      Page {currentPage} of {totalPages}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={handlePreviousPage} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                    <span className="text-xs text-gray-500">{currentPage}/{totalPages}</span>
+                    <Button variant="outline" size="sm" onClick={handleNextPage} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
                   </div>
                 </div>
               )}

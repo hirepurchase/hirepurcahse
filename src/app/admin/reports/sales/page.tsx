@@ -139,25 +139,25 @@ export default function SalesReportPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Sales Report</h1>
-            <p className="text-gray-600 mt-1">Contract sales and performance analysis</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Sales Report</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Contract sales and performance</p>
           </div>
         </div>
         <ExportButtons exportOptions={exportOptions} />
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-sm font-medium mb-2">Start Date</label>
               <Input
@@ -222,65 +222,44 @@ export default function SalesReportPage() {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Total Contracts</p>
-              <p className="text-2xl font-bold mt-1">{report?.summary?.totalContracts || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Total Sales Value</p>
-              <p className="text-2xl font-bold mt-1 text-green-600">
-                {formatCurrency(report?.summary?.totalSalesValue || 0)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Total Deposits</p>
-              <p className="text-2xl font-bold mt-1 text-blue-600">
-                {formatCurrency(report?.summary?.totalDeposits || 0)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div>
-              <p className="text-sm text-gray-600">Average Contract</p>
-              <p className="text-2xl font-bold mt-1">
-                {formatCurrency(report?.summary?.averageContractValue || 0)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Summary Cards — 2 col mobile, 4 desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Total Contracts</p><p className="text-xl sm:text-2xl font-bold mt-1">{report?.summary?.totalContracts || 0}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Sales Value</p><p className="text-xl sm:text-2xl font-bold mt-1 text-green-600">{formatCurrency(report?.summary?.totalSalesValue || 0)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Total Deposits</p><p className="text-xl sm:text-2xl font-bold mt-1 text-blue-600">{formatCurrency(report?.summary?.totalDeposits || 0)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Avg Contract</p><p className="text-xl sm:text-2xl font-bold mt-1">{formatCurrency(report?.summary?.averageContractValue || 0)}</p></CardContent></Card>
       </div>
 
       {/* Sales Contracts */}
       <Card>
-        <CardHeader>
-          <CardTitle>Sales Contracts ({contracts.length})</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Sales Contracts <span className="text-sm font-normal text-gray-400">({contracts.length})</span></CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {contracts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg font-medium">No contracts found</p>
-              <p className="text-sm mt-1">Try adjusting your filters</p>
-            </div>
+            <div className="text-center py-12 text-gray-500 text-sm">No contracts found. Try adjusting your filters.</div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {paginatedContracts.map((contract: any) => (
+                  <div key={contract.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold truncate">{contract.customer?.firstName} {contract.customer?.lastName}</p>
+                      <Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'}>{contract.status}</Badge>
+                    </div>
+                    <p className="text-xs font-mono text-gray-500">{contract.contractNumber}</p>
+                    <p className="text-xs text-gray-400 truncate">{contract.inventoryItem?.product?.name || '-'}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs">
+                      <span className="font-semibold text-cyan-600">{formatCurrency(contract.totalPrice)}</span>
+                      <span className="text-gray-400">Dep: {formatCurrency(contract.depositAmount)}</span>
+                      <span className="text-gray-400">{formatDate(contract.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -299,58 +278,25 @@ export default function SalesReportPage() {
                       <TableRow key={contract.id}>
                         <TableCell className="text-sm">{formatDate(contract.createdAt)}</TableCell>
                         <TableCell className="font-mono text-sm">{contract.contractNumber}</TableCell>
-                        <TableCell>
-                          {contract.customer?.firstName} {contract.customer?.lastName}
-                        </TableCell>
+                        <TableCell>{contract.customer?.firstName} {contract.customer?.lastName}</TableCell>
                         <TableCell>{contract.inventoryItem?.product?.name || '-'}</TableCell>
-                        <TableCell className="text-sm">
-                          {contract.createdBy?.firstName} {contract.createdBy?.lastName}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(contract.totalPrice)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(contract.depositAmount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                            {contract.status}
-                          </Badge>
-                        </TableCell>
+                        <TableCell className="text-sm">{contract.createdBy?.firstName} {contract.createdBy?.lastName}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(contract.totalPrice)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(contract.depositAmount)}</TableCell>
+                        <TableCell><Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'}>{contract.status}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
 
-              {/* Pagination Controls */}
               {contracts.length > 0 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <div className="text-sm text-gray-600">
-                    Showing {startIndex + 1} to {Math.min(endIndex, contracts.length)} of {contracts.length} contracts
-                  </div>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">{startIndex + 1}–{Math.min(endIndex, contracts.length)} of {contracts.length}</p>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviousPage}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    <div className="text-sm text-gray-600">
-                      Page {currentPage} of {totalPages}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={handlePreviousPage} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                    <span className="text-xs text-gray-500">{currentPage}/{totalPages}</span>
+                    <Button variant="outline" size="sm" onClick={handleNextPage} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
                   </div>
                 </div>
               )}

@@ -274,82 +274,57 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage admin users and their roles</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">User Management</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage admin users and their roles</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create User
+        <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Create User</span>
         </Button>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label>Search</Label>
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="sm:col-span-2 lg:col-span-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Search name or email…"
                   value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPagination({ ...pagination, page: 1 });
-                  }}
+                  onChange={(e) => { setSearch(e.target.value); setPagination({ ...pagination, page: 1 }); }}
                   className="pl-10"
                 />
               </div>
             </div>
-
             <div>
-              <Label>Role</Label>
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                 value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setPagination({ ...pagination, page: 1 });
-                }}
+                onChange={(e) => { setRoleFilter(e.target.value); setPagination({ ...pagination, page: 1 }); }}
               >
                 <option value="">All Roles</option>
-                {roles.map((role) => (
-                  <option key={role.id} value={role.id}>{role.name}</option>
-                ))}
+                {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
               </select>
             </div>
-
             <div>
-              <Label>Status</Label>
               <select
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPagination({ ...pagination, page: 1 });
-                }}
+                onChange={(e) => { setStatusFilter(e.target.value); setPagination({ ...pagination, page: 1 }); }}
               >
                 <option value="">All Status</option>
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
             </div>
-
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearch('');
-                  setRoleFilter('');
-                  setStatusFilter('');
-                  setPagination({ ...pagination, page: 1 });
-                }}
-                className="w-full"
-              >
+            <div>
+              <Button variant="outline" className="w-full" onClick={() => { setSearch(''); setRoleFilter(''); setStatusFilter(''); setPagination({ ...pagination, page: 1 }); }}>
                 Clear Filters
               </Button>
             </div>
@@ -357,28 +332,63 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      {/* Users Table */}
+      {/* Users List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UsersIcon className="h-5 w-5" />
-            Admin Users ({pagination.total})
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <UsersIcon className="h-4 w-4" />
+            Admin Users
+            <span className="text-sm font-normal text-gray-400">({pagination.total})</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <UsersIcon className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium">No users found</p>
-              <p className="text-sm mt-1">Try adjusting your filters or create a new user</p>
+              <UsersIcon className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">No users found</p>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* ── Mobile card list ── */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {users.map((user) => (
+                  <div key={user.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user.firstName} {user.lastName}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        {user.phone && <p className="text-xs text-gray-400">{user.phone}</p>}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Badge variant="outline" className="text-[10px]">{user.role.name}</Badge>
+                          {user.isActive
+                            ? <Badge variant="default" className="bg-green-600 text-[10px]">Active</Badge>
+                            : <Badge variant="destructive" className="text-[10px]">Inactive</Badge>
+                          }
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{formatDate(user.createdAt)}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)} title="Edit user">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openResetPasswordDialog(user)} title="Reset password" className="text-amber-600 hover:bg-amber-50">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? 'Deactivate' : 'Activate'}>
+                          {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Desktop table ── */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -394,58 +404,26 @@ export default function UsersPage() {
                   <TableBody>
                     {users.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          {user.firstName} {user.lastName}
-                        </TableCell>
+                        <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.phone || '-'}</TableCell>
+                        <TableCell><Badge variant="outline">{user.role.name}</Badge></TableCell>
                         <TableCell>
-                          <Badge variant="outline">{user.role.name}</Badge>
+                          {user.isActive
+                            ? <Badge variant="default" className="bg-green-600">Active</Badge>
+                            : <Badge variant="destructive">Inactive</Badge>}
                         </TableCell>
-                        <TableCell>
-                          {user.isActive ? (
-                            <Badge variant="default" className="bg-green-600">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive">
-                              Inactive
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {formatDate(user.createdAt)}
-                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">{formatDate(user.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditDialog(user)}
-                              title="Edit user"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => openEditDialog(user)} title="Edit user">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openResetPasswordDialog(user)}
-                              title="Reset password"
-                              className="text-amber-600 border-amber-300 hover:bg-amber-50"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => openResetPasswordDialog(user)} title="Reset password" className="text-amber-600 border-amber-300 hover:bg-amber-50">
                               <KeyRound className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleUserStatus(user)}
-                              title={user.isActive ? 'Deactivate user' : 'Activate user'}
-                            >
-                              {user.isActive ? (
-                                <UserX className="h-4 w-4" />
-                              ) : (
-                                <UserCheck className="h-4 w-4" />
-                              )}
+                            <Button variant="outline" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? 'Deactivate user' : 'Activate user'}>
+                              {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                             </Button>
                           </div>
                         </TableCell>
@@ -457,27 +435,11 @@ export default function UsersPage() {
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-gray-600">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </p>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500">Page {pagination.page} of {pagination.totalPages}</p>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                      disabled={pagination.page === 1}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                      disabled={pagination.page === pagination.totalPages}
-                    >
-                      Next
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })} disabled={pagination.page === 1}>Prev</Button>
+                    <Button variant="outline" size="sm" onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })} disabled={pagination.page === pagination.totalPages}>Next</Button>
                   </div>
                 </div>
               )}

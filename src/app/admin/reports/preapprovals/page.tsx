@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Shield, User, FileText, Calendar, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, Search, Download } from 'lucide-react';
+import { ArrowLeft, Shield, User, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, Search, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
@@ -217,111 +217,60 @@ export default function PreapprovalsReportPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            Direct Debit Preapprovals Report
-          </h1>
-          <p className="text-gray-600 mt-1">Track customer direct debit mandate approvals</p>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Preapprovals Report</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Direct debit mandate approvals</p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={loadPreapprovals}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
+          <Button size="sm" variant="outline" onClick={loadPreapprovals}>
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={exportToCSV}>
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
+          <Button size="sm" onClick={exportToCSV}>
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
           </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <Shield className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-sm text-gray-600">Total</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-              <p className="text-2xl font-bold">{stats.approved}</p>
-              <p className="text-sm text-gray-600">Approved</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <Clock className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
-              <p className="text-2xl font-bold">{stats.pending}</p>
-              <p className="text-sm text-gray-600">Pending</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <XCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
-              <p className="text-2xl font-bold">{stats.failed}</p>
-              <p className="text-sm text-gray-600">Failed</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-              <p className="text-2xl font-bold">{stats.expired}</p>
-              <p className="text-sm text-gray-600">Expired</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <XCircle className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-              <p className="text-2xl font-bold">{stats.cancelled}</p>
-              <p className="text-sm text-gray-600">Cancelled</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        <Card><CardContent className="p-3 text-center"><p className="text-xl font-bold text-blue-600">{stats.total}</p><p className="text-xs text-gray-500 mt-0.5">Total</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xl font-bold text-green-600">{stats.approved}</p><p className="text-xs text-gray-500 mt-0.5">Approved</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xl font-bold text-yellow-600">{stats.pending}</p><p className="text-xs text-gray-500 mt-0.5">Pending</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xl font-bold text-red-600">{stats.failed}</p><p className="text-xs text-gray-500 mt-0.5">Failed</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xl font-bold text-gray-600">{stats.expired}</p><p className="text-xs text-gray-500 mt-0.5">Expired</p></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><p className="text-xl font-bold text-orange-600">{stats.cancelled}</p><p className="text-xs text-gray-500 mt-0.5">Cancelled</p></CardContent></Card>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium mb-2">Search</label>
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Customer name, phone, contract..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-9"
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>
               <select
-                className="w-full border rounded-md p-2"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -333,11 +282,10 @@ export default function PreapprovalsReportPage() {
                 <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Network</label>
               <select
-                className="w-full border rounded-md p-2"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                 value={channelFilter}
                 onChange={(e) => setChannelFilter(e.target.value)}
               >
@@ -354,106 +302,108 @@ export default function PreapprovalsReportPage() {
 
       {/* Preapprovals Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>
-            Preapproval Records ({filteredPreapprovals.length})
-          </CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Preapproval Records <span className="text-sm font-normal text-gray-400">({filteredPreapprovals.length})</span></CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Network</TableHead>
-                  <TableHead>Verification</TableHead>
-                  <TableHead>Contracts</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Approved</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPreapprovals.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                      No preapprovals found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPreapprovals.map((preapproval) => (
-                    <TableRow key={preapproval.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {preapproval.customer.firstName} {preapproval.customer.lastName}
-                          </p>
-                          <p className="text-xs text-gray-500">{preapproval.customer.membershipId}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-mono text-sm">{preapproval.customerMsisdn}</p>
-                          {preapproval.customer.email && (
-                            <p className="text-xs text-gray-500">{preapproval.customer.email}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(preapproval.status)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getChannelName(preapproval.channel)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{preapproval.verificationType || 'N/A'}</span>
-                      </TableCell>
-                      <TableCell>
-                        {preapproval.contracts.length > 0 ? (
-                          <div>
-                            {preapproval.contracts.map((contract) => (
-                              <div key={contract.id} className="mb-1">
-                                <button
-                                  onClick={() => router.push(`/admin/contracts/${contract.id}`)}
-                                  className="text-blue-600 hover:underline text-sm"
-                                >
-                                  {contract.contractNumber}
-                                </button>
-                                <p className="text-xs text-gray-500">
-                                  {formatCurrency(contract.outstandingBalance)} outstanding
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">No contracts</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{formatDate(preapproval.createdAt)}</span>
-                      </TableCell>
-                      <TableCell>
-                        {preapproval.approvedAt ? (
-                          <span className="text-sm text-green-600">{formatDate(preapproval.approvedAt)}</span>
-                        ) : (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => router.push(`/admin/customers/${preapproval.customer.id}`)}
-                        >
-                          <User className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+        <CardContent className="p-0">
+          {filteredPreapprovals.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-sm">No preapprovals found.</div>
+          ) : (
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {filteredPreapprovals.map((preapproval) => (
+                  <div key={preapproval.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">{preapproval.customer.firstName} {preapproval.customer.lastName}</p>
+                      {getStatusBadge(preapproval.status)}
+                    </div>
+                    <p className="text-xs text-gray-500">{preapproval.customerMsisdn} · {preapproval.customer.membershipId}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">{getChannelName(preapproval.channel)}</Badge>
+                      {preapproval.verificationType && <span className="text-xs text-gray-400">{preapproval.verificationType}</span>}
+                    </div>
+                    {preapproval.contracts.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {preapproval.contracts.map((c) => (
+                          <button key={c.id} onClick={() => router.push(`/admin/contracts/${c.id}`)} className="text-xs text-blue-600 hover:underline">{c.contractNumber}</button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                      <span>Created: {formatDate(preapproval.createdAt)}</span>
+                      {preapproval.approvedAt && <span className="text-green-600">Approved: {formatDate(preapproval.approvedAt)}</span>}
+                    </div>
+                    <Button variant="ghost" size="sm" className="mt-1 h-7 px-2 text-xs" onClick={() => router.push(`/admin/customers/${preapproval.customer.id}`)}>
+                      <User className="h-3 w-3 mr-1" />View Customer
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Network</TableHead>
+                      <TableHead>Verification</TableHead>
+                      <TableHead>Contracts</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Approved</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPreapprovals.map((preapproval) => (
+                      <TableRow key={preapproval.id}>
+                        <TableCell>
+                          <p className="font-medium">{preapproval.customer.firstName} {preapproval.customer.lastName}</p>
+                          <p className="text-xs text-gray-500">{preapproval.customer.membershipId}</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-mono text-sm">{preapproval.customerMsisdn}</p>
+                          {preapproval.customer.email && <p className="text-xs text-gray-500">{preapproval.customer.email}</p>}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(preapproval.status)}</TableCell>
+                        <TableCell><Badge variant="outline">{getChannelName(preapproval.channel)}</Badge></TableCell>
+                        <TableCell><span className="text-sm">{preapproval.verificationType || 'N/A'}</span></TableCell>
+                        <TableCell>
+                          {preapproval.contracts.length > 0 ? (
+                            <div>
+                              {preapproval.contracts.map((contract) => (
+                                <div key={contract.id} className="mb-1">
+                                  <button onClick={() => router.push(`/admin/contracts/${contract.id}`)} className="text-blue-600 hover:underline text-sm">{contract.contractNumber}</button>
+                                  <p className="text-xs text-gray-500">{formatCurrency(contract.outstandingBalance)} outstanding</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-sm">No contracts</span>
+                          )}
+                        </TableCell>
+                        <TableCell><span className="text-sm">{formatDate(preapproval.createdAt)}</span></TableCell>
+                        <TableCell>
+                          {preapproval.approvedAt ? (
+                            <span className="text-sm text-green-600">{formatDate(preapproval.approvedAt)}</span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/customers/${preapproval.customer.id}`)}>
+                            <User className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

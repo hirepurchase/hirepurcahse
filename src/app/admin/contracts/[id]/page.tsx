@@ -365,35 +365,36 @@ export default function ContractDetailsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Button variant="outline" onClick={() => router.push('/admin/contracts')}>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="outline" size="sm" onClick={() => router.push('/admin/contracts')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Contracts
+          <span className="hidden sm:inline">Back to Contracts</span>
+          <span className="sm:hidden">Back</span>
         </Button>
 
         {!isEditing && contract.status === 'ACTIVE' && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button
-              variant="outline"
+              variant="outline" size="sm"
               onClick={() => setShowRescheduleDialog(true)}
               disabled={hasPaidInstallments}
               title={hasPaidInstallments ? 'Cannot reschedule after payments have been made' : ''}
             >
-              <CalendarRange className="mr-2 h-4 w-4" />
-              Reschedule Installments
+              <CalendarRange className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Reschedule</span>
             </Button>
             <Button
-              variant="outline"
+              variant="outline" size="sm"
               className="border-orange-400 text-orange-600 hover:bg-orange-50"
               onClick={openFinancialAmendDialog}
             >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Correct Financial Terms
+              <AlertTriangle className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Correct Terms</span>
             </Button>
-            <Button onClick={() => setIsEditing(true)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Amend Contract
+            <Button size="sm" onClick={() => setIsEditing(true)}>
+              <Edit className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Amend</span>
             </Button>
           </div>
         )}
@@ -597,7 +598,7 @@ export default function ContractDetailsPage() {
         </Card>
       </div>
 
-      <Card className="mt-6">
+      <Card className="">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Banknote className="h-5 w-5" />
@@ -635,7 +636,7 @@ export default function ContractDetailsPage() {
       </Card>
 
       {isEditing && (
-        <Card className="mt-6">
+        <Card className="">
           <CardHeader>
             <CardTitle>Amend Contract Terms</CardTitle>
           </CardHeader>
@@ -668,7 +669,7 @@ export default function ContractDetailsPage() {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="">
               <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
@@ -745,120 +746,160 @@ export default function ContractDetailsPage() {
       )}
 
       {contract.installments && contract.installments.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Calendar className="h-4 w-4" />
               Installment Schedule
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Installment #</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Paid On</TableHead>
-                  {contract.status === 'ACTIVE' && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contract.installments.map((installment: any) => {
-                  const isPaid = installment.status === 'PAID' || installment.paidAmount > 0;
-                  return (
-                    <TableRow key={installment.id}>
-                      <TableCell className="font-medium">
-                        #{installment.installmentNo}
-                      </TableCell>
-                      <TableCell>{formatDate(installment.dueDate)}</TableCell>
-                      <TableCell className="font-semibold">
-                        {formatCurrency(installment.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(installment.status)}>
-                          {installment.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {installment.paidAt ? formatDate(installment.paidAt) : '-'}
-                      </TableCell>
-                      {contract.status === 'ACTIVE' && (
+          <CardContent className="p-0">
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-gray-100">
+              {contract.installments.map((installment: any) => {
+                const isPaid = installment.status === 'PAID' || installment.paidAmount > 0;
+                return (
+                  <div key={installment.id} className="px-4 py-3 flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">#{installment.installmentNo}</span>
+                        <Badge className={getStatusColor(installment.status)}>{installment.status}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">Due: {formatDate(installment.dueDate)}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs font-semibold text-gray-700">{formatCurrency(installment.amount)}</span>
+                        {installment.paidAt && <span className="text-xs text-gray-400">Paid: {formatDate(installment.paidAt)}</span>}
+                      </div>
+                    </div>
+                    {contract.status === 'ACTIVE' && (
+                      <Button variant="ghost" size="sm" onClick={() => openEditInstallmentDialog(installment)} disabled={isPaid}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Installment #</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Paid On</TableHead>
+                    {contract.status === 'ACTIVE' && <TableHead>Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contract.installments.map((installment: any) => {
+                    const isPaid = installment.status === 'PAID' || installment.paidAmount > 0;
+                    return (
+                      <TableRow key={installment.id}>
+                        <TableCell className="font-medium">#{installment.installmentNo}</TableCell>
+                        <TableCell>{formatDate(installment.dueDate)}</TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(installment.amount)}</TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditInstallmentDialog(installment)}
-                            disabled={isPaid}
-                            title={isPaid ? 'Cannot edit paid installments' : 'Edit installment'}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <Badge className={getStatusColor(installment.status)}>{installment.status}</Badge>
                         </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <TableCell>{installment.paidAt ? formatDate(installment.paidAt) : '-'}</TableCell>
+                        {contract.status === 'ACTIVE' && (
+                          <TableCell>
+                            <Button variant="ghost" size="sm" onClick={() => openEditInstallmentDialog(installment)} disabled={isPaid}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Payment History */}
       {contract.payments && contract.payments.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Banknote className="h-5 w-5" />
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Banknote className="h-4 w-4" />
               Payment History
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contract.payments.map((payment: any) => {
-                  const meta = JSON.parse(payment.metadata || '{}');
-                  const isManual = !!meta.isManual;
-                  return (
-                    <TableRow key={payment.id}>
-                      <TableCell>{payment.paymentDate ? formatDate(payment.paymentDate) : formatDate(payment.createdAt)}</TableCell>
-                      <TableCell className="font-mono text-xs">{payment.transactionRef}</TableCell>
-                      <TableCell>{payment.paymentMethod?.replace(/_/g, ' ')}</TableCell>
-                      <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell>
+          <CardContent className="p-0">
+            {/* Mobile */}
+            <div className="sm:hidden divide-y divide-gray-100">
+              {contract.payments.map((payment: any) => {
+                const meta = JSON.parse(payment.metadata || '{}');
+                const isManual = !!meta.isManual;
+                return (
+                  <div key={payment.id} className="px-4 py-3 flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
                         <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {isManual ? (
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => openEditPaymentDialog(payment)} title="Edit payment">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDeletePayment(payment)} title="Delete payment">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">Auto</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">{payment.paymentDate ? formatDate(payment.paymentDate) : formatDate(payment.createdAt)}</p>
+                      <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
+                      <p className="text-xs text-gray-500">{payment.paymentMethod?.replace(/_/g, ' ')}</p>
+                    </div>
+                    {isManual && (
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => openEditPaymentDialog(payment)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeletePayment(payment)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Desktop */}
+            <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contract.payments.map((payment: any) => {
+                    const meta = JSON.parse(payment.metadata || '{}');
+                    const isManual = !!meta.isManual;
+                    return (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.paymentDate ? formatDate(payment.paymentDate) : formatDate(payment.createdAt)}</TableCell>
+                        <TableCell className="font-mono text-xs">{payment.transactionRef}</TableCell>
+                        <TableCell>{payment.paymentMethod?.replace(/_/g, ' ')}</TableCell>
+                        <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}</TableCell>
+                        <TableCell><Badge className={getStatusColor(payment.status)}>{payment.status}</Badge></TableCell>
+                        <TableCell>
+                          {isManual ? (
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => openEditPaymentDialog(payment)}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDeletePayment(payment)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          ) : <span className="text-xs text-gray-400">Auto</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -905,7 +946,7 @@ export default function ContractDetailsPage() {
       </Dialog>
 
       {contract.signatureUrl && (
-        <Card className="mt-6">
+        <Card className="">
           <CardHeader>
             <CardTitle>Customer Signature</CardTitle>
           </CardHeader>

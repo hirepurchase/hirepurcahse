@@ -133,28 +133,28 @@ export default function CustomerStatementPage() {
   const { customer, summary, contracts, paymentHistory } = statement;
 
   return (
-    <div className="p-8">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+      <div className="flex items-center justify-between print:hidden">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back</span>
           </Button>
-          <h1 className="text-3xl font-bold">Customer Statement</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">Customer Statement</h1>
         </div>
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant="outline" size="sm"
             className="text-amber-600 border-amber-300 hover:bg-amber-50"
             onClick={() => { setShowResetConfirm(true); setResetPhone(statement?.customer?.phone || ""); }}
           >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Reset Account
+            <RotateCcw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Reset Account</span>
           </Button>
-          <Button onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            Print Statement
+          <Button size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Print</span>
           </Button>
         </div>
       </div>
@@ -244,54 +244,19 @@ export default function CustomerStatementPage() {
         </CardContent>
       </Card>
 
-      {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Total Contract Value</p>
-            <p className="text-2xl font-bold text-blue-600">{formatCurrency(summary.totalContractValue)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Total Paid</p>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalPaid)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Outstanding Balance</p>
-            <p className="text-2xl font-bold text-orange-600">{formatCurrency(summary.totalOutstanding)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Overdue Amount</p>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalOverdue)}</p>
-          </CardContent>
-        </Card>
+      {/* Financial Summary — 2 col mobile, 4 desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Contract Value</p><p className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">{formatCurrency(summary.totalContractValue)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Total Paid</p><p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">{formatCurrency(summary.totalPaid)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Outstanding</p><p className="text-xl sm:text-2xl font-bold text-orange-600 mt-1">{formatCurrency(summary.totalOutstanding)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs sm:text-sm text-gray-500">Overdue</p><p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{formatCurrency(summary.totalOverdue)}</p></CardContent></Card>
       </div>
 
-      {/* Contracts Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Active Contracts</p>
-            <p className="text-3xl font-bold">{summary.activeContracts}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Completed Contracts</p>
-            <p className="text-3xl font-bold">{summary.completedContracts}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-600 mb-2">Total Contracts</p>
-            <p className="text-3xl font-bold">{summary.totalContracts}</p>
-          </CardContent>
-        </Card>
+      {/* Contracts count — 3 col */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Active</p><p className="text-2xl font-bold mt-1">{summary.activeContracts}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Completed</p><p className="text-2xl font-bold mt-1">{summary.completedContracts}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Total</p><p className="text-2xl font-bold mt-1">{summary.totalContracts}</p></CardContent></Card>
       </div>
 
       {/* Contracts Details */}
@@ -343,8 +308,27 @@ export default function CustomerStatementPage() {
 
                   {/* Installment Schedule */}
                   <div className="mt-4">
-                    <h4 className="font-semibold mb-2">Installment Schedule</h4>
-                    <div className="overflow-x-auto">
+                    <h4 className="font-semibold mb-2 text-sm">Installment Schedule</h4>
+                    {/* Mobile */}
+                    <div className="sm:hidden divide-y divide-gray-100 border rounded-lg">
+                      {contract.installments.map((installment: any) => (
+                        <div key={installment.id} className="px-3 py-2.5 flex items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold">#{installment.installmentNo}</span>
+                              <Badge className={getInstallmentStatusColor(installment.status)}>{installment.status}</Badge>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">{formatDate(installment.dueDate)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold">{formatCurrency(installment.amount)}</p>
+                            {installment.paidAmount > 0 && <p className="text-xs text-green-600">Paid: {formatCurrency(installment.paidAmount)}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop */}
+                    <div className="hidden sm:block overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -361,13 +345,9 @@ export default function CustomerStatementPage() {
                               <TableCell>{installment.installmentNo}</TableCell>
                               <TableCell>{formatDate(installment.dueDate)}</TableCell>
                               <TableCell>{formatCurrency(installment.amount)}</TableCell>
-                              <TableCell className="text-green-600">
-                                {formatCurrency(installment.paidAmount)}
-                              </TableCell>
+                              <TableCell className="text-green-600">{formatCurrency(installment.paidAmount)}</TableCell>
                               <TableCell>
-                                <Badge className={getInstallmentStatusColor(installment.status)}>
-                                  {installment.status}
-                                </Badge>
+                                <Badge className={getInstallmentStatusColor(installment.status)}>{installment.status}</Badge>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -384,46 +364,61 @@ export default function CustomerStatementPage() {
 
       {/* Payment History */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCard className="h-4 w-4" />
             Payment History
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {paymentHistory.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No payment history</p>
+            <p className="text-center text-gray-500 py-8 text-sm">No payment history</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Transaction Ref</TableHead>
-                    <TableHead>Contract</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paymentHistory.map((payment: any) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>{formatDate(payment.createdAt)}</TableCell>
-                      <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
-                      <TableCell>{payment.contract?.contractNumber || 'N/A'}</TableCell>
-                      <TableCell className="font-semibold">{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell>{payment.paymentMethod}</TableCell>
-                      <TableCell>
-                        <Badge variant={payment.status === 'SUCCESS' ? 'default' : 'secondary'}>
-                          {payment.status}
-                        </Badge>
-                      </TableCell>
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {paymentHistory.map((payment: any) => (
+                  <div key={payment.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
+                      <Badge variant={payment.status === 'SUCCESS' ? 'default' : 'secondary'}>{payment.status}</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDate(payment.createdAt)}</p>
+                    <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
+                    <p className="text-xs text-gray-500">{payment.contract?.contractNumber || 'N/A'} · {payment.paymentMethod}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Transaction Ref</TableHead>
+                      <TableHead>Contract</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentHistory.map((payment: any) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{formatDate(payment.createdAt)}</TableCell>
+                        <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
+                        <TableCell>{payment.contract?.contractNumber || 'N/A'}</TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(payment.amount)}</TableCell>
+                        <TableCell>{payment.paymentMethod}</TableCell>
+                        <TableCell>
+                          <Badge variant={payment.status === 'SUCCESS' ? 'default' : 'secondary'}>{payment.status}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

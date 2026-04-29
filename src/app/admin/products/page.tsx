@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Search, Edit2 } from 'lucide-react';
+import { Plus, Search, Edit2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,40 +155,39 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600 mt-1">Manage products and categories</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage products and categories</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowCategoryForm(true)}>
-            Add Category
+          <Button variant="outline" size="sm" onClick={() => setShowCategoryForm(true)}>
+            <span className="hidden sm:inline">Add Category</span>
+            <span className="sm:hidden">Category</span>
           </Button>
-          <Button onClick={() => setShowProductForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Product
+          <Button size="sm" onClick={() => setShowProductForm(true)}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Product</span>
           </Button>
         </div>
       </div>
 
-      {/* Categories Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Product Categories</CardTitle>
+      {/* Categories */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Categories</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-4">
           {categories.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No categories found</p>
-              <Button className="mt-4" variant="outline" onClick={() => setShowCategoryForm(true)}>
-                Add First Category
-              </Button>
+            <div className="text-center py-4 text-gray-500 text-sm">
+              <p>No categories yet</p>
+              <Button className="mt-3" size="sm" variant="outline" onClick={() => setShowCategoryForm(true)}>Add First Category</Button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               <Badge
-                key="all"
                 variant={selectedCategory === '' ? 'default' : 'secondary'}
                 className="px-3 py-1.5 cursor-pointer"
                 onClick={() => handleCategoryFilter('')}
@@ -210,100 +209,128 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      {/* Products Section */}
+      {/* Search */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Search by product name…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="pl-10"
+          />
+        </div>
+        <Button onClick={handleSearch} variant="outline">Search</Button>
+      </div>
+
+      {/* Products List */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <CardTitle>All Products</CardTitle>
-            </div>
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search by product name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10"
-                />
-              </div>
-              <Button onClick={handleSearch}>Search</Button>
-            </div>
-          </div>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">
+            All Products
+            <span className="ml-2 text-sm font-normal text-gray-400">({totalItems})</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
             </div>
           ) : products.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No products found</p>
-              <Button className="mt-4" onClick={() => setShowProductForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add First Product
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-sm">No products found</p>
+              <Button className="mt-4" size="sm" onClick={() => setShowProductForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />Add First Product
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Base Price</TableHead>
-                  <TableHead>Inventory</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* ── Mobile card list ── */}
+              <div className="sm:hidden divide-y divide-gray-100">
                 {products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{product.category?.name || '-'}</Badge>
-                    </TableCell>
-                    <TableCell>{formatCurrency(product.basePrice)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-green-600">
-                          {product.availableInventory || 0}
-                        </span>
-                        <span className="text-gray-500 text-sm">
-                          / {product.totalInventory || 0}
-                        </span>
+                  <div key={product.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
+                        <p className="text-xs text-gray-500">{product.category?.name || '-'}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs font-semibold text-cyan-600">{formatCurrency(product.basePrice)}</span>
+                          <span className="text-xs text-gray-500">
+                            Stock: <span className="font-semibold text-green-600">{product.availableInventory || 0}</span>/{product.totalInventory || 0}
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                            {product.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={product.isActive ? 'default' : 'secondary'}>
-                        {product.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 shrink-0">
                         {canEditProduct && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditClick(product)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleEditClick(product)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => router.push(`/admin/inventory?productId=${product.id}&productName=${encodeURIComponent(product.name)}`)}
-                        >
-                          View Inventory
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/inventory?productId=${product.id}&productName=${encodeURIComponent(product.name)}`)}>
+                          <Package className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* ── Desktop table ── */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Base Price</TableHead>
+                      <TableHead>Inventory</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{product.category?.name || '-'}</Badge>
+                        </TableCell>
+                        <TableCell>{formatCurrency(product.basePrice)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-green-600">{product.availableInventory || 0}</span>
+                            <span className="text-gray-500 text-sm">/ {product.totalInventory || 0}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                            {product.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {canEditProduct && (
+                              <Button size="sm" variant="ghost" onClick={() => handleEditClick(product)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => router.push(`/admin/inventory?productId=${product.id}&productName=${encodeURIComponent(product.name)}`)}>
+                              View Inventory
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
         {!isLoading && products.length > 0 && (

@@ -115,46 +115,44 @@ export default function CustomerPaymentsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Make a Payment</h1>
-        <p className="text-gray-600 mt-1">Select a contract to view installments and make a payment</p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Make a Payment</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Select a contract to view installments and make a payment</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Outstanding</p>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalOutstanding)}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Outstanding</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.totalOutstanding)}</p>
               </div>
-              <Banknote className="h-8 w-8 text-blue-600" />
+              <Banknote className="h-6 w-6 text-blue-600 hidden sm:block" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pending Installments</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pendingInstallments}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Pending</p>
+                <p className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.pendingInstallments}</p>
               </div>
-              <FileText className="h-8 w-8 text-yellow-600" />
+              <FileText className="h-6 w-6 text-yellow-600 hidden sm:block" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Overdue Installments</p>
-                <p className="text-2xl font-bold text-red-600">{stats.overdueInstallments}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Overdue</p>
+                <p className="text-lg sm:text-2xl font-bold text-red-600">{stats.overdueInstallments}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-red-600" />
+              <AlertCircle className="h-6 w-6 text-red-600 hidden sm:block" />
             </div>
           </CardContent>
         </Card>
@@ -162,83 +160,89 @@ export default function CustomerPaymentsPage() {
 
       {/* Contracts List */}
       <Card>
-        <CardHeader>
-          <CardTitle>Your Active Contracts</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Your Active Contracts</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {contracts.length === 0 ? (
             <div className="text-center py-12">
-              <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">No active contracts with outstanding balance</p>
-              <p className="text-sm text-gray-500">All your payments are up to date!</p>
+              <CreditCard className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 text-sm mb-1">No active contracts with outstanding balance</p>
+              <p className="text-xs text-gray-400">All your payments are up to date!</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Contract Number</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Serial Number</TableHead>
-                    <TableHead>Total Price</TableHead>
-                    <TableHead>Paid</TableHead>
-                    <TableHead>Outstanding</TableHead>
-                    <TableHead>Installments</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {contracts.map((contract) => {
-                    const pendingCount = contract.installments?.filter(
-                      i => i.status === 'PENDING' || i.status === 'PARTIAL'
-                    ).length || 0;
-                    const overdueCount = contract.installments?.filter(
-                      i => i.status === 'OVERDUE'
-                    ).length || 0;
-
-                    return (
-                      <TableRow key={contract.id}>
-                        <TableCell className="font-medium">{contract.contractNumber}</TableCell>
-                        <TableCell>{contract.inventoryItem?.product?.name || 'N/A'}</TableCell>
-                        <TableCell className="text-xs font-mono">
-                          {contract.inventoryItem?.serialNumber || 'N/A'}
-                        </TableCell>
-                        <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
-                        <TableCell className="text-green-600">
-                          {formatCurrency(contract.totalPaid)}
-                        </TableCell>
-                        <TableCell className="text-orange-600 font-semibold">
-                          {formatCurrency(contract.outstandingBalance)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {overdueCount > 0 && (
-                              <Badge className="bg-red-100 text-red-800">
-                                {overdueCount} Overdue
-                              </Badge>
-                            )}
-                            {pendingCount > 0 && (
-                              <Badge className="bg-yellow-100 text-yellow-800">
-                                {pendingCount} Pending
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => router.push(`/customer/payments/${contract.id}`)}
-                          >
-                            <CreditCard className="h-4 w-4 mr-2" />
-                            Pay Now
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {contracts.map((contract) => {
+                  const pendingCount = contract.installments?.filter(i => i.status === 'PENDING' || i.status === 'PARTIAL').length || 0;
+                  const overdueCount = contract.installments?.filter(i => i.status === 'OVERDUE').length || 0;
+                  return (
+                    <div key={contract.id} className="px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold">{contract.contractNumber}</p>
+                        <div className="flex gap-1">
+                          {overdueCount > 0 && <Badge className="text-xs bg-red-100 text-red-800">{overdueCount} Overdue</Badge>}
+                          {pendingCount > 0 && <Badge className="text-xs bg-yellow-100 text-yellow-800">{pendingCount} Pending</Badge>}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">{contract.inventoryItem?.product?.name || 'N/A'}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs">
+                        <span className="text-orange-600 font-semibold">{formatCurrency(contract.outstandingBalance)} outstanding</span>
+                        <span className="text-green-600">{formatCurrency(contract.totalPaid)} paid</span>
+                      </div>
+                      <Button size="sm" className="mt-2 w-full" onClick={() => router.push(`/customer/payments/${contract.id}`)}>
+                        <CreditCard className="h-4 w-4 mr-2" />Pay Now
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contract Number</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Serial Number</TableHead>
+                      <TableHead>Total Price</TableHead>
+                      <TableHead>Paid</TableHead>
+                      <TableHead>Outstanding</TableHead>
+                      <TableHead>Installments</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contracts.map((contract) => {
+                      const pendingCount = contract.installments?.filter(i => i.status === 'PENDING' || i.status === 'PARTIAL').length || 0;
+                      const overdueCount = contract.installments?.filter(i => i.status === 'OVERDUE').length || 0;
+                      return (
+                        <TableRow key={contract.id}>
+                          <TableCell className="font-medium">{contract.contractNumber}</TableCell>
+                          <TableCell>{contract.inventoryItem?.product?.name || 'N/A'}</TableCell>
+                          <TableCell className="text-xs font-mono">{contract.inventoryItem?.serialNumber || 'N/A'}</TableCell>
+                          <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
+                          <TableCell className="text-green-600">{formatCurrency(contract.totalPaid)}</TableCell>
+                          <TableCell className="text-orange-600 font-semibold">{formatCurrency(contract.outstandingBalance)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {overdueCount > 0 && <Badge className="bg-red-100 text-red-800">{overdueCount} Overdue</Badge>}
+                              {pendingCount > 0 && <Badge className="bg-yellow-100 text-yellow-800">{pendingCount} Pending</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" onClick={() => router.push(`/customer/payments/${contract.id}`)}>
+                              <CreditCard className="h-4 w-4 mr-2" />Pay Now
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

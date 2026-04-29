@@ -128,163 +128,158 @@ export default function ContractsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Hire Purchase Contracts
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Manage hire purchase sales and agreements
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Contracts</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Hire purchase sales and agreements</p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create New Sale
+        <Button onClick={() => setShowCreateForm(true)} size="sm" className="shrink-0">
+          <Plus className="mr-1.5 h-4 w-4" />
+          <span className="hidden sm:inline">Create New Sale</span>
+          <span className="sm:hidden">New</span>
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <CardTitle>All Contracts</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search customer, serial, contract #..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="pl-10"
+              />
             </div>
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search by customer name, IMEI/Serial, contract number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10"
-                />
-              </div>
-              <Button onClick={handleSearch}>Search</Button>
-            </div>
+            <Button onClick={handleSearch} size="sm" className="shrink-0">Search</Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             </div>
           ) : contracts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium">No contracts yet</p>
-              <p className="text-sm mt-1">
-                Create your first hire purchase sale to get started
-              </p>
-              <Button className="mt-6" onClick={() => setShowCreateForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create First Contract
+            <div className="text-center py-12 px-4">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 font-medium">No contracts yet</p>
+              <p className="text-sm text-gray-400 mt-1">Create your first hire purchase sale to get started</p>
+              <Button className="mt-5" onClick={() => setShowCreateForm(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Create First Contract
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Contract #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Total Price</TableHead>
-                  <TableHead>Deposit</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Outstanding</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile card list */}
+              <div className="sm:hidden divide-y divide-gray-100">
                 {contracts.map((contract) => (
-                  <TableRow key={contract.id}>
-                    <TableCell className="font-mono font-medium">
-                      {contract.contractNumber}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex-shrink-0">
-                          {contract.customer?.photoUrl ? (
-                            <img
-                              src={contract.customer.photoUrl}
-                              alt={`${contract.customer.firstName} ${contract.customer.lastName}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">' + (contract.customer?.firstName?.charAt(0) || '') + (contract.customer?.lastName?.charAt(0) || '') + '</div>';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">
-                              {contract.customer?.firstName?.charAt(0)}{contract.customer?.lastName?.charAt(0)}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">
-                            {contract.customer?.firstName}{" "}
-                            {contract.customer?.lastName}
+                  <button
+                    key={contract.id}
+                    onClick={() => router.push(`/admin/contracts/${contract.id}`)}
+                    className="w-full text-left px-4 py-3.5 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className="w-9 h-9 shrink-0 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
+                        {contract.customer?.photoUrl ? (
+                          <img src={contract.customer.photoUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-bold">
+                            {contract.customer?.firstName?.charAt(0)}{contract.customer?.lastName?.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      {/* Main info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {contract.customer?.firstName} {contract.customer?.lastName}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            {contract.customer?.membershipId}
-                          </p>
+                          <Badge className={`${getStatusColor(contract.status)} text-[10px] shrink-0`}>
+                            {contract.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 font-mono truncate">{contract.contractNumber}</p>
+                        <p className="text-xs text-gray-500 truncate">{contract.inventoryItem?.product?.name || "—"}</p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-xs text-gray-400">Total: <span className="font-medium text-gray-700">{formatCurrency(contract.totalPrice)}</span></span>
+                          <span className="text-xs text-red-500 font-medium">Bal: {formatCurrency(contract.outstandingBalance)}</span>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p>{contract.inventoryItem?.product?.name || "-"}</p>
-                        <p className="text-xs text-gray-500 font-mono">
-                          {contract.inventoryItem?.serialNumber || "-"}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
-                    <TableCell className="text-blue-600 font-medium">
-                      {formatCurrency(contract.depositAmount)}
-                    </TableCell>
-                    <TableCell className="text-green-600 font-medium">
-                      {formatCurrency(contract.totalPaid)}
-                    </TableCell>
-                    <TableCell className="text-red-600 font-medium">
-                      {formatCurrency(contract.outstandingBalance)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(contract.status)}>
-                        {contract.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(contract.startDate)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            router.push(`/admin/contracts/${contract.id}`)
-                          }
-                        >
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteContract(contract)}
-                          disabled={contract._count?.payments > 0}
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </button>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contract #</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Total Price</TableHead>
+                      <TableHead>Deposit</TableHead>
+                      <TableHead>Paid</TableHead>
+                      <TableHead>Outstanding</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contracts.map((contract) => (
+                      <TableRow key={contract.id}>
+                        <TableCell className="font-mono font-medium">{contract.contractNumber}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
+                              {contract.customer?.photoUrl ? (
+                                <img src={contract.customer.photoUrl} alt="" className="w-full h-full object-cover"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">
+                                  {contract.customer?.firstName?.charAt(0)}{contract.customer?.lastName?.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{contract.customer?.firstName} {contract.customer?.lastName}</p>
+                              <p className="text-xs text-gray-500">{contract.customer?.membershipId}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm">{contract.inventoryItem?.product?.name || "—"}</p>
+                          <p className="text-xs text-gray-500 font-mono">{contract.inventoryItem?.serialNumber || "—"}</p>
+                        </TableCell>
+                        <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
+                        <TableCell className="text-blue-600 font-medium">{formatCurrency(contract.depositAmount)}</TableCell>
+                        <TableCell className="text-green-600 font-medium">{formatCurrency(contract.totalPaid)}</TableCell>
+                        <TableCell className="text-red-600 font-medium">{formatCurrency(contract.outstandingBalance)}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(contract.status)}>{contract.status}</Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(contract.startDate)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1.5">
+                            <Button size="sm" variant="outline" onClick={() => router.push(`/admin/contracts/${contract.id}`)}>View</Button>
+                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteContract(contract)} disabled={contract._count?.payments > 0}>
+                              <Trash2 className="h-3 w-3 mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
         {!isLoading && contracts.length > 0 && (

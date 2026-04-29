@@ -219,179 +219,183 @@ export default function ContractPaymentPage() {
   );
 
   return (
-    <div className="p-8">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/admin/payments')}
-          className="mb-4"
-        >
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={() => router.push('/admin/payments')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Contracts
+          <span className="hidden sm:inline">Back to Contracts</span>
+          <span className="sm:hidden">Back</span>
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Process Payment</h1>
-        <p className="text-gray-600 mt-1">Contract: {contract.contractNumber}</p>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Process Payment</h1>
+          <p className="text-sm text-gray-500">Contract: {contract.contractNumber}</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left Column - Contract Details & Installments */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-5">
           {/* Contract Summary */}
           <Card>
-            <CardHeader>
-              <CardTitle>Contract Details</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Contract Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Customer</p>
-                  <p className="font-semibold">
-                    {contract.customer.firstName} {contract.customer.lastName}
-                  </p>
-                  <p className="text-sm text-gray-600">{contract.customer.phone}</p>
-                  <p className="text-xs text-gray-500">ID: {contract.customer.membershipId}</p>
+                  <p className="text-xs text-gray-500">Customer</p>
+                  <p className="font-semibold text-sm">{contract.customer.firstName} {contract.customer.lastName}</p>
+                  <p className="text-xs text-gray-500">{contract.customer.phone}</p>
+                  <p className="text-xs text-gray-400">ID: {contract.customer.membershipId}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Product</p>
-                  <p className="font-semibold">{contract.inventoryItem.product.name}</p>
-                  <p className="text-sm text-gray-600">{contract.inventoryItem.serialNumber}</p>
+                  <p className="text-xs text-gray-500">Product</p>
+                  <p className="font-semibold text-sm">{contract.inventoryItem.product.name}</p>
+                  <p className="text-xs text-gray-500">{contract.inventoryItem.serialNumber}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t">
                 <div>
-                  <p className="text-sm text-gray-600">Total Price</p>
-                  <p className="text-lg font-bold">{formatCurrency(contract.totalPrice)}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                  <p className="font-bold text-sm">{formatCurrency(contract.totalPrice)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Paid</p>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatCurrency(contract.totalPaid)}
-                  </p>
+                  <p className="text-xs text-gray-500">Paid</p>
+                  <p className="font-bold text-sm text-green-600">{formatCurrency(contract.totalPaid)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Outstanding</p>
-                  <p className="text-lg font-bold text-red-600">
-                    {formatCurrency(contract.outstandingBalance)}
-                  </p>
+                  <p className="text-xs text-gray-500">Outstanding</p>
+                  <p className="font-bold text-sm text-red-600">{formatCurrency(contract.outstandingBalance)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Installments Table */}
+          {/* Installments */}
           <Card>
-            <CardHeader>
-              <CardTitle>Installments ({unpaidInstallments.length} unpaid)</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Installments ({unpaidInstallments.length} unpaid)</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">Select</TableHead>
-                    <TableHead>#</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right">Remaining</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Pay Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {unpaidInstallments.map((installment) => {
-                    const remainingAmount = installment.amount - installment.paidAmount;
-                    const isSelected = selectedInstallments.has(installment.id);
-                    const selectedData = selectedInstallments.get(installment.id);
-
-                    return (
-                      <TableRow key={installment.id} className={isSelected ? 'bg-blue-50' : ''}>
-                        <TableCell>
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) =>
-                              handleInstallmentToggle(installment, checked as boolean)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">#{installment.installmentNo}</TableCell>
-                        <TableCell>{formatDate(installment.dueDate)}</TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(installment.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(installment.paidAmount)}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {formatCurrency(remainingAmount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(installment.status)}>
-                            {installment.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {isSelected ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max={remainingAmount}
-                                value={selectedData?.paymentAmount || ''}
-                                onChange={(e) =>
-                                  handlePaymentAmountChange(installment.id, e.target.value)
-                                }
-                                className="w-32 text-right"
-                              />
-                              {selectedData?.isPartial && (
-                                <Badge variant="outline" className="text-xs">
-                                  Partial
-                                </Badge>
-                              )}
+            <CardContent className="p-0">
+              {/* Mobile card list */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {unpaidInstallments.map((installment) => {
+                  const remainingAmount = installment.amount - installment.paidAmount;
+                  const isSelected = selectedInstallments.has(installment.id);
+                  const selectedData = selectedInstallments.get(installment.id);
+                  return (
+                    <div key={installment.id} className={`px-4 py-3 ${isSelected ? 'bg-cyan-50' : ''}`}>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => handleInstallmentToggle(installment, checked as boolean)}
+                          className="mt-0.5 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold">#{installment.installmentNo}</span>
+                              <Badge className={getStatusColor(installment.status)}>{installment.status}</Badge>
                             </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-sm font-bold text-gray-700">{formatCurrency(remainingAmount)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">Due: {formatDate(installment.dueDate)}</p>
+                          <div className="flex gap-3 text-xs text-gray-400 mt-0.5">
+                            <span>Amount: {formatCurrency(installment.amount)}</span>
+                            {installment.paidAmount > 0 && <span>Paid: {formatCurrency(installment.paidAmount)}</span>}
+                          </div>
+                          {isSelected && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <Label className="text-xs shrink-0">Pay:</Label>
+                              <Input
+                                type="number" step="0.01" min="0" max={remainingAmount}
+                                value={selectedData?.paymentAmount || ''}
+                                onChange={(e) => handlePaymentAmountChange(installment.id, e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                              {selectedData?.isPartial && <Badge variant="outline" className="text-xs shrink-0">Partial</Badge>}
+                            </div>
                           )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">Select</TableHead>
+                      <TableHead>#</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Remaining</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Pay Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unpaidInstallments.map((installment) => {
+                      const remainingAmount = installment.amount - installment.paidAmount;
+                      const isSelected = selectedInstallments.has(installment.id);
+                      const selectedData = selectedInstallments.get(installment.id);
+                      return (
+                        <TableRow key={installment.id} className={isSelected ? 'bg-blue-50' : ''}>
+                          <TableCell>
+                            <Checkbox checked={isSelected} onCheckedChange={(checked) => handleInstallmentToggle(installment, checked as boolean)} />
+                          </TableCell>
+                          <TableCell className="font-medium">#{installment.installmentNo}</TableCell>
+                          <TableCell>{formatDate(installment.dueDate)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(installment.amount)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(installment.paidAmount)}</TableCell>
+                          <TableCell className="text-right font-semibold">{formatCurrency(remainingAmount)}</TableCell>
+                          <TableCell><Badge className={getStatusColor(installment.status)}>{installment.status}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            {isSelected ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <Input type="number" step="0.01" min="0" max={remainingAmount} value={selectedData?.paymentAmount || ''} onChange={(e) => handlePaymentAmountChange(installment.id, e.target.value)} className="w-32 text-right" />
+                                {selectedData?.isPartial && <Badge variant="outline" className="text-xs">Partial</Badge>}
+                              </div>
+                            ) : <span className="text-gray-400">-</span>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Right Column - Payment Form */}
-        <div className="space-y-6">
-          <Card className="sticky top-8">
-            <CardHeader>
-              <CardTitle>Payment Details</CardTitle>
+        <div>
+          <Card className="lg:sticky lg:top-8">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Payment Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Selected Count */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Selected Installments</p>
-                <p className="text-2xl font-bold text-blue-600">{selectedInstallments.size}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Selected</p>
+                  <p className="text-xl font-bold text-blue-600">{selectedInstallments.size}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Total Amount</p>
+                  <p className="text-xl font-bold text-green-600">{formatCurrency(getTotalPaymentAmount())}</p>
+                </div>
               </div>
 
-              {/* Total Amount */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Total Payment Amount</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(getTotalPaymentAmount())}
-                </p>
-              </div>
-
-              {/* Payment Method */}
               <div className="space-y-2">
                 <Label>Payment Method *</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CASH">Cash</SelectItem>
                     <SelectItem value="CHECK">Check</SelectItem>
@@ -401,41 +405,19 @@ export default function ContractPaymentPage() {
                 </Select>
               </div>
 
-              {/* Reference */}
               <div className="space-y-2">
                 <Label>Reference Number</Label>
-                <Input
-                  placeholder="Transaction reference (optional)"
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                />
+                <Input placeholder="Transaction reference (optional)" value={reference} onChange={(e) => setReference(e.target.value)} />
               </div>
 
-              {/* Notes */}
               <div className="space-y-2">
                 <Label>Notes</Label>
-                <Textarea
-                  placeholder="Additional notes (optional)"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                />
+                <Textarea placeholder="Additional notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
               </div>
 
-              {/* Process Button */}
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handleProcessPayment}
-                disabled={selectedInstallments.size === 0 || isProcessing}
-              >
-                {isProcessing ? (
-                  <>Processing...</>
-                ) : (
-                  <>
-                    <Banknote className="h-4 w-4 mr-2" />
-                    Process Payment ({selectedInstallments.size})
-                  </>
+              <Button className="w-full" size="lg" onClick={handleProcessPayment} disabled={selectedInstallments.size === 0 || isProcessing}>
+                {isProcessing ? 'Processing...' : (
+                  <><Banknote className="h-4 w-4 mr-2" />Process Payment ({selectedInstallments.size})</>
                 )}
               </Button>
             </CardContent>

@@ -172,28 +172,22 @@ export default function CustomerProfilePage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-gray-600 mt-1">Manage your account information</p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Profile</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage your account information</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Profile Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-5">
           {/* Basic Information */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle className="text-base">Basic Information</CardTitle>
                 {!isEditing && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    Edit Profile
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>Edit Profile</Button>
                 )}
               </div>
             </CardHeader>
@@ -325,17 +319,11 @@ export default function CustomerProfilePage() {
 
           {/* Change Password */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle>Security</CardTitle>
+                <CardTitle className="text-base">Security</CardTitle>
                 {!isChangingPassword && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsChangingPassword(true)}
-                  >
-                    Change Password
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsChangingPassword(true)}>Change Password</Button>
                 )}
               </div>
             </CardHeader>
@@ -415,57 +403,56 @@ export default function CustomerProfilePage() {
         {/* Account Summary */}
         <div>
           <Card>
-            <CardHeader>
-              <CardTitle>Account Summary</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Account Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600">Member Since</p>
-                <p className="font-medium">{formatDate(profile?.createdAt)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Account Status</p>
-                <p className="font-medium text-green-600">Active</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Contracts</p>
-                <p className="font-medium">{profile?.contractsCount || 0}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Contracts</p>
-                <p className="font-medium text-green-600">{profile?.activeContracts || 0}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Paid</p>
-                <p className="font-medium text-blue-600">{formatCurrency(profile?.totalPaid || 0)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">National ID</p>
-                <p className="font-medium">{profile?.nationalId || '-'}</p>
-              </div>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-500">Member Since</span><span className="font-medium">{formatDate(profile?.createdAt)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Status</span><span className="font-medium text-green-600">Active</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Contracts</span><span className="font-medium">{profile?.contractsCount || 0}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Active Contracts</span><span className="font-medium text-green-600">{profile?.activeContracts || 0}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Total Paid</span><span className="font-medium text-blue-600">{formatCurrency(profile?.totalPaid || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">National ID</span><span className="font-medium">{profile?.nationalId || '-'}</span></div>
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* My Contracts */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              My Contracts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!profile?.contracts || profile.contracts.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-lg font-medium">No contracts yet</p>
-                <p className="text-sm mt-1">Your hire purchase contracts will appear here</p>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" />My Contracts</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {!profile?.contracts || profile.contracts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-sm">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+              <p>No contracts yet</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {profile.contracts.map((contract: ProfileContract) => {
+                  const installmentCount = contract.installments?.length ?? 0;
+                  return (
+                    <div key={contract.id} className="px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-mono font-medium">{contract.contractNumber}</p>
+                        <Badge variant={contract.status === 'ACTIVE' ? 'default' : contract.status === 'COMPLETED' ? 'secondary' : 'destructive'} className="text-xs">{contract.status}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-500">{contract.inventoryItem?.product?.name || '-'}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs">
+                        <span className="font-medium">{formatCurrency(contract.totalPrice)}</span>
+                        <span className="text-green-600">{formatCurrency(contract.amountPaid || 0)} paid</span>
+                        {installmentCount > 0 && <Badge variant="default" className="text-xs">{installmentCount} pending</Badge>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ) : (
-              <div className="overflow-x-auto">
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -475,7 +462,7 @@ export default function CustomerProfilePage() {
                       <TableHead className="text-right">Total Price</TableHead>
                       <TableHead className="text-right">Amount Paid</TableHead>
                       <TableHead className="text-right">Balance</TableHead>
-                      <TableHead className="text-center">Pending Installments</TableHead>
+                      <TableHead className="text-center">Pending</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -483,78 +470,64 @@ export default function CustomerProfilePage() {
                     {profile.contracts.map((contract: ProfileContract) => {
                       const installmentCount = contract.installments?.length ?? 0;
                       return (
-                      <TableRow key={contract.id}>
-                        <TableCell className="font-mono text-sm">
-                          {contract.contractNumber}
-                        </TableCell>
-                        <TableCell>
-                          {contract.inventoryItem?.product?.name || '-'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatDate(contract.startDate)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(contract.totalPrice)}
-                        </TableCell>
-                        <TableCell className="text-right text-green-600 font-medium">
-                          {formatCurrency(contract.amountPaid || 0)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency((contract.totalPrice || 0) - (contract.amountPaid || 0))}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={installmentCount > 0 ? 'default' : 'secondary'}>
-                            {installmentCount}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              contract.status === 'ACTIVE'
-                                ? 'default'
-                                : contract.status === 'COMPLETED'
-                                ? 'secondary'
-                                : 'destructive'
-                            }
-                          >
-                            {contract.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )})}
+                        <TableRow key={contract.id}>
+                          <TableCell className="font-mono text-sm">{contract.contractNumber}</TableCell>
+                          <TableCell>{contract.inventoryItem?.product?.name || '-'}</TableCell>
+                          <TableCell className="text-sm">{formatDate(contract.startDate)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(contract.totalPrice)}</TableCell>
+                          <TableCell className="text-right text-green-600 font-medium">{formatCurrency(contract.amountPaid || 0)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency((contract.totalPrice || 0) - (contract.amountPaid || 0))}</TableCell>
+                          <TableCell className="text-center"><Badge variant={installmentCount > 0 ? 'default' : 'secondary'}>{installmentCount}</Badge></TableCell>
+                          <TableCell><Badge variant={contract.status === 'ACTIVE' ? 'default' : contract.status === 'COMPLETED' ? 'secondary' : 'destructive'}>{contract.status}</Badge></TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* My Transactions */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Banknote className="h-5 w-5" />
-              Recent Transactions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!profile?.payments || profile.payments.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Banknote className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-lg font-medium">No transactions yet</p>
-                <p className="text-sm mt-1">Your payment history will appear here</p>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><Banknote className="h-4 w-4" />Recent Transactions</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {!profile?.payments || profile.payments.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-sm">
+              <Banknote className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+              <p>No transactions yet</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {profile.payments.slice(0, 20).map((payment: ProfilePayment) => (
+                  <div key={payment.id} className="px-4 py-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
+                      <span className="text-xs text-gray-400">{formatDate(payment.createdAt)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">{payment.contract?.contractNumber || '-'} · {payment.contract?.inventoryItem?.product?.name || '-'}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge variant="outline" className="text-xs">{payment.paymentMethod}</Badge>
+                      {payment.paymentType && <Badge variant={payment.paymentType === 'INSTALLMENT' ? 'default' : 'secondary'} className="text-xs">{payment.paymentType}</Badge>}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="overflow-x-auto">
+              {/* Desktop */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Contract #</TableHead>
                       <TableHead>Product</TableHead>
-                      <TableHead>Payment Method</TableHead>
+                      <TableHead>Method</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Type</TableHead>
                     </TableRow>
@@ -562,37 +535,21 @@ export default function CustomerProfilePage() {
                   <TableBody>
                     {profile.payments.slice(0, 20).map((payment: ProfilePayment) => (
                       <TableRow key={payment.id}>
-                        <TableCell className="text-sm">
-                          {formatDate(payment.createdAt)}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {payment.contract?.contractNumber || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {payment.contract?.inventoryItem?.product?.name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {payment.paymentMethod}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-green-600">
-                          {formatCurrency(payment.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={payment.paymentType === 'INSTALLMENT' ? 'default' : 'secondary'}>
-                            {payment.paymentType}
-                          </Badge>
-                        </TableCell>
+                        <TableCell className="text-sm">{formatDate(payment.createdAt)}</TableCell>
+                        <TableCell className="font-mono text-sm">{payment.contract?.contractNumber || '-'}</TableCell>
+                        <TableCell>{payment.contract?.inventoryItem?.product?.name || '-'}</TableCell>
+                        <TableCell><Badge variant="outline">{payment.paymentMethod}</Badge></TableCell>
+                        <TableCell className="text-right font-medium text-green-600">{formatCurrency(payment.amount)}</TableCell>
+                        <TableCell><Badge variant={payment.paymentType === 'INSTALLMENT' ? 'default' : 'secondary'}>{payment.paymentType}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -106,100 +106,133 @@ export default function RolesPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Roles & Permissions</h1>
-          <p className="text-gray-600 mt-1">Manage user roles and their permissions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Roles & Permissions</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage user roles and permissions</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Role
+        <Button size="sm" onClick={() => setShowForm(true)}>
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Create Role</span>
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>All Roles</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">
+            All Roles
+            <span className="ml-2 text-sm font-normal text-gray-400">({roles.length})</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
             </div>
           ) : roles.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <Shield className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg font-medium">No roles found</p>
-              <Button className="mt-6" onClick={() => setShowForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create First Role
+              <Shield className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">No roles found</p>
+              <Button className="mt-4" size="sm" onClick={() => setShowForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />Create First Role
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Role Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Permissions</TableHead>
-                  <TableHead>Users</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* ── Mobile card list ── */}
+              <div className="sm:hidden divide-y divide-gray-100">
                 {roles.map((role) => (
-                  <TableRow key={role.id}>
-                    <TableCell className="font-medium">{role.name}</TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {role.description || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{role.permissions?.length || 0} permissions</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-500" />
-                        <span>{role._count?.adminUsers || 0}</span>
+                  <div key={role.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{role.name}</p>
+                          {role.isSystem ? (
+                            <Badge variant="default" className="text-[10px] shrink-0">System</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] shrink-0">Custom</Badge>
+                          )}
+                        </div>
+                        {role.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">{role.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                          <span>{role.permissions?.length || 0} permissions</span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />{role._count?.adminUsers || 0} users
+                          </span>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {role.isSystem ? (
-                        <Badge variant="default">System</Badge>
-                      ) : (
-                        <Badge variant="secondary">Custom</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingRole(role);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Pencil className="h-3 w-3 mr-1" />
-                          Edit
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditingRole(role); setShowForm(true); }}>
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
+                          variant="ghost" size="sm"
                           className="text-red-600 hover:bg-red-50"
                           onClick={() => handleDeleteRole(role)}
                           disabled={role.isSystem || role._count?.adminUsers > 0}
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* ── Desktop table ── */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Role Name</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Permissions</TableHead>
+                      <TableHead>Users</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {roles.map((role) => (
+                      <TableRow key={role.id}>
+                        <TableCell className="font-medium">{role.name}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{role.description || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{role.permissions?.length || 0} permissions</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-gray-500" />
+                            <span>{role._count?.adminUsers || 0}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {role.isSystem ? <Badge variant="default">System</Badge> : <Badge variant="secondary">Custom</Badge>}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => { setEditingRole(role); setShowForm(true); }}>
+                              <Pencil className="h-3 w-3 mr-1" />Edit
+                            </Button>
+                            <Button
+                              size="sm" variant="outline" className="text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteRole(role)}
+                              disabled={role.isSystem || role._count?.adminUsers > 0}
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

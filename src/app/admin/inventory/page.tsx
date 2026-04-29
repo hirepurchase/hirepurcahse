@@ -219,196 +219,190 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-gray-600 mt-1">
-            Track individual items with IMEI/Serial numbers
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Track items with IMEI/Serial numbers</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Inventory Item
+        <Button onClick={() => setShowForm(true)} size="sm">
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Add Item</span>
         </Button>
       </div>
 
       {/* Product Filter Badge */}
       {filterProductId && (
-        <div className="mb-4">
-          <Badge variant="default" className="px-4 py-2 text-sm">
-            Filtering by product: {filterProductName}
-            <button
-              onClick={clearProductFilter}
-              className="ml-2 hover:bg-white/20 rounded-full p-0.5"
-            >
-              ✕
-            </button>
-          </Badge>
-        </div>
+        <Badge variant="default" className="px-4 py-2 text-sm">
+          Filtering: {filterProductName}
+          <button onClick={clearProductFilter} className="ml-2 hover:bg-white/20 rounded-full p-0.5">✕</button>
+        </Badge>
       )}
 
-      {/* Status Filter Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Status Filter Cards — 2 col mobile, 4 desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { key: "", label: "All Items", color: "bg-gray-100 text-gray-800" },
-          {
-            key: "AVAILABLE",
-            label: "Available",
-            color: "bg-blue-100 text-blue-800",
-          },
-          { key: "SOLD", label: "Sold", color: "bg-gray-100 text-gray-800" },
-          {
-            key: "RESERVED",
-            label: "Reserved",
-            color: "bg-yellow-100 text-yellow-800",
-          },
+          { key: "", label: "All Items", bg: "bg-gray-50", text: "text-gray-700" },
+          { key: "AVAILABLE", label: "Available", bg: "bg-blue-50", text: "text-blue-700" },
+          { key: "SOLD", label: "Sold", bg: "bg-gray-50", text: "text-gray-700" },
+          { key: "RESERVED", label: "Reserved", bg: "bg-yellow-50", text: "text-yellow-700" },
         ].map((status) => (
           <Card
             key={status.key}
-            className={`cursor-pointer transition-all ${
-              filterStatus === status.key ? "ring-2 ring-blue-500" : ""
-            }`}
+            className={`cursor-pointer transition-all border-gray-100 ${filterStatus === status.key ? "ring-2 ring-cyan-500" : ""}`}
             onClick={() => handleStatusFilter(status.key)}
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">{status.label}</p>
-                  <p className="text-2xl font-bold mt-1">
-                    {status.key === ""
-                      ? totalItems
-                      : statusCounts[status.key as keyof typeof statusCounts]}
-                  </p>
-                </div>
-                <Package
-                  className={`h-8 w-8 ${status.color} rounded-lg p-1.5`}
-                />
-              </div>
+              <p className="text-xs sm:text-sm text-gray-500">{status.label}</p>
+              <p className={`text-xl sm:text-2xl font-bold mt-1 ${status.text}`}>
+                {status.key === "" ? totalItems : statusCounts[status.key as keyof typeof statusCounts]}
+              </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Inventory Table */}
+      {/* Search */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Search product or IMEI/Serial…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            className="pl-10"
+          />
+        </div>
+        <Button onClick={handleSearch} variant="outline">Search</Button>
+      </div>
+
+      {/* Inventory List */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <CardTitle>Inventory Items</CardTitle>
-            </div>
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search by product name or IMEI/Serial number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10"
-                />
-              </div>
-              <Button onClick={handleSearch}>Search</Button>
-            </div>
-          </div>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">
+            Inventory Items
+            <span className="ml-2 text-sm font-normal text-gray-400">({totalItems})</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
             </div>
           ) : inventory.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No inventory items found</p>
-              <Button className="mt-4" onClick={() => setShowForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add First Item
+            <div className="text-center py-12 text-gray-500">
+              <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">No inventory items found</p>
+              <Button className="mt-4" size="sm" onClick={() => setShowForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />Add First Item
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Serial/IMEI</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Lock Status</TableHead>
-                  <TableHead>Registered Under</TableHead>
-                  <TableHead>Contract</TableHead>
-
-                  {(canEdit || canDelete) && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* ── Mobile card list ── */}
+              <div className="sm:hidden divide-y divide-gray-100">
                 {inventory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono font-medium">
-                      {item.serialNumber}
-                    </TableCell>
-                    <TableCell>{item.product?.name || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {item.product?.category?.name || "-"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(item.status)}>
-                        {item.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          item.lockStatus === "LOCKED"
-                            ? "destructive"
-                            : "default"
-                        }
-                        className={
-                          item.lockStatus === "UNLOCKED"
-                            ? "bg-green-100 text-green-800"
-                            : ""
-                        }
-                      >
-                        {item.lockStatus || "UNLOCKED"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate">
-                      {item.registeredUnder || "-"}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {item.contract?.contractNumber || "-"}
-                    </TableCell>
-                    {(canEdit || canDelete) && (
-                      <TableCell>
-                        <div className="flex gap-1">
+                  <div key={item.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{item.product?.name || "-"}</p>
+                        <p className="text-xs font-mono text-gray-500">{item.serialNumber}</p>
+                        <p className="text-xs text-gray-400">{item.product?.category?.name || "-"}</p>
+                        {item.registeredUnder && (
+                          <p className="text-xs text-gray-500 mt-0.5">Reg: {item.registeredUnder}</p>
+                        )}
+                        {item.contract?.contractNumber && (
+                          <p className="text-xs font-mono text-gray-500">Contract: {item.contract.contractNumber}</p>
+                        )}
+                        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                          <Badge className={getStatusColor(item.status)} >{item.status}</Badge>
+                          <Badge
+                            variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
+                            className={item.lockStatus !== "LOCKED" ? "bg-green-100 text-green-800" : ""}
+                          >
+                            {item.lockStatus || "UNLOCKED"}
+                          </Badge>
+                        </div>
+                      </div>
+                      {(canEdit || canDelete) && (
+                        <div className="flex gap-1 shrink-0">
                           {canEdit && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditClick(item)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEditClick(item)}>
                               <Edit2 className="h-4 w-4" />
                             </Button>
                           )}
                           {canDelete && item.status === "AVAILABLE" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteClick(item)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(item)} className="text-red-600 hover:bg-red-50">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
+                      )}
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* ── Desktop table ── */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Serial/IMEI</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Lock Status</TableHead>
+                      <TableHead>Registered Under</TableHead>
+                      <TableHead>Contract</TableHead>
+                      {(canEdit || canDelete) && <TableHead>Actions</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inventory.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono font-medium">{item.serialNumber}</TableCell>
+                        <TableCell>{item.product?.name || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.product?.category?.name || "-"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(item.status)}>{item.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
+                            className={item.lockStatus === "UNLOCKED" ? "bg-green-100 text-green-800" : ""}
+                          >
+                            {item.lockStatus || "UNLOCKED"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[150px] truncate">{item.registeredUnder || "-"}</TableCell>
+                        <TableCell className="font-mono text-sm">{item.contract?.contractNumber || "-"}</TableCell>
+                        {(canEdit || canDelete) && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {canEdit && (
+                                <Button variant="ghost" size="sm" onClick={() => handleEditClick(item)}>
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDelete && item.status === "AVAILABLE" && (
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
         {!isLoading && inventory.length > 0 && (
