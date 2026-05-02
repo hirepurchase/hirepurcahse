@@ -102,9 +102,6 @@ export default function AdminLoginPage() {
                 <p className="mb-3 text-sm font-semibold uppercase tracking-[0.35em] text-emerald-100/80">
                   Secure Admin Access
                 </p>
-                <h1 className="max-w-md text-3xl font-extrabold leading-tight text-white sm:text-4xl lg:text-[2.7rem]">
-                  Aidoo Tech Solutions
-                </h1>
                 <p className="mt-3 max-w-md text-balance text-sm leading-6 text-cyan-50/82 sm:text-base">
                   Developed by EYO SOLUTIONS
                 </p>
