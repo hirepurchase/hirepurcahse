@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Banknote, FileText, AlertCircle, ChevronLeft, ChevronRight, ChevronRight as ArrowRight } from 'lucide-react';
+import { Search, Banknote, FileText, AlertCircle, ChevronLeft, ChevronRight, ChevronRight as ArrowRight, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,12 +36,34 @@ interface Contract {
   installments: Array<{ id: string; status: string; amount: number; paidAmount: number }>;
 }
 
+interface ReconcileResult {
+  transactionRef: string;
+  contractNumber: string;
+  amount: number;
+  createdAt: string;
+  hubtelStatus: string;
+  action: 'updated_success' | 'updated_failed' | 'still_pending' | 'error' | 'dry_run';
+  error?: string;
+}
+
+interface ReconcileSummary {
+  checkedCount: number;
+  updatedSuccess: number;
+  updatedFailed: number;
+  stillPending: number;
+  errors: number;
+  dryRun: boolean;
+  olderThanMinutes: number;
+}
+
 export default function PaymentsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<Contract[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState<{ summary: ReconcileSummary; results: ReconcileResult[] } | null>(null);
   const itemsPerPage = 10;
   const router = useRouter();
   const { toast } = useToast();
@@ -62,6 +84,26 @@ export default function PaymentsPage() {
     setFilteredContracts(filtered);
     setCurrentPage(1);
   }, [searchQuery, contracts]);
+
+  const runReconcile = async (dryRun: boolean) => {
+    try {
+      setReconciling(true);
+      setReconcileResult(null);
+      const response = await api.post(`/payments/admin/reconcile?olderThanMinutes=5&dryRun=${dryRun}`);
+      setReconcileResult(response.data);
+      if (!dryRun && response.data.summary.updatedSuccess > 0) {
+        await loadContracts();
+      }
+      toast({
+        title: dryRun ? 'Reconciliation Preview' : 'Reconciliation Complete',
+        description: `Checked ${response.data.summary.checkedCount} pending payments. ${dryRun ? '' : `${response.data.summary.updatedSuccess} updated to SUCCESS.`}`,
+      });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.error || 'Reconciliation failed', variant: 'destructive' });
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   const loadContracts = async () => {
     try {
@@ -98,9 +140,21 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Payment Processing</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Select a contract to process payments</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Payment Processing</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Select a contract to process payments</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => runReconcile(true)} disabled={reconciling} className="text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${reconciling ? 'animate-spin' : ''}`} />
+            Preview
+          </Button>
+          <Button size="sm" onClick={() => runReconcile(false)} disabled={reconciling} className="text-xs bg-cyan-600 hover:bg-cyan-700 text-white">
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${reconciling ? 'animate-spin' : ''}`} />
+            Reconcile Payments
+          </Button>
+        </div>
       </div>
 
       {/* Stats — 2 cols mobile, 4 desktop */}
@@ -110,6 +164,61 @@ export default function PaymentsPage() {
         <StatCard title="Partial" value={withPartial} icon={Banknote} iconClass="text-orange-600" iconBg="bg-orange-50" />
         <StatCard title="Outstanding" value={formatCurrency(totalOutstanding)} icon={Banknote} iconClass="text-emerald-600" iconBg="bg-emerald-50" />
       </div>
+
+      {/* Reconciliation Results */}
+      {reconcileResult && (
+        <Card className="border-cyan-200 bg-cyan-50">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-cyan-800">
+                {reconcileResult.summary.dryRun ? 'Reconciliation Preview (no changes made)' : 'Reconciliation Complete'}
+              </CardTitle>
+              <button onClick={() => setReconcileResult(null)} className="text-cyan-500 hover:text-cyan-700 text-xs">Dismiss</button>
+            </div>
+            <div className="flex flex-wrap gap-4 text-xs text-cyan-700 mt-1">
+              <span>Checked: <strong>{reconcileResult.summary.checkedCount}</strong></span>
+              <span className="text-green-700">✓ Success: <strong>{reconcileResult.summary.updatedSuccess}</strong></span>
+              <span className="text-red-700">✗ Failed: <strong>{reconcileResult.summary.updatedFailed}</strong></span>
+              <span className="text-gray-600">⏳ Still pending: <strong>{reconcileResult.summary.stillPending}</strong></span>
+              {reconcileResult.summary.errors > 0 && <span className="text-orange-700">⚠ Errors: <strong>{reconcileResult.summary.errors}</strong></span>}
+            </div>
+          </CardHeader>
+          {reconcileResult.results.length > 0 && (
+            <CardContent className="px-4 pb-4">
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {reconcileResult.results.map((r) => (
+                  <div key={r.transactionRef} className="flex items-center justify-between bg-white rounded px-3 py-2 text-xs border border-cyan-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {r.action === 'updated_success' && <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+                      {r.action === 'updated_failed' && <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
+                      {r.action === 'still_pending' && <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
+                      {r.action === 'dry_run' && <RefreshCw className="h-3.5 w-3.5 text-cyan-500 shrink-0" />}
+                      {r.action === 'error' && <AlertCircle className="h-3.5 w-3.5 text-orange-500 shrink-0" />}
+                      <span className="font-mono text-gray-600 truncate">{r.transactionRef}</span>
+                      <span className="text-gray-400 shrink-0">· {r.contractNumber}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                      <span className="text-gray-700 font-medium">GH₵{r.amount.toFixed(2)}</span>
+                      <Badge className={cn('text-[10px] px-1.5 py-0',
+                        r.action === 'updated_success' ? 'bg-green-100 text-green-700' :
+                        r.action === 'updated_failed' ? 'bg-red-100 text-red-700' :
+                        r.action === 'dry_run' ? 'bg-cyan-100 text-cyan-700' :
+                        r.action === 'error' ? 'bg-orange-100 text-orange-700' :
+                        'bg-gray-100 text-gray-600'
+                      )}>
+                        {r.action === 'updated_success' ? 'Fixed → SUCCESS' :
+                         r.action === 'updated_failed' ? 'Fixed → FAILED' :
+                         r.action === 'dry_run' ? `Would fix → ${r.hubtelStatus}` :
+                         r.action === 'error' ? 'Error' : 'Pending'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Search */}
       <div className="relative">

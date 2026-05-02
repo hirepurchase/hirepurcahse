@@ -106,7 +106,7 @@ export default function AdminLoginPage() {
                   Aidoo Tech Solutions
                 </h1>
                 <p className="mt-3 max-w-md text-balance text-sm leading-6 text-cyan-50/82 sm:text-base">
-Developed by EYO SOLUTIONS 
+                  Developed by EYO SOLUTIONS
                 </p>
               </div>
             </div>
@@ -120,10 +120,6 @@ Developed by EYO SOLUTIONS
                   <h2 className="mt-2 text-3xl font-extrabold text-slate-900">
                     Admin Login
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Enter your credentials to continue to the Aidoo Tech
-                    Solutions management console.
-                  </p>
                 </div>
 
                 {error && (
