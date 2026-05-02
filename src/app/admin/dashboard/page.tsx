@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, FileText, Banknote, AlertCircle, ChevronRight, Plus, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isLoading: isAuthLoading } = useAuthStore();
   const adminUser = user as AdminUser | null;
 
   const [stats, setStats] = useState<DashboardStats>({
@@ -49,14 +49,7 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect agents to their own scoped dashboard
-  useEffect(() => {
-    if (adminUser?.role === 'AGENT') {
-      router.replace('/admin/agent/dashboard');
-    }
-  }, [adminUser, router]);
-
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = useCallback(async () => {
     try {
       setError(null);
       const response = await api.get('/reports/dashboard');
@@ -74,7 +67,20 @@ export default function AdminDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (adminUser?.role === 'AGENT') {
+      router.replace('/admin/agent/dashboard');
+      return;
+    }
+
+    void loadDashboardStats();
+  }, [adminUser?.role, isAuthLoading, loadDashboardStats, router]);
 
   if (isLoading) {
     return (

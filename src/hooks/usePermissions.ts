@@ -1,40 +1,38 @@
 import { useAuthStore } from '@/store/authStore';
 import { AdminUser } from '@/types';
+import {
+  adminHasAllPermissions,
+  adminHasAnyPermission,
+  adminHasPermission,
+  isSuperAdmin as isSuperAdminUser,
+  type PermissionName,
+} from '@/lib/permissions';
 
 export function usePermissions() {
   const { user, userType } = useAuthStore();
+  const adminUser = userType === 'admin' ? (user as AdminUser | null) : null;
 
-  const hasPermission = (permission: string): boolean => {
-    if (userType !== 'admin' || !user) {
-      return false;
-    }
-
-    const adminUser = user as AdminUser;
-    // SUPER_ADMIN bypasses all permission checks (mirrors backend behaviour)
-    if (adminUser.role === 'SUPER_ADMIN') {
-      return true;
-    }
-    return adminUser.permissions?.includes(permission) || false;
-  };
+  const hasPermission = (permission: PermissionName): boolean => (
+    userType === 'admin' ? adminHasPermission(adminUser, permission) : false
+  );
 
   const isSuperAdmin = (): boolean => {
-    if (userType !== 'admin' || !user) return false;
-    return (user as AdminUser).role === 'SUPER_ADMIN';
+    return userType === 'admin' ? isSuperAdminUser(adminUser) : false;
   };
 
   const isAdmin = (): boolean => {
-    if (userType !== 'admin' || !user) return false;
-    const role = (user as AdminUser).role;
+    if (userType !== 'admin' || !adminUser) return false;
+    const role = adminUser.role;
     return role === 'SUPER_ADMIN' || role === 'ADMIN';
   };
 
-  const hasAnyPermission = (permissions: string[]): boolean => {
-    return permissions.some((permission) => hasPermission(permission));
-  };
+  const hasAnyPermission = (permissions: readonly PermissionName[]): boolean => (
+    userType === 'admin' ? adminHasAnyPermission(adminUser, permissions) : false
+  );
 
-  const hasAllPermissions = (permissions: string[]): boolean => {
-    return permissions.every((permission) => hasPermission(permission));
-  };
+  const hasAllPermissions = (permissions: readonly PermissionName[]): boolean => (
+    userType === 'admin' ? adminHasAllPermissions(adminUser, permissions) : false
+  );
 
   return {
     hasPermission,

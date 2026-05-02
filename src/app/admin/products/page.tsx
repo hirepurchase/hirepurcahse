@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import api from '@/lib/api';
+import { PERMISSIONS } from '@/lib/permissions';
 import { Product, ProductCategory } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
@@ -40,7 +41,7 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
-  const canEditProduct = hasPermission('EDIT_PRODUCT');
+  const canEditProduct = hasPermission(PERMISSIONS.EDIT_PRODUCT);
 
   useEffect(() => {
     if (searchParams.get('action') === 'new') {

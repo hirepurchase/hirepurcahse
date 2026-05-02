@@ -1,0 +1,99 @@
+export const PERMISSIONS = {
+  CREATE_CUSTOMER: 'CREATE_CUSTOMER',
+  VIEW_CUSTOMERS: 'VIEW_CUSTOMERS',
+  VIEW_OWN_CUSTOMERS: 'VIEW_OWN_CUSTOMERS',
+  UPDATE_CUSTOMER: 'UPDATE_CUSTOMER',
+  DELETE_CUSTOMER: 'DELETE_CUSTOMER',
+  MANAGE_PRODUCTS: 'MANAGE_PRODUCTS',
+  EDIT_PRODUCT: 'EDIT_PRODUCT',
+  MANAGE_INVENTORY: 'MANAGE_INVENTORY',
+  EDIT_INVENTORY: 'EDIT_INVENTORY',
+  DELETE_INVENTORY: 'DELETE_INVENTORY',
+  CREATE_CONTRACT: 'CREATE_CONTRACT',
+  VIEW_CONTRACTS: 'VIEW_CONTRACTS',
+  VIEW_OWN_CONTRACTS: 'VIEW_OWN_CONTRACTS',
+  UPDATE_CONTRACT: 'UPDATE_CONTRACT',
+  CANCEL_CONTRACT: 'CANCEL_CONTRACT',
+  DELETE_CONTRACT: 'DELETE_CONTRACT',
+  MANAGE_CONTRACTS: 'MANAGE_CONTRACTS',
+  RECORD_PAYMENT: 'RECORD_PAYMENT',
+  VIEW_PAYMENTS: 'VIEW_PAYMENTS',
+  MANAGE_HUBTEL_PAYMENTS: 'MANAGE_HUBTEL_PAYMENTS',
+  VIEW_FAILED_PAYMENTS: 'VIEW_FAILED_PAYMENTS',
+  RETRY_PAYMENTS: 'RETRY_PAYMENTS',
+  VIEW_DAILY_PAYMENTS: 'VIEW_DAILY_PAYMENTS',
+  VIEW_DASHBOARD: 'VIEW_DASHBOARD',
+  VIEW_REPORTS: 'VIEW_REPORTS',
+  EXPORT_REPORTS: 'EXPORT_REPORTS',
+  MANAGE_SETTINGS: 'MANAGE_SETTINGS',
+  MANAGE_USERS: 'MANAGE_USERS',
+  MANAGE_ROLES: 'MANAGE_ROLES',
+  MANAGE_PERMISSIONS: 'MANAGE_PERMISSIONS',
+  VIEW_AUDIT_LOGS: 'VIEW_AUDIT_LOGS',
+  APPROVE_CONTRACT: 'APPROVE_CONTRACT',
+  VIEW_CONTRACT_APPROVALS: 'VIEW_CONTRACT_APPROVALS',
+} as const;
+
+export type PermissionName = typeof PERMISSIONS[keyof typeof PERMISSIONS];
+
+export const CUSTOMER_ACCESS_PERMISSIONS = [
+  PERMISSIONS.VIEW_CUSTOMERS,
+  PERMISSIONS.VIEW_OWN_CUSTOMERS,
+] as const;
+
+export const CONTRACT_ACCESS_PERMISSIONS = [
+  PERMISSIONS.VIEW_CONTRACTS,
+  PERMISSIONS.VIEW_OWN_CONTRACTS,
+] as const;
+
+export const CONTRACT_APPROVAL_ACCESS_PERMISSIONS = [
+  PERMISSIONS.VIEW_CONTRACT_APPROVALS,
+  PERMISSIONS.APPROVE_CONTRACT,
+] as const;
+
+export const DASHBOARD_ACCESS_PERMISSIONS = [
+  PERMISSIONS.VIEW_DASHBOARD,
+  PERMISSIONS.VIEW_REPORTS,
+  PERMISSIONS.VIEW_CONTRACTS,
+  PERMISSIONS.VIEW_OWN_CONTRACTS,
+] as const;
+
+export const ROLE_DIRECTORY_ACCESS_PERMISSIONS = [
+  PERMISSIONS.MANAGE_ROLES,
+  PERMISSIONS.MANAGE_USERS,
+] as const;
+
+interface AdminPermissionUser {
+  role: string;
+  permissions: readonly PermissionName[];
+}
+
+export function isSuperAdmin(user: AdminPermissionUser | null | undefined): boolean {
+  return user?.role === 'SUPER_ADMIN';
+}
+
+export function adminHasPermission(user: AdminPermissionUser | null | undefined, permission: PermissionName): boolean {
+  if (!user) {
+    return false;
+  }
+
+  if (isSuperAdmin(user)) {
+    return true;
+  }
+
+  return user.permissions?.includes(permission) ?? false;
+}
+
+export function adminHasAnyPermission(
+  user: AdminPermissionUser | null | undefined,
+  permissions: readonly PermissionName[]
+): boolean {
+  return permissions.some((permission) => adminHasPermission(user, permission));
+}
+
+export function adminHasAllPermissions(
+  user: AdminPermissionUser | null | undefined,
+  permissions: readonly PermissionName[]
+): boolean {
+  return permissions.every((permission) => adminHasPermission(user, permission));
+}

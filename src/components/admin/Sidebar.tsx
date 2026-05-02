@@ -33,6 +33,13 @@ import { cn } from "@/lib/utils";
 import type { AdminUser } from "@/types";
 import api from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
+import {
+  CONTRACT_ACCESS_PERMISSIONS,
+  CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
+  CUSTOMER_ACCESS_PERMISSIONS,
+  PERMISSIONS,
+  type PermissionName,
+} from "@/lib/permissions";
 import NotificationBell from "./NotificationBell";
 import ContractApprovalBell from "./ContractApprovalBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
@@ -44,13 +51,13 @@ interface NavItem {
   icon: LucideIcon;
   badge?: (paymentCount: number, approvalCount: number) => number | null;
   badgeColor?: 'green' | 'amber';
-  permissions?: string[];
+  permissions?: readonly PermissionName[];
 }
 
 interface NavGroup {
   label: string;
   items: NavItem[];
-  permissions?: string[];
+  permissions?: readonly PermissionName[];
   roles?: string[];  // if set, only show for users whose role is in this list
 }
 
@@ -66,28 +73,28 @@ const navGroups: NavGroup[] = [
     roles: ["AGENT"],
     items: [
       { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
-      { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: ["VIEW_CONTRACTS"] },
+      { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
     ],
   },
   {
     label: "Customers",
-    permissions: ["VIEW_CUSTOMERS"],
+    permissions: CUSTOMER_ACCESS_PERMISSIONS,
     items: [
-      { name: "Customers", href: "/admin/customers", icon: Users, permissions: ["VIEW_CUSTOMERS"] },
+      { name: "Customers", href: "/admin/customers", icon: Users, permissions: CUSTOMER_ACCESS_PERMISSIONS },
     ],
   },
   {
     label: "Contracts & Payments",
-    permissions: ["VIEW_CONTRACTS", "VIEW_PAYMENTS", "VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"],
+    permissions: [...CONTRACT_ACCESS_PERMISSIONS, PERMISSIONS.VIEW_PAYMENTS, ...CONTRACT_APPROVAL_ACCESS_PERMISSIONS],
     items: [
-      { name: "Contracts", href: "/admin/contracts", icon: FileText, permissions: ["VIEW_CONTRACTS"] },
+      { name: "Contracts", href: "/admin/contracts", icon: FileText, permissions: CONTRACT_ACCESS_PERMISSIONS },
       {
         name: "Contract Approvals",
         href: "/admin/contract-approvals",
         icon: ClipboardCheck,
         badge: (_pc, ac) => (ac > 0 ? ac : null),
         badgeColor: "amber",
-        permissions: ["VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"],
+        permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
       },
       {
         name: "Payments",
@@ -95,116 +102,116 @@ const navGroups: NavGroup[] = [
         icon: CreditCard,
         badge: (count) => (count > 0 ? count : null),
         badgeColor: "green",
-        permissions: ["VIEW_PAYMENTS"],
+        permissions: [PERMISSIONS.VIEW_PAYMENTS],
       },
-      { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: ["VIEW_FAILED_PAYMENTS"] },
+      { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
     ],
   },
   {
     label: "Inventory",
-    permissions: ["MANAGE_PRODUCTS", "MANAGE_INVENTORY"],
+    permissions: [PERMISSIONS.MANAGE_PRODUCTS, PERMISSIONS.MANAGE_INVENTORY],
     items: [
-      { name: "Products", href: "/admin/products", icon: Package, permissions: ["MANAGE_PRODUCTS"] },
-      { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: ["MANAGE_INVENTORY"] },
+      { name: "Products", href: "/admin/products", icon: Package, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
+      { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
     ],
   },
   {
     label: "Communications",
-    permissions: ["MANAGE_SETTINGS"],
+    permissions: [PERMISSIONS.MANAGE_SETTINGS],
     items: [
-      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: ["MANAGE_SETTINGS"] },
-      { name: "SMS Log", href: "/admin/sms/log", icon: ClipboardList, permissions: ["MANAGE_SETTINGS"] },
-      { name: "Notifications", href: "/admin/settings/notifications", icon: Bell, permissions: ["MANAGE_SETTINGS"] },
+      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "SMS Log", href: "/admin/sms/log", icon: ClipboardList, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Notifications", href: "/admin/settings/notifications", icon: Bell, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
     ],
   },
   {
     label: "Reports",
-    permissions: ["VIEW_REPORTS"],
+    permissions: [PERMISSIONS.VIEW_REPORTS],
     items: [
-      { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: ["VIEW_REPORTS"] },
+      { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
     ],
   },
   {
     label: "Administration",
-    permissions: ["MANAGE_USERS", "MANAGE_ROLES", "VIEW_AUDIT_LOGS", "MANAGE_SETTINGS"],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS],
     items: [
-      { name: "Import Data", href: "/admin/import", icon: Upload, permissions: ["MANAGE_SETTINGS"] },
-      { name: "Users", href: "/admin/users", icon: Settings, permissions: ["MANAGE_USERS"] },
-      { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: ["MANAGE_ROLES"] },
-      { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: ["VIEW_AUDIT_LOGS"] },
+      { name: "Import Data", href: "/admin/import", icon: Upload, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Users", href: "/admin/users", icon: Settings, permissions: [PERMISSIONS.MANAGE_USERS] },
+      { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: [PERMISSIONS.MANAGE_ROLES] },
+      { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
     ],
   },
 ];
 
 // The 4 primary bottom tabs (always visible)
 const PRIMARY_TABS = [
-  { name: "Home",      href: "/admin/dashboard", icon: LayoutDashboard, permissions: [] as string[] },
-  { name: "Customers", href: "/admin/customers",  icon: Users,           permissions: ["VIEW_CUSTOMERS"] },
-  { name: "Contracts", href: "/admin/contracts",  icon: FileText,        permissions: ["VIEW_CONTRACTS"] },
-  { name: "Payments",  href: "/admin/payments",   icon: CreditCard,      permissions: ["VIEW_PAYMENTS"] },
+  { name: "Home",      href: "/admin/dashboard", icon: LayoutDashboard, permissions: [] as PermissionName[] },
+  { name: "Customers", href: "/admin/customers",  icon: Users,           permissions: CUSTOMER_ACCESS_PERMISSIONS },
+  { name: "Contracts", href: "/admin/contracts",  icon: FileText,        permissions: CONTRACT_ACCESS_PERMISSIONS },
+  { name: "Payments",  href: "/admin/payments",   icon: CreditCard,      permissions: [PERMISSIONS.VIEW_PAYMENTS] },
 ];
 
 // Groups shown in the "More" bottom-sheet, excluding primary tab hrefs
 const MORE_GROUPS: Array<{
   label: string;
-  permissions?: string[];
+  permissions?: readonly PermissionName[];
   roles?: string[];
-  links: { name: string; href: string; emoji: string; permissions: string[] }[];
+  links: { name: string; href: string; emoji: string; permissions: readonly PermissionName[] }[];
 }> = [
   {
     label: "Agent Menu",
     roles: ["AGENT"],
     links: [
-      { name: "Dashboard", href: "/admin/agent/dashboard", emoji: "🏠", permissions: [] as string[] },
-      { name: "My Contracts", href: "/admin/agent/contracts", emoji: "💼", permissions: ["VIEW_CONTRACTS"] },
+      { name: "Dashboard", href: "/admin/agent/dashboard", emoji: "🏠", permissions: [] as PermissionName[] },
+      { name: "My Contracts", href: "/admin/agent/contracts", emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
     ],
   },
   {
     label: "Inventory",
-    permissions: ["MANAGE_PRODUCTS", "MANAGE_INVENTORY"],
+    permissions: [PERMISSIONS.MANAGE_PRODUCTS, PERMISSIONS.MANAGE_INVENTORY],
     links: [
-      { name: "Products",  href: "/admin/products",  emoji: "📦", permissions: ["MANAGE_PRODUCTS"] },
-      { name: "Inventory", href: "/admin/inventory", emoji: "🏭", permissions: ["MANAGE_INVENTORY"] },
+      { name: "Products",  href: "/admin/products",  emoji: "📦", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
+      { name: "Inventory", href: "/admin/inventory", emoji: "🏭", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
     ],
   },
   {
     label: "Contract Approvals",
-    permissions: ["VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"],
+    permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
     links: [
-      { name: "Approvals", href: "/admin/contract-approvals", emoji: "📋", permissions: ["VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"] },
+      { name: "Approvals", href: "/admin/contract-approvals", emoji: "📋", permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS },
     ],
   },
   {
     label: "Payments",
-    permissions: ["VIEW_FAILED_PAYMENTS"],
+    permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS],
     links: [
-      { name: "Payment Mgmt", href: "/admin/failed-payments", emoji: "⚠️", permissions: ["VIEW_FAILED_PAYMENTS"] },
+      { name: "Payment Mgmt", href: "/admin/failed-payments", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
     ],
   },
   {
     label: "Reports",
-    permissions: ["VIEW_REPORTS"],
+    permissions: [PERMISSIONS.VIEW_REPORTS],
     links: [
-      { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: ["VIEW_REPORTS"] },
+      { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: [PERMISSIONS.VIEW_REPORTS] },
     ],
   },
   {
     label: "Communications",
-    permissions: ["MANAGE_SETTINGS"],
+    permissions: [PERMISSIONS.MANAGE_SETTINGS],
     links: [
-      { name: "Send SMS",      href: "/admin/sms",                    emoji: "💬", permissions: ["MANAGE_SETTINGS"] },
-      { name: "SMS Log",       href: "/admin/sms/log",                emoji: "📋", permissions: ["MANAGE_SETTINGS"] },
-      { name: "Notifications", href: "/admin/settings/notifications", emoji: "🔔", permissions: ["MANAGE_SETTINGS"] },
+      { name: "Send SMS",      href: "/admin/sms",                    emoji: "💬", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "SMS Log",       href: "/admin/sms/log",                emoji: "📋", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Notifications", href: "/admin/settings/notifications", emoji: "🔔", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
     ],
   },
   {
     label: "Administration",
-    permissions: ["MANAGE_USERS", "MANAGE_ROLES", "VIEW_AUDIT_LOGS", "MANAGE_SETTINGS"],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS],
     links: [
-      { name: "Import",      href: "/admin/import", emoji: "📥", permissions: ["MANAGE_SETTINGS"] },
-      { name: "Users",       href: "/admin/users",  emoji: "👥", permissions: ["MANAGE_USERS"] },
-      { name: "Roles",       href: "/admin/roles",  emoji: "🔑", permissions: ["MANAGE_ROLES"] },
-      { name: "Audit Trail", href: "/admin/audit",  emoji: "🔍", permissions: ["VIEW_AUDIT_LOGS"] },
+      { name: "Import",      href: "/admin/import", emoji: "📥", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Users",       href: "/admin/users",  emoji: "👥", permissions: [PERMISSIONS.MANAGE_USERS] },
+      { name: "Roles",       href: "/admin/roles",  emoji: "🔑", permissions: [PERMISSIONS.MANAGE_ROLES] },
+      { name: "Audit Trail", href: "/admin/audit",  emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
     ],
   },
 ];

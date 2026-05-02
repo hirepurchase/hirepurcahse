@@ -1,8 +1,9 @@
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
+import { PERMISSIONS } from '@/lib/permissions';
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute permissions={['MANAGE_SETTINGS']}>
+    <ProtectedRoute permissions={[PERMISSIONS.MANAGE_SETTINGS]}>
       {children}
     </ProtectedRoute>
   );

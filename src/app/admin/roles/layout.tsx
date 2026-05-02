@@ -1,8 +1,9 @@
 import ProtectedRoute from '@/components/shared/ProtectedRoute';
+import { PERMISSIONS } from '@/lib/permissions';
 
 export default function RolesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute permissions={['MANAGE_ROLES']}>
+    <ProtectedRoute permissions={[PERMISSIONS.MANAGE_ROLES]}>
       {children}
     </ProtectedRoute>
   );

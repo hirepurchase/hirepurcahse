@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import api from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Product, InventoryItem } from "@/types";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
@@ -57,8 +58,8 @@ export default function InventoryPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
-  const canEdit = hasPermission("EDIT_INVENTORY");
-  const canDelete = hasPermission("DELETE_INVENTORY");
+  const canEdit = hasPermission(PERMISSIONS.EDIT_INVENTORY);
+  const canDelete = hasPermission(PERMISSIONS.DELETE_INVENTORY);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingItem, setDeletingItem] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

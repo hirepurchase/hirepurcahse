@@ -1,3 +1,5 @@
+import type { PermissionName } from '@/lib/permissions';
+
 export interface User {
   id: string;
   email: string;
@@ -7,7 +9,7 @@ export interface User {
 
 export interface AdminUser extends User {
   role: string;
-  permissions: string[];
+  permissions: PermissionName[];
 }
 
 export interface Customer extends User {

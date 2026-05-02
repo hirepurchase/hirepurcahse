@@ -4,12 +4,13 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import type { AdminUser } from '@/types';
+import { adminHasAnyPermission, type PermissionName } from '@/lib/permissions';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
   userType?: 'admin' | 'customer';
-  permissions?: string[];
+  permissions?: PermissionName[];
 }
 
 export default function ProtectedRoute({
@@ -38,11 +39,7 @@ export default function ProtectedRoute({
 
     if (permissions && permissions.length > 0 && currentUserType === 'admin') {
       const adminUser = user as AdminUser | null;
-      const isSuperAdmin = adminUser?.role === 'SUPER_ADMIN';
-      const hasPermission = isSuperAdmin || permissions.some(perm =>
-        adminUser?.permissions?.includes(perm)
-      );
-      if (!hasPermission) {
+      if (!adminHasAnyPermission(adminUser, permissions)) {
         router.push('/admin/dashboard');
         return;
       }
@@ -65,11 +62,7 @@ export default function ProtectedRoute({
   // Permission check — render an access denied screen instead of null (prevents flash)
   if (permissions && permissions.length > 0 && currentUserType === 'admin') {
     const adminUser = user as AdminUser | null;
-    const isSuperAdmin = adminUser?.role === 'SUPER_ADMIN';
-    const hasPermission = isSuperAdmin || permissions.some(perm =>
-      adminUser?.permissions?.includes(perm)
-    );
-    if (!hasPermission) {
+    if (!adminHasAnyPermission(adminUser, permissions)) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-4">
           <div className="text-center">
