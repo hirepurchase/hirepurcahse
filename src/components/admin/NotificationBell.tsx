@@ -118,8 +118,8 @@ export default function NotificationBell() {
                         <p className="text-xs text-cyan-100/50">
                           {p.contract.contractNumber} · {getPaymentMethodLabel(p.paymentMethod)}
                         </p>
-                        <p className="text-xs text-cyan-100/40">
-                          {formatDate(p.createdAt)}
+                            <p className="text-xs text-cyan-100/40">
+                          {formatDate(p.paymentDate || p.createdAt)}
                         </p>
                       </div>
                     </li>

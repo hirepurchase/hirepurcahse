@@ -2,14 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { X, TrendingUp } from 'lucide-react';
-import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-
-interface DailyPaymentsData {
-  date: string;
-  count: number;
-  totalAmount: number;
-}
+import { useDailyPayments } from '@/hooks/useDailyPayments';
 
 const BANNER_KEY = 'daily_payments_banner_dismissed';
 
@@ -36,20 +30,11 @@ function dismissToday() {
 }
 
 export default function DailyPaymentsBanner() {
-  const [data, setData] = useState<DailyPaymentsData | null>(null);
+  const { data } = useDailyPayments();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (wasDismissedToday()) return;
-
-    api.get('/reports/daily-payments')
-      .then(res => {
-        setData(res.data);
-        setVisible(true);
-      })
-      .catch(() => {
-        // silently fail
-      });
+    setVisible(!wasDismissedToday());
   }, []);
 
   const handleDismiss = () => {
