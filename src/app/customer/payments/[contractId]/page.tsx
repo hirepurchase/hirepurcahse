@@ -136,6 +136,10 @@ export default function CustomerContractPaymentPage() {
   };
 
   const handleInstallmentToggle = (installment: Installment, checked: boolean) => {
+    if (contract?.status !== 'ACTIVE') {
+      return;
+    }
+
     const newSelected = new Map(selectedInstallments);
 
     if (checked) {
@@ -156,6 +160,10 @@ export default function CustomerContractPaymentPage() {
   };
 
   const handlePaymentAmountChange = (installmentId: string, value: string) => {
+    if (contract?.status !== 'ACTIVE') {
+      return;
+    }
+
     const amount = parseFloat(value) || 0;
     const newSelected = new Map(selectedInstallments);
     const selected = newSelected.get(installmentId);
@@ -183,6 +191,17 @@ export default function CustomerContractPaymentPage() {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (contract?.status !== 'ACTIVE') {
+      toast({
+        title: 'Payment Unavailable',
+        description: contract?.status === 'PENDING_APPROVAL'
+          ? 'This contract is still awaiting approval.'
+          : 'This contract is not approved for payments yet.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (selectedInstallments.size === 0) {
       toast({
@@ -341,6 +360,13 @@ export default function CustomerContractPaymentPage() {
   const pendingInstallments = contract.installments.filter(
     (i) => i.status === 'PENDING' || i.status === 'PARTIAL' || i.status === 'OVERDUE'
   );
+  const canMakePayment = contract.status === 'ACTIVE' && contract.outstandingBalance > 0;
+  const paymentBlockedMessage =
+    contract.status === 'PENDING_APPROVAL'
+      ? 'This contract is awaiting approval. Payments will unlock once an approver activates it.'
+      : contract.status === 'REVISION_REQUESTED'
+        ? 'This contract is currently under revision and cannot receive payments until it is approved.'
+        : 'This contract is not available for payment.';
 
   return (
     <div className="space-y-5">
@@ -375,6 +401,12 @@ export default function CustomerContractPaymentPage() {
         <Alert className="border-red-500 bg-red-50">
           <XCircle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-900 text-sm">Payment failed. Please try again or contact support.</AlertDescription>
+        </Alert>
+      )}
+      {!canMakePayment && (
+        <Alert className="border-amber-500 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-900 text-sm">{paymentBlockedMessage}</AlertDescription>
         </Alert>
       )}
 
@@ -528,7 +560,7 @@ export default function CustomerContractPaymentPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isProcessing || selectedInstallments.size === 0}>
+                <Button type="submit" className="w-full" disabled={!canMakePayment || isProcessing || selectedInstallments.size === 0}>
                   {isProcessing ? (
                     <><Clock className="h-4 w-4 mr-2 animate-spin" />Processing...</>
                   ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,13 @@ export default function ReportsPage() {
       icon: Wallet,
       color: 'text-emerald-600 bg-emerald-100',
       path: '/admin/reports/income',
+    },
+    {
+      title: 'Agent Performance',
+      description: 'Leaderboard of agents by contracts created, sales value, and payments collected on their contracts',
+      icon: Trophy,
+      color: 'text-amber-600 bg-amber-100',
+      path: '/admin/reports/agents',
     },
     {
       title: 'Sales Report',

@@ -73,14 +73,55 @@ export interface HirePurchaseContract {
   penaltyPercentage: number;
   startDate: Date;
   endDate: Date;
-  status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'CANCELLED';
+  status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'CANCELLED' | 'PENDING_APPROVAL' | 'REVISION_REQUESTED';
   totalPaid: number;
   outstandingBalance: number;
   ownershipTransferred: boolean;
+  approvedAt?: Date | null;
+  rejectionReason?: string | null;
+  approvalSnapshot?: ApprovalSnapshot | null;
+  approvalHistory?: ApprovalHistoryItem[];
   installments?: InstallmentSchedule[];
   payments?: PaymentTransaction[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ApprovalAssignment {
+  contractId: string;
+  assignedApproverId: string | null;
+  assignedApproverName: string | null;
+  assignedAt: Date | null;
+  assignedById: string | null;
+  assignedByName: string | null;
+}
+
+export interface ApprovalSnapshot {
+  blockers: string[];
+  warnings: string[];
+  riskFlags: string[];
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  riskScore: number;
+  suggestedSlaHours: number;
+  relatedOpenContracts: number;
+  defaultedContracts: number;
+  sameProductContracts: number;
+  ageHours: number;
+  isBreached: boolean;
+  currentAssignment: ApprovalAssignment | null;
+  resubmissionCount: number;
+  lastSubmittedAt: Date | string;
+}
+
+export interface ApprovalHistoryItem {
+  id: string;
+  action: string;
+  label: string;
+  actorName: string;
+  createdAt: Date | string;
+  note: string | null;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
 }
 
 export interface InstallmentSchedule {

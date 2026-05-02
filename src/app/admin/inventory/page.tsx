@@ -316,6 +316,9 @@ export default function InventoryPage() {
                         {item.contract?.contractNumber && (
                           <p className="text-xs font-mono text-gray-500">Contract: {item.contract.contractNumber}</p>
                         )}
+                        {item.contract?.createdBy && (
+                          <p className="text-xs text-gray-400">Agent: {item.contract.createdBy.firstName} {item.contract.createdBy.lastName}</p>
+                        )}
                         <div className="flex gap-1.5 mt-1.5 flex-wrap">
                           <Badge className={getStatusColor(item.status)} >{item.status}</Badge>
                           <Badge
@@ -357,6 +360,7 @@ export default function InventoryPage() {
                       <TableHead>Lock Status</TableHead>
                       <TableHead>Registered Under</TableHead>
                       <TableHead>Contract</TableHead>
+                      <TableHead>Agent</TableHead>
                       {(canEdit || canDelete) && <TableHead>Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -381,6 +385,13 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell className="max-w-[150px] truncate">{item.registeredUnder || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{item.contract?.contractNumber || "-"}</TableCell>
+                        <TableCell>
+                          {item.contract?.createdBy ? (
+                            <span className="text-xs text-gray-700">{item.contract.createdBy.firstName} {item.contract.createdBy.lastName}</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </TableCell>
                         {(canEdit || canDelete) && (
                           <TableCell>
                             <div className="flex gap-1">

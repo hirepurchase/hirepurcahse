@@ -19,11 +19,13 @@ import {
   AlertCircle,
   MessageSquare,
   ClipboardList,
+  ClipboardCheck,
   ChevronDown,
   ChevronRight,
   KeyRound,
   Upload,
   X,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -32,13 +34,16 @@ import type { AdminUser } from "@/types";
 import api from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import ContractApprovalBell from "./ContractApprovalBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
+import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
 
 interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
-  badge?: (paymentCount: number) => number | null;
+  badge?: (paymentCount: number, approvalCount: number) => number | null;
+  badgeColor?: 'green' | 'amber';
   permissions?: string[];
 }
 
@@ -46,6 +51,7 @@ interface NavGroup {
   label: string;
   items: NavItem[];
   permissions?: string[];
+  roles?: string[];  // if set, only show for users whose role is in this list
 }
 
 const navGroups: NavGroup[] = [
@@ -53,6 +59,13 @@ const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Agent Menu",
+    roles: ["AGENT"],
+    items: [
+      { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: ["VIEW_CONTRACTS"] },
     ],
   },
   {
@@ -64,14 +77,23 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Contracts & Payments",
-    permissions: ["VIEW_CONTRACTS", "VIEW_PAYMENTS"],
+    permissions: ["VIEW_CONTRACTS", "VIEW_PAYMENTS", "VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"],
     items: [
       { name: "Contracts", href: "/admin/contracts", icon: FileText, permissions: ["VIEW_CONTRACTS"] },
+      {
+        name: "Contract Approvals",
+        href: "/admin/contract-approvals",
+        icon: ClipboardCheck,
+        badge: (_pc, ac) => (ac > 0 ? ac : null),
+        badgeColor: "amber",
+        permissions: ["VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"],
+      },
       {
         name: "Payments",
         href: "/admin/payments",
         icon: CreditCard,
         badge: (count) => (count > 0 ? count : null),
+        badgeColor: "green",
         permissions: ["VIEW_PAYMENTS"],
       },
       { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: ["VIEW_FAILED_PAYMENTS"] },
@@ -122,13 +144,32 @@ const PRIMARY_TABS = [
 ];
 
 // Groups shown in the "More" bottom-sheet, excluding primary tab hrefs
-const MORE_GROUPS = [
+const MORE_GROUPS: Array<{
+  label: string;
+  permissions?: string[];
+  roles?: string[];
+  links: { name: string; href: string; emoji: string; permissions: string[] }[];
+}> = [
+  {
+    label: "Agent Menu",
+    roles: ["AGENT"],
+    links: [
+      { name: "My Contracts", href: "/admin/agent/contracts", emoji: "💼", permissions: ["VIEW_CONTRACTS"] },
+    ],
+  },
   {
     label: "Inventory",
     permissions: ["MANAGE_PRODUCTS", "MANAGE_INVENTORY"],
     links: [
       { name: "Products",  href: "/admin/products",  emoji: "📦", permissions: ["MANAGE_PRODUCTS"] },
       { name: "Inventory", href: "/admin/inventory", emoji: "🏭", permissions: ["MANAGE_INVENTORY"] },
+    ],
+  },
+  {
+    label: "Contract Approvals",
+    permissions: ["VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"],
+    links: [
+      { name: "Approvals", href: "/admin/contract-approvals", emoji: "📋", permissions: ["VIEW_CONTRACT_APPROVALS", "APPROVE_CONTRACT"] },
     ],
   },
   {
@@ -232,19 +273,25 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 
 // ─── Desktop Sidebar ────────────────────────────────────────────────────────
 
-function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: {
+function SidebarContent({ user, pathname, paymentCount, approvalCount, onNavigate, onLogout }: {
   user: AdminUser | null;
   pathname: string | null;
   paymentCount: number;
+  approvalCount: number;
   onNavigate: () => void;
   onLogout: () => void;
 }) {
   const { hasAnyPermission } = usePermissions();
   const [showPw, setShowPw] = useState(false);
 
+  const userRole = user?.role ?? "";
   const visibleGroups = navGroups
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.permissions?.length || hasAnyPermission(i.permissions)) }))
-    .filter((g) => g.items.length > 0 && (!g.permissions?.length || hasAnyPermission(g.permissions)));
+    .filter((g) =>
+      g.items.length > 0 &&
+      (!g.permissions?.length || hasAnyPermission(g.permissions)) &&
+      (!g.roles?.length || g.roles.includes(userRole))
+    );
 
   const activeIdx = visibleGroups.findIndex((g) =>
     g.items.some((i) => pathname === i.href || pathname?.startsWith(i.href + "/"))
@@ -282,7 +329,8 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
           if (single) {
             const item = group.items[0];
             const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname?.startsWith(item.href + "/"));
-            const badge = item.badge?.(paymentCount) ?? null;
+            const badge = item.badge?.(paymentCount, approvalCount) ?? null;
+            const badgeCls = item.badgeColor === "amber" ? "bg-amber-500" : "bg-green-500";
             return (
               <div key={idx}>
                 <p className="px-2 pt-4 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-cyan-200/50">{group.label}</p>
@@ -292,7 +340,7 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
                   <item.icon className={cn("h-5 w-5 shrink-0", active ? "text-cyan-300" : "text-cyan-100/60")} />
                   <span className="flex-1 truncate">{item.name}</span>
                   {badge !== null && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[10px] font-bold text-white">
+                    <span className={cn("flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white", badgeCls)}>
                       {badge > 99 ? "99+" : badge}
                     </span>
                   )}
@@ -311,7 +359,8 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const active = pathname === item.href || (pathname?.startsWith(item.href + "/") && item.href !== "/admin/sms");
-                    const badge = item.badge?.(paymentCount) ?? null;
+                    const badge = item.badge?.(paymentCount, approvalCount) ?? null;
+                    const badgeCls = item.badgeColor === "amber" ? "bg-amber-500" : "bg-green-500";
                     return (
                       <Link key={item.href} href={item.href} onClick={onNavigate}
                         className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
@@ -319,7 +368,7 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
                         <item.icon className={cn("h-5 w-5 shrink-0", active ? "text-cyan-300" : "text-cyan-100/60")} />
                         <span className="flex-1 truncate">{item.name}</span>
                         {badge !== null && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[10px] font-bold text-white">
+                          <span className={cn("flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white", badgeCls)}>
                             {badge > 99 ? "99+" : badge}
                           </span>
                         )}
@@ -332,10 +381,14 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
           );
         })}
       </nav>
-      <div className="border-t border-cyan-300/20 p-3 shrink-0">
+      <div className="border-t border-cyan-300/20 p-3 shrink-0 space-y-1">
         <div className="flex items-center gap-3 px-3 py-1">
           <NotificationBell />
           <span className="text-sm font-medium text-cyan-50/85">Daily Payments</span>
+        </div>
+        <div className="flex items-center gap-3 px-3 py-1">
+          <ContractApprovalBell />
+          <span className="text-sm font-medium text-cyan-50/85">Contract Approvals</span>
         </div>
       </div>
       <div className="border-t border-cyan-300/20 p-3 shrink-0">
@@ -353,14 +406,22 @@ function SidebarContent({ user, pathname, paymentCount, onNavigate, onLogout }: 
 
 // ─── Mobile Bottom Tab Bar ──────────────────────────────────────────────────
 
-function MobileTabBar({ pathname, paymentCount, moreOpen, onMoreToggle }: {
+function MobileTabBar({ pathname, paymentCount, moreOpen, onMoreToggle, userRole }: {
   pathname: string | null;
   paymentCount: number;
+  approvalCount?: number;
   moreOpen: boolean;
   onMoreToggle: () => void;
+  userRole?: string;
 }) {
   const { hasAnyPermission } = usePermissions();
-  const tabs = PRIMARY_TABS.filter((t) => !t.permissions.length || hasAnyPermission(t.permissions));
+  // Agents use "My Contracts" tab instead of the general Contracts tab
+  const effectiveTabs = PRIMARY_TABS.map((t) =>
+    t.href === "/admin/contracts" && userRole === "AGENT"
+      ? { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase }
+      : t
+  );
+  const tabs = effectiveTabs.filter((t) => !t.permissions.length || hasAnyPermission(t.permissions));
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/admin/dashboard" && pathname?.startsWith(href + "/"));
@@ -429,12 +490,17 @@ function MoreBottomSheet({ open, onClose, user, pathname, paymentCount, onLogout
   const { hasAnyPermission } = usePermissions();
   const [showPw, setShowPw] = useState(false);
 
+  const userRole = user?.role ?? "";
   const visibleGroups = MORE_GROUPS
     .map((g) => ({
       ...g,
       links: g.links.filter((l) => !l.permissions.length || hasAnyPermission(l.permissions)),
     }))
-    .filter((g) => g.links.length > 0 && (!g.permissions.length || hasAnyPermission(g.permissions)));
+    .filter((g) =>
+      g.links.length > 0 &&
+      (!g.permissions?.length || hasAnyPermission(g.permissions)) &&
+      (!g.roles?.length || g.roles.includes(userRole))
+    );
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
 
@@ -508,6 +574,10 @@ function MoreBottomSheet({ open, onClose, user, pathname, paymentCount, onLogout
               <NotificationBell />
               <span className="text-sm font-medium text-gray-700">Daily Payments</span>
             </div>
+            <div className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 rounded-xl">
+              <ContractApprovalBell />
+              <span className="text-sm font-medium text-gray-700">Contract Approvals</span>
+            </div>
             <button onClick={onLogout}
               className="flex w-full items-center gap-3 px-3 py-2.5 bg-red-50 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-100 transition-colors">
               <LogOut className="h-5 w-5" /> Sign Out
@@ -526,6 +596,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const { count: paymentCount } = useDailyPayments();
+  const { count: approvalCount } = usePendingContractApprovals();
 
   const adminUser = user && "role" in user ? user : null;
 
@@ -542,6 +613,7 @@ export default function Sidebar() {
           user={adminUser}
           pathname={pathname}
           paymentCount={paymentCount}
+          approvalCount={approvalCount}
           onNavigate={() => {}}
           onLogout={handleLogout}
         />
@@ -551,8 +623,10 @@ export default function Sidebar() {
       <MobileTabBar
         pathname={pathname}
         paymentCount={paymentCount}
+        approvalCount={approvalCount}
         moreOpen={moreOpen}
         onMoreToggle={() => setMoreOpen((o) => !o)}
+        userRole={adminUser?.role}
       />
 
       {/* Mobile: "More" Bottom Sheet */}

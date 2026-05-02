@@ -51,7 +51,7 @@ export default function CustomerDashboardPage() {
       setContracts(contractsData);
 
       const activeContracts = contractsData.filter((c) => c.status === 'ACTIVE');
-      const totalOutstanding = contractsData.reduce((sum, c) => sum + (c.outstandingBalance || 0), 0);
+      const totalOutstanding = activeContracts.reduce((sum, c) => sum + (c.outstandingBalance || 0), 0);
 
       const installmentsResponse = await api.get('/customers/me/installments/upcoming');
       const upcomingData: UpcomingInstallment[] = installmentsResponse.data.installments || [];

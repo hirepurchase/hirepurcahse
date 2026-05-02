@@ -97,6 +97,15 @@ export default function CustomerContractDetailPage() {
   }
 
   const progress = calculateProgress(contract.totalPaid, contract.totalPrice);
+  const canMakePayment = contract.status === 'ACTIVE' && contract.outstandingBalance > 0;
+  const paymentStatusNote =
+    contract.status === 'PENDING_APPROVAL'
+      ? 'This contract is still awaiting approval, so payments are not available yet.'
+      : contract.status === 'REVISION_REQUESTED'
+        ? 'This contract is under revision and cannot receive payments until it is approved.'
+        : contract.outstandingBalance <= 0
+          ? 'This contract has no outstanding balance.'
+          : null;
 
   return (
     <div className="space-y-5">
@@ -111,7 +120,7 @@ export default function CustomerContractDetailPage() {
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Hire purchase agreement details</p>
           </div>
         </div>
-        <Badge className={getStatusColor(contract.status)}>{contract.status}</Badge>
+        <Badge className={getStatusColor(contract.status)}>{contract.status.replace(/_/g, ' ')}</Badge>
       </div>
 
       {/* Summary Cards */}
@@ -283,10 +292,16 @@ export default function CustomerContractDetailPage() {
                 <Download className="mr-2 h-4 w-4" />
                 Download Statement
               </Button>
-              <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => router.push('/customer/payments')}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Make Payment
-              </Button>
+              {canMakePayment ? (
+                <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => router.push('/customer/payments')}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Make Payment
+                </Button>
+              ) : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  {paymentStatusNote}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

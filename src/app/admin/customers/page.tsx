@@ -230,6 +230,9 @@ export default function CustomersPage() {
                       </p>
                       <p className="text-xs text-gray-500 font-mono truncate">{customer.membershipId}</p>
                       <p className="text-xs text-gray-400">{customer.phone}</p>
+                      {customer.createdBy && (
+                        <p className="text-xs text-gray-400 truncate">By: {customer.createdBy.firstName} {customer.createdBy.lastName}</p>
+                      )}
                     </div>
                     {/* Status + actions */}
                     <div className="shrink-0 flex flex-col items-end gap-2">
@@ -284,6 +287,7 @@ export default function CustomersPage() {
                       <TableHead>Email</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Contracts</TableHead>
+                      <TableHead>Registered By</TableHead>
                       <TableHead>Registered</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -320,6 +324,13 @@ export default function CustomersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>{customer.contractsCount || 0}</TableCell>
+                        <TableCell>
+                          {customer.createdBy ? (
+                            <span className="text-sm text-gray-700">{customer.createdBy.firstName} {customer.createdBy.lastName}</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </TableCell>
                         <TableCell>{formatDate(customer.createdAt)}</TableCell>
                         <TableCell>
                           <div className="flex gap-1.5">

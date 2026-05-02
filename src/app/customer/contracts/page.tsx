@@ -121,7 +121,7 @@ export default function CustomerContractsPage() {
                       </p>
                     </div>
                     <Badge className={getStatusColor(contract.status)}>
-                      {contract.status}
+                      {contract.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
                 </CardHeader>
