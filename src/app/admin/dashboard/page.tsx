@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users, FileText, Banknote, AlertCircle, ChevronRight, Plus, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
+import { AdminUser } from '@/types';
 
 interface RecentContract {
   id: string;
@@ -31,6 +34,10 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const adminUser = user as AdminUser | null;
+
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
     totalContracts: 0,
@@ -42,9 +49,12 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Redirect agents to their own scoped dashboard
   useEffect(() => {
-    loadDashboardStats();
-  }, []);
+    if (adminUser?.role === 'AGENT') {
+      router.replace('/admin/agent/dashboard');
+    }
+  }, [adminUser, router]);
 
   const loadDashboardStats = async () => {
     try {

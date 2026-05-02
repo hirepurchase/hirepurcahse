@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
     label: "Agent Menu",
     roles: ["AGENT"],
     items: [
+      { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: ["VIEW_CONTRACTS"] },
     ],
   },
@@ -154,6 +155,7 @@ const MORE_GROUPS: Array<{
     label: "Agent Menu",
     roles: ["AGENT"],
     links: [
+      { name: "Dashboard", href: "/admin/agent/dashboard", emoji: "🏠", permissions: [] as string[] },
       { name: "My Contracts", href: "/admin/agent/contracts", emoji: "💼", permissions: ["VIEW_CONTRACTS"] },
     ],
   },
@@ -415,12 +417,14 @@ function MobileTabBar({ pathname, paymentCount, moreOpen, onMoreToggle, userRole
   userRole?: string;
 }) {
   const { hasAnyPermission } = usePermissions();
-  // Agents use "My Contracts" tab instead of the general Contracts tab
-  const effectiveTabs = PRIMARY_TABS.map((t) =>
-    t.href === "/admin/contracts" && userRole === "AGENT"
-      ? { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase }
-      : t
-  );
+  // Agents use agent-specific routes for Dashboard and Contracts tabs
+  const effectiveTabs = PRIMARY_TABS.map((t) => {
+    if (userRole === "AGENT") {
+      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/agent/dashboard" };
+      if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
+    }
+    return t;
+  });
   const tabs = effectiveTabs.filter((t) => !t.permissions.length || hasAnyPermission(t.permissions));
 
   const isActive = (href: string) =>
