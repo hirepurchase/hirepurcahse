@@ -3,7 +3,7 @@ import { PERMISSIONS } from '@/lib/permissions';
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute permissions={[PERMISSIONS.MANAGE_SETTINGS]}>
+    <ProtectedRoute permissions={[PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.MANAGE_DEVICE_CONTROL]}>
       {children}
     </ProtectedRoute>
   );

@@ -1,26 +1,112 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2, Smartphone, Shield, Lock, Unlock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import { useAuth } from '@/hooks/useAuth';
+import { adminHasAnyPermission, PERMISSIONS } from '@/lib/permissions';
+import type { AdminUser } from '@/types';
+
+interface KnoxEnrollmentDefaults {
+  disclosureVersion: string;
+  disclosureSummary: string;
+  termsReference?: string | null;
+  supportPhone?: string | null;
+  supportMessage: string;
+  warningMessage: string;
+  paymentAppPackage?: string | null;
+  paymentAppLabel: string;
+  paymentUssd?: string | null;
+  refreshActionLabel: string;
+  allowCustomerAppOnLockScreen: boolean;
+  allowSupportOnLockScreen: boolean;
+  allowPaymentUssdOnLockScreen: boolean;
+}
+
+const emptyKnoxEnrollForm = {
+  deviceUid: '',
+  deviceUidType: 'SERIAL_NUMBER',
+  approveId: '',
+  disclosureAccepted: false,
+  disclosureVersion: '',
+  termsReference: '',
+  supportPhone: '',
+  supportMessage: '',
+  warningMessage: '',
+  paymentAppPackage: '',
+  paymentAppLabel: '',
+  paymentUssd: '',
+  refreshActionLabel: 'Refresh account status',
+};
+
+function withKnoxEnrollDefaults(
+  current: typeof emptyKnoxEnrollForm,
+  defaults?: KnoxEnrollmentDefaults | null
+) {
+  if (!defaults) {
+    return current;
+  }
+
+  return {
+    ...current,
+    disclosureVersion: current.disclosureVersion || defaults.disclosureVersion || '',
+    termsReference: current.termsReference || defaults.termsReference || '',
+    supportPhone: current.supportPhone || defaults.supportPhone || '',
+    supportMessage: current.supportMessage || defaults.supportMessage || '',
+    warningMessage: current.warningMessage || defaults.warningMessage || '',
+    paymentAppPackage: current.paymentAppPackage || defaults.paymentAppPackage || '',
+    paymentAppLabel: current.paymentAppLabel || defaults.paymentAppLabel || '',
+    paymentUssd: current.paymentUssd || defaults.paymentUssd || '',
+    refreshActionLabel: current.refreshActionLabel || defaults.refreshActionLabel || 'Refresh account status',
+  };
+}
+
+function getKnoxStatusClasses(status?: string | null) {
+  const normalized = (status || 'UNKNOWN').toUpperCase();
+
+  if (['LOCKED', 'FAILED', 'OVERDUE'].includes(normalized)) {
+    return 'bg-red-100 text-red-700 border-red-200';
+  }
+
+  if (['UNLOCKED', 'ACTIVE', 'APPROVED', 'SUCCEEDED', 'COMPLETED'].includes(normalized)) {
+    return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  }
+
+  if (['PENDING', 'PROCESSING', 'APPROVAL_QUEUED', 'UNKNOWN'].includes(normalized)) {
+    return 'bg-amber-100 text-amber-700 border-amber-200';
+  }
+
+  return 'bg-slate-100 text-slate-700 border-slate-200';
+}
 
 export default function ContractDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const adminUser = user as AdminUser | null;
+  const canViewDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL]);
+  const canManageDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.MANAGE_DEVICE_CONTROL]);
   const [contract, setContract] = useState<any>(null);
+  const [knoxContract, setKnoxContract] = useState<any>(null);
+  const [knoxDefaults, setKnoxDefaults] = useState<KnoxEnrollmentDefaults | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isKnoxLoading, setIsKnoxLoading] = useState(false);
+  const [knoxBusyAction, setKnoxBusyAction] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [isRescheduling, setIsRescheduling] = useState(false);
@@ -55,10 +141,16 @@ export default function ContractDetailsPage() {
     mobileMoneyNetwork: '',
     mobileMoneyNumber: '',
   });
+  const [knoxEnrollForm, setKnoxEnrollForm] = useState(emptyKnoxEnrollForm);
 
   useEffect(() => {
     loadContract();
   }, [params.id]);
+
+  useEffect(() => {
+    if (!canViewDeviceControl || !params.id) return;
+    void loadKnoxContractDevice();
+  }, [params.id, canViewDeviceControl]);
 
   const loadContract = async () => {
     try {
@@ -80,6 +172,108 @@ export default function ContractDetailsPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadKnoxContractDevice = async () => {
+    if (!canViewDeviceControl) return;
+
+    try {
+      setIsKnoxLoading(true);
+      const response = await api.get(`/knox-guard/contracts/${params.id}`);
+      setKnoxContract(response.data.contract);
+      setKnoxDefaults(response.data.defaults || null);
+      setKnoxEnrollForm((current) => withKnoxEnrollDefaults(current, response.data.defaults || null));
+    } catch (error: any) {
+      console.error('Failed to load Knox Guard contract device:', error);
+      toast({
+        title: 'Knox Guard Error',
+        description: error.response?.data?.error || 'Failed to load Knox Guard device details',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsKnoxLoading(false);
+    }
+  };
+
+  const refreshKnoxContractDevice = async () => {
+    await loadKnoxContractDevice();
+  };
+
+  const handleKnoxEnroll = async () => {
+    if (!knoxEnrollForm.disclosureAccepted) {
+      toast({
+        title: 'Disclosure required',
+        description: 'Confirm that the customer accepted the Knox Guard enrollment disclosure before continuing.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const allowCustomerAppOnLockScreen = knoxDefaults?.allowCustomerAppOnLockScreen ?? true;
+      const allowSupportOnLockScreen = knoxDefaults?.allowSupportOnLockScreen ?? true;
+      const allowPaymentUssdOnLockScreen = (knoxDefaults?.allowPaymentUssdOnLockScreen ?? true)
+        && Boolean(knoxEnrollForm.paymentUssd.trim());
+
+      setKnoxBusyAction('enroll');
+      await api.post(`/knox-guard/contracts/${params.id}/enroll`, {
+        deviceUid: knoxEnrollForm.deviceUid.trim() || undefined,
+        deviceUidType: knoxEnrollForm.deviceUidType,
+        approveId: knoxEnrollForm.approveId.trim() || undefined,
+        metadata: {
+          customerExperience: {
+            disclosureAccepted: knoxEnrollForm.disclosureAccepted,
+            disclosureVersion: knoxEnrollForm.disclosureVersion.trim() || undefined,
+            termsReference: knoxEnrollForm.termsReference.trim() || undefined,
+            supportPhone: knoxEnrollForm.supportPhone.trim() || undefined,
+            supportMessage: knoxEnrollForm.supportMessage.trim() || undefined,
+            warningMessage: knoxEnrollForm.warningMessage.trim() || undefined,
+            paymentAppPackage: knoxEnrollForm.paymentAppPackage.trim() || undefined,
+            paymentAppLabel: knoxEnrollForm.paymentAppLabel.trim() || undefined,
+            paymentUssd: knoxEnrollForm.paymentUssd.trim() || undefined,
+            refreshActionLabel: knoxEnrollForm.refreshActionLabel.trim() || undefined,
+            allowCustomerAppOnLockScreen,
+            allowSupportOnLockScreen,
+            allowPaymentUssdOnLockScreen,
+          },
+        },
+      });
+
+      toast({
+        title: 'Enrollment queued',
+        description: 'The contract device was enrolled and queued for Knox Guard approval.',
+      });
+      setKnoxEnrollForm(withKnoxEnrollDefaults({ ...emptyKnoxEnrollForm }, knoxDefaults));
+      await refreshKnoxContractDevice();
+    } catch (error: any) {
+      toast({
+        title: 'Knox Guard Error',
+        description: error.response?.data?.error || 'Failed to enroll contract device',
+        variant: 'destructive',
+      });
+    } finally {
+      setKnoxBusyAction(null);
+    }
+  };
+
+  const handleKnoxAction = async (action: 'evaluate' | 'lock' | 'unlock') => {
+    try {
+      setKnoxBusyAction(action);
+      await api.post(`/knox-guard/contracts/${params.id}/${action}`);
+      toast({
+        title: action === 'evaluate' ? 'Device evaluated' : action === 'lock' ? 'Lock queued' : 'Unlock queued',
+        description: `Knox Guard ${action} request completed successfully.`,
+      });
+      await refreshKnoxContractDevice();
+    } catch (error: any) {
+      toast({
+        title: 'Knox Guard Error',
+        description: error.response?.data?.error || `Failed to ${action} contract device`,
+        variant: 'destructive',
+      });
+    } finally {
+      setKnoxBusyAction(null);
     }
   };
 
@@ -597,6 +791,373 @@ export default function ContractDetailsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {canViewDeviceControl && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Smartphone className="h-5 w-5" />
+                  Knox Guard Device Control
+                </CardTitle>
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage the financed Samsung device linked to this contract directly from the contract record.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void refreshKnoxContractDevice()}
+                  disabled={isKnoxLoading || knoxBusyAction !== null}
+                >
+                  {isKnoxLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Refresh
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/admin/device-control">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Open Console
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {isKnoxLoading && !knoxContract ? (
+              <div className="flex items-center justify-center py-10 text-gray-500">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Loading Knox Guard details...
+              </div>
+            ) : knoxContract?.managedDevice ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">Actual state</p>
+                    <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getKnoxStatusClasses(knoxContract.managedDevice.actualState)}`}>
+                      {knoxContract.managedDevice.actualState}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">Desired state</p>
+                    <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getKnoxStatusClasses(knoxContract.managedDevice.desiredState)}`}>
+                      {knoxContract.managedDevice.desiredState}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">Enrollment</p>
+                    <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getKnoxStatusClasses(knoxContract.managedDevice.enrollmentStatus)}`}>
+                      {knoxContract.managedDevice.enrollmentStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Approve ID</p>
+                    <p className="font-mono text-sm">{knoxContract.managedDevice.approveId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Device UID</p>
+                    <p className="font-mono text-sm">{knoxContract.managedDevice.deviceUid}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Device UID Type</p>
+                    <p className="text-sm">{knoxContract.managedDevice.deviceUidType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Tenant Domain</p>
+                    <p className="text-sm">{knoxContract.managedDevice.knoxTenantDomain || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Inventory lock status</p>
+                    <p className="text-sm">{knoxContract.inventoryItem?.lockStatus || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Last evaluated</p>
+                    <p className="text-sm">{knoxContract.managedDevice.lastEvaluatedAt ? formatDate(knoxContract.managedDevice.lastEvaluatedAt) : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Last locked</p>
+                    <p className="text-sm">{knoxContract.managedDevice.lastLockedAt ? formatDate(knoxContract.managedDevice.lastLockedAt) : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Last unlocked</p>
+                    <p className="text-sm">{knoxContract.managedDevice.lastUnlockedAt ? formatDate(knoxContract.managedDevice.lastUnlockedAt) : '—'}</p>
+                  </div>
+                </div>
+
+                {knoxContract.managedDevice.customerExperience && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <h3 className="text-sm font-semibold text-slate-900">Customer Experience Configuration</h3>
+                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      <div>
+                        <p className="text-sm text-gray-500">Disclosure status</p>
+                        <p className="text-sm">
+                          {knoxContract.managedDevice.customerExperience.disclosureAccepted ? 'Confirmed' : 'Missing'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Disclosure version</p>
+                        <p className="text-sm">{knoxContract.managedDevice.customerExperience.disclosureVersion}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Terms reference</p>
+                        <p className="text-sm break-all">{knoxContract.managedDevice.customerExperience.termsReference || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Support phone</p>
+                        <p className="text-sm">{knoxContract.managedDevice.customerExperience.supportPhone || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Payment app</p>
+                        <p className="text-sm">
+                          {knoxContract.managedDevice.customerExperience.paymentAppLabel}
+                          {knoxContract.managedDevice.customerExperience.paymentAppPackage ? ` (${knoxContract.managedDevice.customerExperience.paymentAppPackage})` : ''}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Payment USSD</p>
+                        <p className="text-sm">{knoxContract.managedDevice.customerExperience.paymentUssd || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Refresh action</p>
+                        <p className="text-sm">{knoxContract.managedDevice.customerExperience.refreshActionLabel}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Support message</p>
+                        <p className="mt-1 text-sm text-slate-700">{knoxContract.managedDevice.customerExperience.supportMessage}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Warning message</p>
+                        <p className="mt-1 text-sm text-slate-700">{knoxContract.managedDevice.customerExperience.warningMessage}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {knoxContract.managedDevice.lastError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    <strong>Last error:</strong> {knoxContract.managedDevice.lastError}
+                  </div>
+                )}
+
+                {canManageDeviceControl && (
+                  <div className="flex flex-wrap gap-2 border-t pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleKnoxAction('evaluate')}
+                      disabled={knoxBusyAction !== null}
+                    >
+                      {knoxBusyAction === 'evaluate' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                      Evaluate
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={() => void handleKnoxAction('lock')}
+                      disabled={knoxBusyAction !== null}
+                    >
+                      {knoxBusyAction === 'lock' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                      Queue Lock
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => void handleKnoxAction('unlock')}
+                      disabled={knoxBusyAction !== null}
+                    >
+                      {knoxBusyAction === 'unlock' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Unlock className="mr-2 h-4 w-4" />}
+                      Queue Unlock
+                    </Button>
+                  </div>
+                )}
+
+                {knoxContract.managedDevice.commands?.length > 0 && (
+                  <div className="border-t pt-4">
+                    <h3 className="mb-3 text-sm font-semibold text-gray-900">Recent Knox Guard Commands</h3>
+                    <div className="space-y-2">
+                      {knoxContract.managedDevice.commands.map((command: any) => (
+                        <div key={command.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">{command.type}</p>
+                            <p className="text-xs text-slate-500">{formatDate(command.createdAt)}</p>
+                          </div>
+                          <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getKnoxStatusClasses(command.status)}`}>
+                            {command.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5">
+                  <p className="font-medium text-slate-900">No Knox Guard device enrolled yet</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This contract is not yet linked to a managed Samsung device. If the inventory serial number is correct,
+                    you can enroll it below after capturing disclosure and the lock-screen payment/support setup.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <Label>Inventory serial / IMEI</Label>
+                    <Input
+                      value={knoxEnrollForm.deviceUid}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, deviceUid: e.target.value }))}
+                      placeholder={contract.inventoryItem?.serialNumber || 'Uses contract inventory serial by default'}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Leave empty to use the contract inventory serial automatically.
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Device UID Type</Label>
+                    <Select
+                      value={knoxEnrollForm.deviceUidType}
+                      onValueChange={(value) => setKnoxEnrollForm((current) => ({ ...current, deviceUidType: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SERIAL_NUMBER">Serial Number</SelectItem>
+                        <SelectItem value="IMEI">IMEI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Approve ID</Label>
+                    <Input
+                      value={knoxEnrollForm.approveId}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, approveId: e.target.value }))}
+                      placeholder={contract.contractNumber}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Leave empty to use the contract number as the approve ID.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="contract-knox-disclosure"
+                      checked={knoxEnrollForm.disclosureAccepted}
+                      onCheckedChange={(checked) =>
+                        setKnoxEnrollForm((current) => ({ ...current, disclosureAccepted: checked === true }))
+                      }
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-1">
+                      <label htmlFor="contract-knox-disclosure" className="text-sm font-medium text-slate-900">
+                        Customer disclosure confirmed
+                      </label>
+                      <p className="text-sm text-slate-600">
+                        Confirm the customer was told that overdue payments can trigger restriction while payment and support options remain available.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <Label>Disclosure version</Label>
+                    <Input
+                      value={knoxEnrollForm.disclosureVersion}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, disclosureVersion: e.target.value }))}
+                      placeholder={knoxDefaults?.disclosureVersion || 'e.g. v1'}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Terms reference or URL</Label>
+                    <Input
+                      value={knoxEnrollForm.termsReference}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, termsReference: e.target.value }))}
+                      placeholder={knoxDefaults?.termsReference || 'Policy URL or signed terms reference'}
+                    />
+                  </div>
+                  <div>
+                    <Label>Support phone</Label>
+                    <Input
+                      value={knoxEnrollForm.supportPhone}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, supportPhone: e.target.value }))}
+                      placeholder={knoxDefaults?.supportPhone || 'Customer service line'}
+                    />
+                  </div>
+                  <div>
+                    <Label>Payment app package</Label>
+                    <Input
+                      value={knoxEnrollForm.paymentAppPackage}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, paymentAppPackage: e.target.value }))}
+                      placeholder={knoxDefaults?.paymentAppPackage || 'com.aidootech.customer'}
+                    />
+                  </div>
+                  <div>
+                    <Label>Payment app label</Label>
+                    <Input
+                      value={knoxEnrollForm.paymentAppLabel}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, paymentAppLabel: e.target.value }))}
+                      placeholder={knoxDefaults?.paymentAppLabel || 'AIDOO TECH'}
+                    />
+                  </div>
+                  <div>
+                    <Label>Payment USSD</Label>
+                    <Input
+                      value={knoxEnrollForm.paymentUssd}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, paymentUssd: e.target.value }))}
+                      placeholder={knoxDefaults?.paymentUssd || '*170#'}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Refresh action label</Label>
+                    <Input
+                      value={knoxEnrollForm.refreshActionLabel}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, refreshActionLabel: e.target.value }))}
+                      placeholder={knoxDefaults?.refreshActionLabel || 'Refresh account status'}
+                    />
+                  </div>
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <Label>Support message on lock screen</Label>
+                    <Textarea
+                      value={knoxEnrollForm.supportMessage}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, supportMessage: e.target.value }))}
+                      placeholder={knoxDefaults?.supportMessage || 'Message shown to the customer while the device is restricted.'}
+                      className="min-h-[90px]"
+                    />
+                  </div>
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <Label>Warning message before restriction</Label>
+                    <Textarea
+                      value={knoxEnrollForm.warningMessage}
+                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, warningMessage: e.target.value }))}
+                      placeholder={knoxDefaults?.warningMessage || 'Reminder shown before the device is locked.'}
+                      className="min-h-[90px]"
+                    />
+                  </div>
+                </div>
+
+                {canManageDeviceControl && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => void handleKnoxEnroll()} disabled={knoxBusyAction !== null}>
+                      {knoxBusyAction === 'enroll' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Smartphone className="mr-2 h-4 w-4" />}
+                      Enroll Device
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="">
         <CardHeader>

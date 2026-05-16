@@ -26,6 +26,7 @@ import {
   Upload,
   X,
   Briefcase,
+  Smartphone,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -105,6 +106,7 @@ const navGroups: NavGroup[] = [
         permissions: [PERMISSIONS.VIEW_PAYMENTS],
       },
       { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
+      { name: "Device Control", href: "/admin/device-control", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
   {
@@ -133,12 +135,13 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.MANAGE_DEVICE_CONTROL],
     items: [
       { name: "Import Data", href: "/admin/import", icon: Upload, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
       { name: "Users", href: "/admin/users", icon: Settings, permissions: [PERMISSIONS.MANAGE_USERS] },
       { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: [PERMISSIONS.MANAGE_ROLES] },
       { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
+      { name: "Knox Guard Settings", href: "/admin/settings/knox-guard", icon: Smartphone, permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
 ];
@@ -183,9 +186,10 @@ const MORE_GROUPS: Array<{
   },
   {
     label: "Payments",
-    permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS],
+    permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS, PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL],
     links: [
       { name: "Payment Mgmt", href: "/admin/failed-payments", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
+      { name: "Device Control", href: "/admin/device-control", emoji: "📱", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
   {
@@ -206,12 +210,13 @@ const MORE_GROUPS: Array<{
   },
   {
     label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.MANAGE_DEVICE_CONTROL],
     links: [
-      { name: "Import",      href: "/admin/import", emoji: "📥", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Users",       href: "/admin/users",  emoji: "👥", permissions: [PERMISSIONS.MANAGE_USERS] },
-      { name: "Roles",       href: "/admin/roles",  emoji: "🔑", permissions: [PERMISSIONS.MANAGE_ROLES] },
-      { name: "Audit Trail", href: "/admin/audit",  emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
+      { name: "Import",        href: "/admin/import",                 emoji: "📥", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Users",         href: "/admin/users",                  emoji: "👥", permissions: [PERMISSIONS.MANAGE_USERS] },
+      { name: "Roles",         href: "/admin/roles",                  emoji: "🔑", permissions: [PERMISSIONS.MANAGE_ROLES] },
+      { name: "Audit Trail",   href: "/admin/audit",                  emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
+      { name: "Knox Settings", href: "/admin/settings/knox-guard",    emoji: "📱", permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
 ];
@@ -440,49 +445,67 @@ function MobileTabBar({ pathname, paymentCount, moreOpen, onMoreToggle, userRole
   const moreActive = moreOpen || !tabs.some((t) => isActive(t.href));
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t-2 border-gray-100 shadow-lg safe-area-bottom">
-      <div className="flex items-stretch h-16">
-        {tabs.map((tab) => {
-          const active = isActive(tab.href);
-          const badge = tab.href === "/admin/payments" && paymentCount > 0 ? paymentCount : null;
-          return (
-            <Link key={tab.href} href={tab.href}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors",
-                active ? "text-cyan-600 bg-cyan-50/60" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-              )}>
-              <div className="relative">
-                <tab.icon className={cn("h-6 w-6 transition-all", active ? "text-cyan-600" : "text-gray-400")}
-                  strokeWidth={active ? 2.5 : 1.75} fill={active ? "rgba(8,145,178,0.1)" : "none"} />
-                {badge !== null && (
-                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-green-500 px-0.5 text-[9px] font-bold text-white leading-none">
-                    {badge > 99 ? "99+" : badge}
-                  </span>
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 safe-area-bottom">
+      {/* Glassmorphism dark bar matching desktop sidebar */}
+      <div className="bg-slate-900/95 backdrop-blur-xl border-t border-white/10 shadow-2xl">
+        <div className="flex items-end h-[62px] px-1">
+          {tabs.map((tab) => {
+            const active = isActive(tab.href);
+            const badge = tab.href === "/admin/payments" && paymentCount > 0 ? paymentCount : null;
+            return (
+              <Link key={tab.href} href={tab.href}
+                className="flex-1 flex flex-col items-center justify-end pb-2 gap-1 relative group">
+                {/* Active pill background */}
+                {active && (
+                  <span className="absolute top-1 left-1/2 -translate-x-1/2 w-12 h-8 rounded-full bg-cyan-500/20" />
                 )}
-              </div>
-              <span className={cn("text-[10px] font-semibold leading-none", active ? "text-cyan-600" : "text-gray-400")}>
-                {tab.name}
-              </span>
-              {active && <div className="absolute bottom-0 h-0.5 w-8 bg-cyan-500 rounded-full" />}
-            </Link>
-          );
-        })}
+                <div className="relative z-10">
+                  <tab.icon
+                    className={cn("h-[22px] w-[22px] transition-all duration-200",
+                      active ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-200")}
+                    strokeWidth={active ? 2.5 : 1.75}
+                  />
+                  {badge !== null && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-green-400 px-0.5 text-[9px] font-bold text-slate-900 leading-none shadow">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
+                </div>
+                <span className={cn(
+                  "text-[9.5px] font-semibold leading-none tracking-wide z-10 transition-colors duration-200",
+                  active ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-300"
+                )}>
+                  {tab.name}
+                </span>
+                {/* Active dot */}
+                {active && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400" />}
+              </Link>
+            );
+          })}
 
-        {/* More tab */}
-        <button onClick={onMoreToggle}
-          className={cn(
-            "flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors",
-            moreActive ? "text-cyan-600 bg-cyan-50/60" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-          )}>
-          <svg className={cn("h-6 w-6", moreActive ? "text-cyan-600" : "text-gray-400")}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={moreActive ? 2.5 : 1.75}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <span className={cn("text-[10px] font-semibold leading-none", moreActive ? "text-cyan-600" : "text-gray-400")}>
-            More
-          </span>
-          {moreActive && <div className="absolute bottom-0 h-0.5 w-8 bg-cyan-500 rounded-full" />}
-        </button>
+          {/* More tab */}
+          <button onClick={onMoreToggle}
+            className="flex-1 flex flex-col items-center justify-end pb-2 gap-1 relative group">
+            {moreActive && (
+              <span className="absolute top-1 left-1/2 -translate-x-1/2 w-12 h-8 rounded-full bg-cyan-500/20" />
+            )}
+            <svg
+              className={cn("h-[22px] w-[22px] z-10 transition-colors duration-200",
+                moreActive ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-200")}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={moreActive ? 2.5 : 1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className={cn(
+              "text-[9.5px] font-semibold leading-none tracking-wide z-10 transition-colors duration-200",
+              moreActive ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-300"
+            )}>
+              More
+            </span>
+            {moreActive && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400" />}
+          </button>
+        </div>
+        {/* Safe area spacer for home indicator on iOS */}
+        <div className="h-safe-area-inset-bottom" />
       </div>
     </nav>
   );
@@ -520,45 +543,46 @@ function MoreBottomSheet({ open, onClose, user, pathname, paymentCount, onLogout
       {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
 
       {/* Backdrop */}
-      {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/40" onClick={onClose} />}
+      {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />}
 
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet — dark, matches sidebar */}
       <div className={cn(
-        "lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl shadow-2xl max-h-[82vh] flex flex-col",
+        "lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col",
+        "bg-slate-900 border-t border-white/10",
         "transform transition-transform duration-300 ease-out",
         open ? "translate-y-0" : "translate-y-full"
       )}>
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        {/* Handle bar */}
+        <div className="flex justify-center pt-3 pb-2 shrink-0">
+          <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
 
         {/* User pill */}
-        <div className="mx-4 mb-3 flex items-center gap-3 bg-cyan-50 rounded-xl px-4 py-3 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-cyan-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+        <div className="mx-4 mb-4 flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg">
             {user?.firstName?.[0]}{user?.lastName?.[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{user?.firstName} {user?.lastName}</p>
-            <p className="text-xs text-gray-500 truncate">{user?.role}</p>
+            <p className="text-sm font-semibold text-white truncate">{user?.firstName} {user?.lastName}</p>
+            <p className="text-[11px] text-cyan-400 font-medium truncate">{user?.role}</p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button onClick={() => setShowPw(true)}
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white transition-colors">
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
               <KeyRound className="h-4 w-4" />
             </button>
             <button onClick={onClose}
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white transition-colors">
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
         {/* Scrollable groups */}
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-5">
           {visibleGroups.map((group) => (
             <div key={group.label}>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2.5 px-1">
                 {group.label}
               </p>
               <div className="grid grid-cols-3 gap-2">
@@ -567,11 +591,16 @@ function MoreBottomSheet({ open, onClose, user, pathname, paymentCount, onLogout
                   return (
                     <Link key={link.href} href={link.href} onClick={onClose}
                       className={cn(
-                        "flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-xl text-center transition-colors",
-                        active ? "bg-cyan-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                        "flex flex-col items-center gap-2 py-4 px-2 rounded-2xl text-center transition-all duration-150",
+                        active
+                          ? "bg-cyan-500 shadow-lg shadow-cyan-500/30 scale-95"
+                          : "bg-white/5 border border-white/8 text-slate-300 hover:bg-white/10 active:scale-95"
                       )}>
                       <span className="text-2xl leading-none">{link.emoji}</span>
-                      <span className="text-xs font-semibold leading-tight">{link.name}</span>
+                      <span className={cn(
+                        "text-[11px] font-semibold leading-tight",
+                        active ? "text-white" : "text-slate-300"
+                      )}>{link.name}</span>
                     </Link>
                   );
                 })}
@@ -579,18 +608,18 @@ function MoreBottomSheet({ open, onClose, user, pathname, paymentCount, onLogout
             </div>
           ))}
 
-          {/* Notification + Logout at the bottom */}
-          <div className="pt-1 border-t border-gray-100 space-y-2">
-            <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl">
+          {/* Notification + Logout */}
+          <div className="pt-2 border-t border-white/10 space-y-2">
+            <div className="flex items-center gap-3 px-4 py-3 bg-white/5 border border-white/8 rounded-xl">
               <NotificationBell />
-              <span className="text-sm font-medium text-gray-700">Daily Payments</span>
+              <span className="text-sm font-medium text-slate-300">Daily Payments</span>
             </div>
-            <div className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 rounded-xl">
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
               <ContractApprovalBell />
-              <span className="text-sm font-medium text-gray-700">Contract Approvals</span>
+              <span className="text-sm font-medium text-amber-300">Contract Approvals</span>
             </div>
             <button onClick={onLogout}
-              className="flex w-full items-center gap-3 px-3 py-2.5 bg-red-50 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-100 transition-colors">
+              className="flex w-full items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-colors active:scale-95">
               <LogOut className="h-5 w-5" /> Sign Out
             </button>
           </div>

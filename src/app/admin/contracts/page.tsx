@@ -3,12 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Plus,
-  FileText,
+  AlertTriangle,
   Calendar,
-  Banknote,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCw,
+  FileText,
   Search,
+  Shield,
+  Smartphone,
   Trash2,
+  Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +33,9 @@ import { Pagination } from "@/components/ui/pagination";
 import api from "@/lib/api";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
+import { useAuth } from "@/hooks/useAuth";
+import { adminHasAnyPermission, PERMISSIONS } from "@/lib/permissions";
+import type { AdminUser } from "@/types";
 
 interface ContractGuardrailAssessment {
   blockers: string[];
@@ -38,6 +47,35 @@ interface ContractGuardrailAssessment {
   relatedOpenContracts: number;
   defaultedContracts: number;
   sameProductContracts: number;
+}
+
+function getKnoxStatusClasses(status?: string | null) {
+  const normalized = (status || "UNKNOWN").toUpperCase();
+
+  if (["LOCKED", "FAILED", "OVERDUE"].includes(normalized)) {
+    return "bg-red-100 text-red-700 border-red-200";
+  }
+
+  if (["UNLOCKED", "ACTIVE", "APPROVED", "SUCCEEDED", "COMPLETED"].includes(normalized)) {
+    return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  }
+
+  if (["PENDING", "PROCESSING", "APPROVAL_QUEUED", "UNKNOWN"].includes(normalized)) {
+    return "bg-amber-100 text-amber-700 border-amber-200";
+  }
+
+  return "bg-slate-100 text-slate-700 border-slate-200";
+}
+
+function getPrimaryKnoxAction(managedDevice: any): "lock" | "unlock" {
+  const actualState = String(managedDevice?.actualState || "").toUpperCase();
+  const desiredState = String(managedDevice?.desiredState || "").toUpperCase();
+
+  if (actualState === "LOCKED" || desiredState === "LOCKED") {
+    return "unlock";
+  }
+
+  return "lock";
 }
 
 function GuardrailPanel({
@@ -131,6 +169,7 @@ function GuardrailPanel({
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [knoxBusyKey, setKnoxBusyKey] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -140,22 +179,34 @@ export default function ContractsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const adminUser = user as AdminUser | null;
+  const canViewDeviceControl = adminHasAnyPermission(adminUser, [
+    PERMISSIONS.VIEW_DEVICE_CONTROL,
+    PERMISSIONS.MANAGE_DEVICE_CONTROL,
+  ]);
+  const canManageDeviceControl = adminHasAnyPermission(adminUser, [
+    PERMISSIONS.MANAGE_DEVICE_CONTROL,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
       setShowCreateForm(true);
     }
-    loadContracts();
-  }, [searchParams, currentPage]);
+    if (!isAuthLoading) {
+      void loadContracts();
+    }
+  }, [searchParams, currentPage, canViewDeviceControl, isAuthLoading]);
 
-  const loadContracts = async () => {
+  const loadContracts = async (pageOverride = currentPage) => {
     try {
       setIsLoading(true);
       const response = await api.get("/contracts", {
         params: {
           search: searchQuery || undefined,
-          page: currentPage,
+          page: pageOverride,
           limit: itemsPerPage,
+          includeDeviceControl: canViewDeviceControl || undefined,
         },
       });
       setContracts(response.data.contracts || []);
@@ -174,7 +225,7 @@ export default function ContractsPage() {
 
   const handleSearch = () => {
     setCurrentPage(1);
-    loadContracts();
+    void loadContracts(1);
   };
 
   const handlePageChange = (page: number) => {
@@ -205,13 +256,36 @@ export default function ContractsPage() {
         title: "Success",
         description: "Contract deleted successfully",
       });
-      loadContracts();
+      await loadContracts();
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.response?.data?.error || "Failed to delete contract",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleKnoxAction = async (
+    contractId: string,
+    action: "evaluate" | "lock" | "unlock"
+  ) => {
+    try {
+      setKnoxBusyKey(`${action}:${contractId}`);
+      await api.post(`/knox-guard/contracts/${contractId}/${action}`);
+      toast({
+        title: action === "evaluate" ? "Device evaluated" : action === "lock" ? "Lock queued" : "Unlock queued",
+        description: `Knox Guard ${action} request completed successfully.`,
+      });
+      await loadContracts();
+    } catch (error: any) {
+      toast({
+        title: "Knox Guard Error",
+        description: error.response?.data?.error || `Failed to ${action} contract device`,
+        variant: "destructive",
+      });
+    } finally {
+      setKnoxBusyKey(null);
     }
   };
 
@@ -309,6 +383,33 @@ export default function ContractsPage() {
                           <span className="text-xs text-gray-400">Total: <span className="font-medium text-gray-700">{formatCurrency(contract.totalPrice)}</span></span>
                           <span className="text-xs text-red-500 font-medium">Bal: {formatCurrency(contract.outstandingBalance)}</span>
                         </div>
+                        {canViewDeviceControl && (
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                              <Shield className="h-3 w-3" />
+                              Knox
+                            </span>
+                            {contract.managedDevice ? (
+                              <>
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getKnoxStatusClasses(contract.managedDevice.actualState)}`}>
+                                  Actual {contract.managedDevice.actualState}
+                                </span>
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getKnoxStatusClasses(contract.managedDevice.desiredState)}`}>
+                                  Desired {contract.managedDevice.desiredState}
+                                </span>
+                                {contract.managedDevice.lastError && (
+                                  <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                                    Needs attention
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                Not enrolled
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {contract.createdBy && (
                           <p className="text-xs text-gray-400 mt-1">By: {contract.createdBy.firstName} {contract.createdBy.lastName}</p>
                         )}
@@ -331,65 +432,161 @@ export default function ContractsPage() {
                       <TableHead>Paid</TableHead>
                       <TableHead>Outstanding</TableHead>
                       <TableHead>Status</TableHead>
+                      {canViewDeviceControl && <TableHead>Device Control</TableHead>}
                       <TableHead>Start Date</TableHead>
                       <TableHead>Created By</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {contracts.map((contract) => (
-                      <TableRow key={contract.id}>
-                        <TableCell className="font-mono font-medium">{contract.contractNumber}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
-                              {contract.customer?.photoUrl ? (
-                                <img src={contract.customer.photoUrl} alt="" className="w-full h-full object-cover"
-                                  onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    {contracts.map((contract) => {
+                      const primaryKnoxAction = contract.managedDevice
+                        ? getPrimaryKnoxAction(contract.managedDevice)
+                        : null;
+                      const primaryKnoxActionKey = primaryKnoxAction
+                        ? `${primaryKnoxAction}:${contract.id}`
+                        : null;
+                      const evaluateKnoxActionKey = `evaluate:${contract.id}`;
+
+                      return (
+                        <TableRow key={contract.id}>
+                          <TableCell className="font-mono font-medium">{contract.contractNumber}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
+                                {contract.customer?.photoUrl ? (
+                                  <img src={contract.customer.photoUrl} alt="" className="w-full h-full object-cover"
+                                    onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">
+                                    {contract.customer?.firstName?.charAt(0)}{contract.customer?.lastName?.charAt(0)}
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{contract.customer?.firstName} {contract.customer?.lastName}</p>
+                                <p className="text-xs text-gray-500">{contract.customer?.membershipId}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm">{contract.inventoryItem?.product?.name || "—"}</p>
+                            <p className="text-xs text-gray-500 font-mono">{contract.inventoryItem?.serialNumber || "—"}</p>
+                          </TableCell>
+                          <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
+                          <TableCell className="text-blue-600 font-medium">{formatCurrency(contract.depositAmount)}</TableCell>
+                          <TableCell className="text-green-600 font-medium">{formatCurrency(contract.totalPaid)}</TableCell>
+                          <TableCell className="text-red-600 font-medium">{formatCurrency(contract.outstandingBalance)}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(contract.status)}>{contract.status}</Badge>
+                          </TableCell>
+                          {canViewDeviceControl && (
+                            <TableCell className="min-w-[280px]">
+                              {contract.managedDevice ? (
+                                <div className="space-y-2">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getKnoxStatusClasses(contract.managedDevice.actualState)}`}>
+                                      Actual {contract.managedDevice.actualState}
+                                    </span>
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getKnoxStatusClasses(contract.managedDevice.desiredState)}`}>
+                                      Desired {contract.managedDevice.desiredState}
+                                    </span>
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getKnoxStatusClasses(contract.managedDevice.enrollmentStatus)}`}>
+                                      {contract.managedDevice.enrollmentStatus}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-slate-500">
+                                      UID: <span className="font-mono text-slate-700">{contract.managedDevice.deviceUid}</span>
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      Last evaluation: {contract.managedDevice.lastEvaluatedAt ? formatDate(contract.managedDevice.lastEvaluatedAt) : "—"}
+                                    </p>
+                                    {contract.managedDevice.lastError ? (
+                                      <p className="flex items-start gap-1 text-xs text-red-600">
+                                        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                                        <span className="line-clamp-2">{contract.managedDevice.lastError}</span>
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-slate-500">
+                                        Inventory lock: {contract.inventoryItem?.lockStatus || "UNLOCKED"}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {canManageDeviceControl && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleKnoxAction(contract.id, "evaluate")}
+                                        disabled={knoxBusyKey === evaluateKnoxActionKey}
+                                      >
+                                        {knoxBusyKey === evaluateKnoxActionKey ? (
+                                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="mr-1 h-3 w-3" />
+                                        )}
+                                        Evaluate
+                                      </Button>
+                                      {primaryKnoxAction && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className={primaryKnoxAction === "lock" ? "text-red-600 hover:bg-red-50" : "text-emerald-700 hover:bg-emerald-50"}
+                                          onClick={() => handleKnoxAction(contract.id, primaryKnoxAction)}
+                                          disabled={knoxBusyKey === primaryKnoxActionKey}
+                                        >
+                                          {knoxBusyKey === primaryKnoxActionKey ? (
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                          ) : primaryKnoxAction === "lock" ? (
+                                            <Lock className="mr-1 h-3 w-3" />
+                                          ) : (
+                                            <Unlock className="mr-1 h-3 w-3" />
+                                          )}
+                                          {primaryKnoxAction === "lock" ? "Queue Lock" : "Queue Unlock"}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-semibold">
-                                  {contract.customer?.firstName?.charAt(0)}{contract.customer?.lastName?.charAt(0)}
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                                      Not enrolled
+                                    </span>
+                                    <span className="text-xs text-slate-500">Set up Knox Guard from the contract page.</span>
+                                  </div>
+                                  <Button size="sm" variant="outline" onClick={() => router.push(`/admin/contracts/${contract.id}`)}>
+                                    <Smartphone className="mr-1 h-3 w-3" />
+                                    Open Setup
+                                  </Button>
                                 </div>
                               )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{contract.customer?.firstName} {contract.customer?.lastName}</p>
-                              <p className="text-xs text-gray-500">{contract.customer?.membershipId}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <p className="text-sm">{contract.inventoryItem?.product?.name || "—"}</p>
-                          <p className="text-xs text-gray-500 font-mono">{contract.inventoryItem?.serialNumber || "—"}</p>
-                        </TableCell>
-                        <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
-                        <TableCell className="text-blue-600 font-medium">{formatCurrency(contract.depositAmount)}</TableCell>
-                        <TableCell className="text-green-600 font-medium">{formatCurrency(contract.totalPaid)}</TableCell>
-                        <TableCell className="text-red-600 font-medium">{formatCurrency(contract.outstandingBalance)}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(contract.status)}>{contract.status}</Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(contract.startDate)}</TableCell>
-                        <TableCell>
-                          {contract.createdBy ? (
-                            <div>
-                              <p className="text-sm text-gray-800">{contract.createdBy.firstName} {contract.createdBy.lastName}</p>
-                              <p className="text-xs text-gray-400">{contract.createdBy.role?.name}</p>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
+                            </TableCell>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1.5">
-                            <Button size="sm" variant="outline" onClick={() => router.push(`/admin/contracts/${contract.id}`)}>View</Button>
-                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteContract(contract)} disabled={contract._count?.payments > 0}>
-                              <Trash2 className="h-3 w-3 mr-1" /> Delete
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          <TableCell>{formatDate(contract.startDate)}</TableCell>
+                          <TableCell>
+                            {contract.createdBy ? (
+                              <div>
+                                <p className="text-sm text-gray-800">{contract.createdBy.firstName} {contract.createdBy.lastName}</p>
+                                <p className="text-xs text-gray-400">{contract.createdBy.role?.name}</p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1.5">
+                              <Button size="sm" variant="outline" onClick={() => router.push(`/admin/contracts/${contract.id}`)}>View</Button>
+                              <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteContract(contract)} disabled={contract._count?.payments > 0}>
+                                <Trash2 className="h-3 w-3 mr-1" /> Delete
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
