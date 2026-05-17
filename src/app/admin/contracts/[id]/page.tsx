@@ -260,7 +260,7 @@ export default function ContractDetailsPage() {
   const handleKnoxAction = async (action: 'evaluate' | 'lock' | 'unlock') => {
     try {
       setKnoxBusyAction(action);
-      await api.post(`/knox-guard/contracts/${params.id}/${action}`);
+      await api.post(`/knox-guard/contracts/${params.id}/${action}`, {});
       toast({
         title: action === 'evaluate' ? 'Device evaluated' : action === 'lock' ? 'Lock queued' : 'Unlock queued',
         description: `Knox Guard ${action} request completed successfully.`,

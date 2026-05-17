@@ -333,7 +333,7 @@ export default function DeviceControlPage() {
   ) => {
     try {
       setBusyKey(`${action}:${contractId}`);
-      await api.post(`/knox-guard/contracts/${contractId}/${action}`);
+      await api.post(`/knox-guard/contracts/${contractId}/${action}`, {});
       toast({
         title: action === "evaluate" ? "Device evaluated" : action === "lock" ? "Lock queued" : "Unlock queued",
         description: `Contract ${action} request completed successfully.`,
