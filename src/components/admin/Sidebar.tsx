@@ -106,7 +106,7 @@ const navGroups: NavGroup[] = [
         permissions: [PERMISSIONS.VIEW_PAYMENTS],
       },
       { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
-      { name: "Device Control", href: "/admin/device-control", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
   {
@@ -135,13 +135,12 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.MANAGE_DEVICE_CONTROL],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS],
     items: [
       { name: "Import Data", href: "/admin/import", icon: Upload, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
       { name: "Users", href: "/admin/users", icon: Settings, permissions: [PERMISSIONS.MANAGE_USERS] },
       { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: [PERMISSIONS.MANAGE_ROLES] },
       { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
-      { name: "Knox Guard Settings", href: "/admin/settings/knox-guard", icon: Smartphone, permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
 ];
@@ -189,7 +188,7 @@ const MORE_GROUPS: Array<{
     permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS, PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL],
     links: [
       { name: "Payment Mgmt", href: "/admin/failed-payments", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
-      { name: "Device Control", href: "/admin/device-control", emoji: "📱", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Knox Guard", href: "/admin/knox", emoji: "🔒", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
     ],
   },
   {
@@ -210,13 +209,12 @@ const MORE_GROUPS: Array<{
   },
   {
     label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.MANAGE_DEVICE_CONTROL],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS],
     links: [
-      { name: "Import",        href: "/admin/import",                 emoji: "📥", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Users",         href: "/admin/users",                  emoji: "👥", permissions: [PERMISSIONS.MANAGE_USERS] },
-      { name: "Roles",         href: "/admin/roles",                  emoji: "🔑", permissions: [PERMISSIONS.MANAGE_ROLES] },
-      { name: "Audit Trail",   href: "/admin/audit",                  emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
-      { name: "Knox Settings", href: "/admin/settings/knox-guard",    emoji: "📱", permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Import",        href: "/admin/import",   emoji: "📥", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Users",         href: "/admin/users",    emoji: "👥", permissions: [PERMISSIONS.MANAGE_USERS] },
+      { name: "Roles",         href: "/admin/roles",    emoji: "🔑", permissions: [PERMISSIONS.MANAGE_ROLES] },
+      { name: "Audit Trail",   href: "/admin/audit",    emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
     ],
   },
 ];

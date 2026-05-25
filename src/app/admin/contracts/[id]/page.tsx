@@ -403,6 +403,16 @@ export default function ContractDetailsPage() {
       toast({ title: 'Error', description: 'A reason is required for amendments', variant: 'destructive' });
       return;
     }
+
+    if (!Number.isInteger(Number(amendFormData.totalInstallments)) || Number(amendFormData.totalInstallments) < 1) {
+      toast({
+        title: 'Error',
+        description: 'Total installments must be a whole number greater than zero.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsAmending(true);
     try {
       const payload: any = { reason: amendFormData.reason };
@@ -1631,14 +1641,14 @@ export default function ContractDetailsPage() {
                   />
                 </div>
                 <div>
-                  <Label>Total Installments</Label>
+                  <Label>Total Installments (Count)</Label>
                   <Input
                     type="number"
                     value={amendFormData.totalInstallments}
                     onChange={(e) => setAmendFormData({ ...amendFormData, totalInstallments: e.target.value })}
                     placeholder={contract?.totalInstallments?.toString()}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Already-paid installments are kept</p>
+                  <p className="text-xs text-gray-500 mt-1">Enter the intended number of payments, such as 12. Already-paid installments are kept.</p>
                 </div>
                 <div>
                   <Label>Payment Frequency</Label>
