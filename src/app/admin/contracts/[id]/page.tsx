@@ -1613,7 +1613,9 @@ export default function ContractDetailsPage() {
           <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm text-orange-800">
             <strong>Important:</strong> This corrects a mistake in the original contract.
             Paid installments are preserved unchanged. Only unpaid installments will be recalculated
-            based on the corrected figures. A full audit trail will be recorded.
+            based on the corrected figures. If the corrected installment count is shorter than the
+            already-paid schedule, the payment history will be rebucketed onto the corrected plan.
+            A full audit trail will be recorded.
           </div>
 
           {!amendSummary ? (
@@ -1716,11 +1718,11 @@ export default function ContractDetailsPage() {
                 <p className="text-green-800 font-medium mb-3">Amendment applied successfully</p>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-white rounded p-3 border border-green-100">
-                    <p className="text-gray-500 text-xs">Paid installments preserved</p>
+                    <p className="text-gray-500 text-xs">{amendSummary.paidInstallmentLabel || 'Paid installments preserved'}</p>
                     <p className="text-lg font-bold text-gray-800">{amendSummary.paidInstallmentsPreserved}</p>
                   </div>
                   <div className="bg-white rounded p-3 border border-green-100">
-                    <p className="text-gray-500 text-xs">Unpaid installments recalculated</p>
+                    <p className="text-gray-500 text-xs">{amendSummary.unpaidInstallmentLabel || 'Unpaid installments recalculated'}</p>
                     <p className="text-lg font-bold text-gray-800">{amendSummary.unpaidInstallmentsRecalculated}</p>
                   </div>
                   <div className="bg-white rounded p-3 border border-green-100">
