@@ -64,12 +64,87 @@ interface ManagedDevice {
   } | null;
 }
 
+interface KnoxUploadPortal {
+  visible: boolean;
+  status?: string | null;
+  objectId?: string | null;
+  model?: string | null;
+  portalSerial?: string | null;
+  createDate?: string | null;
+  modifiedDate?: string | null;
+  syncState: string;
+  lookupStatusCode?: number | null;
+  lookupError?: string | null;
+}
+
+interface KnoxUploadItem {
+  id: string;
+  serialNumber: string;
+  status: string;
+  lockStatus?: string | null;
+  knoxUploadStatus?: string | null;
+  knoxUploadId?: string | null;
+  knoxUploadError?: string | null;
+  knoxUploadRetries: number;
+  updatedAt: string;
+  product: {
+    id: string;
+    name: string;
+  };
+  contract?: {
+    id: string;
+    contractNumber: string;
+    status: string;
+  } | null;
+  managedDevice?: {
+    id: string;
+    approveId: string;
+    knoxObjectId?: string | null;
+    knoxStatus?: string | null;
+    enrollmentStatus: string;
+    actualState: string;
+    desiredState: string;
+    isActive: boolean;
+  } | null;
+  portal?: KnoxUploadPortal | null;
+}
+
+interface KnoxUploadSummary {
+  visible: number;
+  notVisible: number;
+  missingInKnox: number;
+  lookupFailed: number;
+}
+
 function statusPill(status: string) {
   const s = status.toUpperCase();
   if (['LOCKED', 'FAILED', 'OVERDUE'].includes(s)) return 'bg-red-100 text-red-700 border-red-200';
   if (['SUCCEEDED', 'UNLOCKED', 'ACTIVE', 'APPROVED'].includes(s)) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
   if (['PENDING', 'PROCESSING', 'APPROVAL_QUEUED', 'UNKNOWN'].includes(s)) return 'bg-amber-100 text-amber-700 border-amber-200';
   return 'bg-slate-100 text-slate-700 border-slate-200';
+}
+
+function syncStatePill(state: string) {
+  const s = state.toUpperCase();
+  if (['SYNCED'].includes(s)) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (['MISSING_IN_KNOX', 'VISIBLE_WITH_LOCAL_MISMATCH'].includes(s)) return 'bg-red-100 text-red-700 border-red-200';
+  if (['LOOKUP_FAILED'].includes(s)) return 'bg-amber-100 text-amber-700 border-amber-200';
+  return 'bg-slate-100 text-slate-700 border-slate-200';
+}
+
+function syncStateLabel(state: string) {
+  switch (state) {
+    case 'SYNCED':
+      return 'Visible in Knox';
+    case 'MISSING_IN_KNOX':
+      return 'Missing in Knox';
+    case 'VISIBLE_WITH_LOCAL_MISMATCH':
+      return 'Portal/local mismatch';
+    case 'LOOKUP_FAILED':
+      return 'Lookup failed';
+    default:
+      return 'Not visible';
+  }
 }
 
 function fmt(v?: string | null) {
@@ -83,6 +158,8 @@ export default function KnoxDevicesPage() {
   const canManage = useMemo(() => adminHasPermission(user as AdminUser | null, PERMISSIONS.MANAGE_DEVICE_CONTROL), [user]);
 
   const [devices, setDevices] = useState<ManagedDevice[]>([]);
+  const [uploads, setUploads] = useState<KnoxUploadItem[]>([]);
+  const [uploadSummary, setUploadSummary] = useState<KnoxUploadSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [pollingId, setPollingId] = useState<string | null>(null);
@@ -95,16 +172,32 @@ export default function KnoxDevicesPage() {
     return res.data.devices || [];
   }, []);
 
+  const fetchUploads = useCallback(async (): Promise<{ items: KnoxUploadItem[]; portalSummary: KnoxUploadSummary | null }> => {
+    const res = await api.get('/knox-guard/upload/status', {
+      params: {
+        limit: 100,
+        includePortal: true,
+      },
+    });
+    return {
+      items: res.data.items || [],
+      portalSummary: res.data.portalSummary || null,
+    };
+  }, []);
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setDevices(await fetchDevices());
+      const [nextDevices, nextUploads] = await Promise.all([fetchDevices(), fetchUploads()]);
+      setDevices(nextDevices);
+      setUploads(nextUploads.items);
+      setUploadSummary(nextUploads.portalSummary);
     } catch {
       toast({ title: 'Error', description: 'Failed to load devices', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [fetchDevices]);
+  }, [fetchDevices, fetchUploads, toast]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -204,6 +297,20 @@ export default function KnoxDevicesPage() {
     );
   }, [devices, query]);
 
+  const filteredUploads = useMemo(() => {
+    if (!query.trim()) return uploads;
+    const q = query.toLowerCase();
+    return uploads.filter((item) =>
+      item.serialNumber.toLowerCase().includes(q) ||
+      item.product.name.toLowerCase().includes(q) ||
+      item.contract?.contractNumber.toLowerCase().includes(q) ||
+      item.knoxUploadStatus?.toLowerCase().includes(q) ||
+      item.portal?.status?.toLowerCase().includes(q) ||
+      item.portal?.model?.toLowerCase().includes(q) ||
+      item.portal?.portalSerial?.toLowerCase().includes(q),
+    );
+  }, [query, uploads]);
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -219,7 +326,9 @@ export default function KnoxDevicesPage() {
           />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-slate-500">{filtered.length} device{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-slate-500">
+            {filtered.length} managed · {filteredUploads.length} uploaded
+          </span>
           <button
             onClick={() => void load()}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -235,7 +344,35 @@ export default function KnoxDevicesPage() {
         </div>
       </div>
 
-      {/* List */}
+      <div className="grid gap-3 md:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Managed devices</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{devices.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Uploaded rows</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{uploads.length}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">Visible in Knox</p>
+          <p className="mt-2 text-2xl font-bold text-emerald-900">{uploadSummary?.visible ?? 0}</p>
+        </div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-red-700">Missing in Knox</p>
+          <p className="mt-2 text-2xl font-bold text-red-900">{uploadSummary?.missingInKnox ?? 0}</p>
+        </div>
+      </div>
+
+      {/* Managed devices */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Managed Devices</h2>
+            <p className="text-sm text-slate-500">Active financed-device records enrolled for Knox Guard control.</p>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex h-64 items-center justify-center text-slate-500">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading devices…
@@ -397,6 +534,106 @@ export default function KnoxDevicesPage() {
           })}
         </div>
       )}
+
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-2 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Knox Upload Status</h2>
+            <p className="text-sm text-slate-500">
+              Local upload records enriched with a live Knox portal lookup per serial number.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              Lookup failures: {uploadSummary?.lookupFailed ?? 0}
+            </span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              Not visible: {uploadSummary?.notVisible ?? 0}
+            </span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex h-40 items-center justify-center text-slate-500">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Checking Knox upload visibility…
+          </div>
+        ) : filteredUploads.length === 0 ? (
+          <div className="p-10 text-center text-sm text-slate-500">
+            {query ? 'No upload records match your search.' : 'No Knox upload records found.'}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Serial / Contract</th>
+                  <th className="px-4 py-3 font-medium">Local status</th>
+                  <th className="px-4 py-3 font-medium">Portal status</th>
+                  <th className="px-4 py-3 font-medium">Sync</th>
+                  <th className="px-4 py-3 font-medium">Device</th>
+                  <th className="px-4 py-3 font-medium">Updated</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredUploads.map((item) => (
+                  <tr key={item.id} className="align-top">
+                    <td className="px-4 py-3">
+                      <div className="font-mono text-xs text-slate-900">{item.serialNumber}</div>
+                      <div className="mt-1 text-xs text-slate-500">{item.product.name}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {item.contract ? `${item.contract.contractNumber} · ${item.contract.status}` : 'No contract linked'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(item.knoxUploadStatus || 'UNKNOWN')}`}>
+                        {item.knoxUploadStatus || 'UNKNOWN'}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">Inventory: {item.status}</div>
+                      <div className="mt-1 text-xs text-slate-500">Lock: {item.lockStatus || '—'}</div>
+                      {item.knoxUploadError && (
+                        <p className="mt-2 max-w-xs text-xs text-red-600">{item.knoxUploadError}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(item.portal?.status || (item.portal?.visible ? 'VISIBLE' : 'NOT_VISIBLE'))}`}>
+                        {item.portal?.status || (item.portal?.visible ? 'VISIBLE' : 'NOT_VISIBLE')}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        {item.portal?.model || 'Model unavailable'}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Portal serial: {item.portal?.portalSerial || '—'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${syncStatePill(item.portal?.syncState || 'NOT_VISIBLE')}`}>
+                        {syncStateLabel(item.portal?.syncState || 'NOT_VISIBLE')}
+                      </div>
+                      {item.portal?.lookupError && (
+                        <p className="mt-2 max-w-xs text-xs text-amber-700">{item.portal.lookupError}</p>
+                      )}
+                      {item.managedDevice && (
+                        <div className="mt-2 text-xs text-slate-500">
+                          Managed: {item.managedDevice.actualState} / {item.managedDevice.enrollmentStatus}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      <div>{item.portal?.objectId ? `Object ID: ${item.portal.objectId}` : 'Object ID: —'}</div>
+                      <div className="mt-1">{item.managedDevice?.approveId ? `Approve ID: ${item.managedDevice.approveId}` : 'Approve ID: —'}</div>
+                      <div className="mt-1">Retries: {item.knoxUploadRetries}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      <div>Local: {fmt(item.updatedAt)}</div>
+                      <div className="mt-1">Portal: {fmt(item.portal?.modifiedDate)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

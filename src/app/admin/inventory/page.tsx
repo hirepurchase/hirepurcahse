@@ -684,6 +684,8 @@ function KnoxUploadBadge({ status }: { status?: string | null }) {
     PENDING:  "bg-amber-100 text-amber-700",
     FAILED:   "bg-red-100 text-red-700",
     SKIPPED:  "bg-gray-100 text-gray-500",
+    DELETE_PENDING: "bg-orange-100 text-orange-700",
+    DELETED: "bg-slate-200 text-slate-700",
   };
   return (
     <span className={`inline-block text-xs font-medium px-2 py-0.5 ${map[status] ?? "bg-gray-100 text-gray-500"}`}>
