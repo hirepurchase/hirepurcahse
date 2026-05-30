@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -612,6 +612,7 @@ function DesktopStepContent({
   step, setStep,
   formData, setFormData,
   filteredCustomers, filteredInventory,
+  customersLoading,
   selectedCustomer, setSelectedCustomer,
   selectedInventory, setSelectedInventory,
   searchQuery, setSearchQuery,
@@ -643,7 +644,12 @@ function DesktopStepContent({
             onChange={(e: any) => setSearchQuery(e.target.value)}
           />
           <div className="max-h-96 overflow-y-auto space-y-2">
-            {filteredCustomers.map((customer: any) => (
+            {customersLoading && (
+              <p className="text-center text-sm text-gray-400 py-4 flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Searching…
+              </p>
+            )}
+            {!customersLoading && filteredCustomers.map((customer: any) => (
               <div
                 key={customer.id}
                 className={`p-4 border rounded-lg cursor-pointer transition-all ${formData.customerId === customer.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}
@@ -668,6 +674,9 @@ function DesktopStepContent({
                 </div>
               </div>
             ))}
+            {!customersLoading && filteredCustomers.length === 0 && (
+              <p className="text-center text-sm text-gray-400 py-8">No customers found</p>
+            )}
           </div>
           <div className="flex gap-4">
             <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
@@ -929,6 +938,7 @@ function CreateHirePurchaseSale({
 }) {
   const [step, setStep] = useState(1);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
   const [availableInventory, setAvailableInventory] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedInventory, setSelectedInventory] = useState<any>(null);
@@ -954,6 +964,7 @@ function CreateHirePurchaseSale({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [productSearchQuery, setProductSearchQuery] = useState("");
+  const customerDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string>("");
   const [isDraggingSignature, setIsDraggingSignature] = useState(false);
@@ -962,18 +973,27 @@ function CreateHirePurchaseSale({
   const { toast } = useToast();
 
   useEffect(() => {
-    loadCustomers();
     loadAvailableInventory();
   }, []);
 
-  const loadCustomers = async () => {
-    try {
-      const response = await api.get("/customers", { params: { limit: 100 } });
-      setCustomers(response.data.customers || []);
-    } catch (error) {
-      console.error("Failed to load customers:", error);
-    }
-  };
+  // Debounced live customer search — fetches from server on every keystroke (300ms delay)
+  useEffect(() => {
+    if (customerDebounce.current) clearTimeout(customerDebounce.current);
+    customerDebounce.current = setTimeout(async () => {
+      setCustomersLoading(true);
+      try {
+        const params: Record<string, any> = { limit: 50 };
+        if (searchQuery.trim()) params.search = searchQuery.trim();
+        const response = await api.get("/customers", { params });
+        setCustomers(response.data.customers || []);
+      } catch {
+        // keep previous results
+      } finally {
+        setCustomersLoading(false);
+      }
+    }, 300);
+    return () => { if (customerDebounce.current) clearTimeout(customerDebounce.current); };
+  }, [searchQuery]);
 
   const loadAvailableInventory = async () => {
     try {
@@ -1225,14 +1245,7 @@ function CreateHirePurchaseSale({
     }
   };
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.membershipId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      `${c.firstName} ${c.lastName}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
-  );
+  const filteredCustomers = customers;
 
   const financeAmount =
     (parseFloat(formData.totalPrice) || 0) -
@@ -1329,6 +1342,7 @@ function CreateHirePurchaseSale({
               step={step} setStep={setStep}
               formData={formData} setFormData={setFormData}
               filteredCustomers={filteredCustomers} filteredInventory={filteredInventory}
+              customersLoading={customersLoading}
               selectedCustomer={selectedCustomer} setSelectedCustomer={setSelectedCustomer}
               selectedInventory={selectedInventory} setSelectedInventory={setSelectedInventory}
               searchQuery={searchQuery} setSearchQuery={setSearchQuery}
@@ -1412,7 +1426,12 @@ function CreateHirePurchaseSale({
                     )}
                   </div>
                 ))}
-                {filteredCustomers.length === 0 && (
+                {customersLoading && (
+                  <p className="text-center text-sm text-gray-400 py-4 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Searching…
+                  </p>
+                )}
+                {!customersLoading && filteredCustomers.length === 0 && (
                   <p className="text-center text-sm text-gray-400 py-8">No customers found</p>
                 )}
               </div>
