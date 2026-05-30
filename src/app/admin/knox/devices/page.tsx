@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -17,6 +17,7 @@ import api from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 import { adminHasPermission, PERMISSIONS } from '@/lib/permissions';
+import { Pagination } from '@/components/ui/pagination';
 import type { AdminUser } from '@/types';
 
 interface ManagedDevice {
@@ -116,6 +117,13 @@ interface KnoxUploadSummary {
   lookupFailed: number;
 }
 
+interface PaginationState {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 function statusPill(status: string) {
   const s = status.toUpperCase();
   if (['LOCKED', 'FAILED', 'OVERDUE'].includes(s)) return 'bg-red-100 text-red-700 border-red-200';
@@ -165,39 +173,79 @@ export default function KnoxDevicesPage() {
   const [pollingId, setPollingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [devicePagination, setDevicePagination] = useState<PaginationState>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
+  const [uploadPagination, setUploadPagination] = useState<PaginationState>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const deferredQuery = useDeferredValue(query.trim());
 
-  const fetchDevices = useCallback(async (): Promise<ManagedDevice[]> => {
-    const res = await api.get('/knox-guard/devices');
-    return res.data.devices || [];
-  }, []);
+  const fetchDevices = useCallback(async (page = devicePagination.page): Promise<{ devices: ManagedDevice[]; pagination: PaginationState }> => {
+    const res = await api.get('/knox-guard/devices', {
+      params: {
+        page,
+        limit: devicePagination.limit,
+        q: deferredQuery || undefined,
+      },
+    });
+    return {
+      devices: res.data.devices || [],
+      pagination: res.data.pagination || {
+        page,
+        limit: devicePagination.limit,
+        total: 0,
+        totalPages: 1,
+      },
+    };
+  }, [deferredQuery, devicePagination.limit, devicePagination.page]);
 
-  const fetchUploads = useCallback(async (): Promise<{ items: KnoxUploadItem[]; portalSummary: KnoxUploadSummary | null }> => {
+  const fetchUploads = useCallback(async (page = uploadPagination.page): Promise<{ items: KnoxUploadItem[]; portalSummary: KnoxUploadSummary | null; pagination: PaginationState }> => {
     const res = await api.get('/knox-guard/upload/status', {
       params: {
-        limit: 100,
+        page,
+        limit: uploadPagination.limit,
         includePortal: true,
+        q: deferredQuery || undefined,
       },
     });
     return {
       items: res.data.items || [],
       portalSummary: res.data.portalSummary || null,
+      pagination: res.data.pagination || {
+        page,
+        limit: uploadPagination.limit,
+        total: 0,
+        totalPages: 1,
+      },
     };
-  }, []);
+  }, [deferredQuery, uploadPagination.limit, uploadPagination.page]);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [nextDevices, nextUploads] = await Promise.all([fetchDevices(), fetchUploads()]);
-      setDevices(nextDevices);
+      const [nextDevices, nextUploads] = await Promise.all([
+        fetchDevices(devicePagination.page),
+        fetchUploads(uploadPagination.page),
+      ]);
+      setDevices(nextDevices.devices);
+      setDevicePagination(nextDevices.pagination);
       setUploads(nextUploads.items);
       setUploadSummary(nextUploads.portalSummary);
+      setUploadPagination(nextUploads.pagination);
     } catch {
       toast({ title: 'Error', description: 'Failed to load devices', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [fetchDevices, fetchUploads, toast]);
+  }, [devicePagination.page, fetchDevices, fetchUploads, toast, uploadPagination.page]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -213,9 +261,10 @@ export default function KnoxDevicesPage() {
     pollRef.current = setInterval(async () => {
       attempts++;
       try {
-        const updated = await fetchDevices();
-        setDevices(updated);
-        const device = updated.find((d) => d.contract.id === contractId);
+        const updated = await fetchDevices(devicePagination.page);
+        setDevices(updated.devices);
+        setDevicePagination(updated.pagination);
+        const device = updated.devices.find((d) => d.contract.id === contractId);
         const stateChanged = device && device.actualState !== prevState;
         if (stateChanged || attempts >= MAX) {
           clearInterval(pollRef.current!);
@@ -284,33 +333,6 @@ export default function KnoxDevicesPage() {
     }
   };
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return devices;
-    const q = query.toLowerCase();
-    return devices.filter((d) =>
-      d.contract.contractNumber.toLowerCase().includes(q) ||
-      d.customer.firstName.toLowerCase().includes(q) ||
-      d.customer.lastName.toLowerCase().includes(q) ||
-      d.customer.phone.includes(q) ||
-      d.deviceUid.toLowerCase().includes(q) ||
-      d.approveId.toLowerCase().includes(q),
-    );
-  }, [devices, query]);
-
-  const filteredUploads = useMemo(() => {
-    if (!query.trim()) return uploads;
-    const q = query.toLowerCase();
-    return uploads.filter((item) =>
-      item.serialNumber.toLowerCase().includes(q) ||
-      item.product.name.toLowerCase().includes(q) ||
-      item.contract?.contractNumber.toLowerCase().includes(q) ||
-      item.knoxUploadStatus?.toLowerCase().includes(q) ||
-      item.portal?.status?.toLowerCase().includes(q) ||
-      item.portal?.model?.toLowerCase().includes(q) ||
-      item.portal?.portalSerial?.toLowerCase().includes(q),
-    );
-  }, [query, uploads]);
-
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -321,13 +343,18 @@ export default function KnoxDevicesPage() {
             type="search"
             placeholder="Search contract, customer, IMEI…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setExpandedId(null);
+              setDevicePagination((current) => ({ ...current, page: 1 }));
+              setUploadPagination((current) => ({ ...current, page: 1 }));
+            }}
             className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
           />
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-slate-500">
-            {filtered.length} managed · {filteredUploads.length} uploaded
+            {devicePagination.total} managed · {uploadPagination.total} uploaded
           </span>
           <button
             onClick={() => void load()}
@@ -347,193 +374,215 @@ export default function KnoxDevicesPage() {
       <div className="grid gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Managed devices</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{devices.length}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{devicePagination.total}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Uploaded rows</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{uploads.length}</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{uploadPagination.total}</p>
         </div>
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">Visible in Knox</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">Visible on page</p>
           <p className="mt-2 text-2xl font-bold text-emerald-900">{uploadSummary?.visible ?? 0}</p>
         </div>
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-red-700">Missing in Knox</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-red-700">Missing on page</p>
           <p className="mt-2 text-2xl font-bold text-red-900">{uploadSummary?.missingInKnox ?? 0}</p>
         </div>
       </div>
 
-      {/* Managed devices */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Managed Devices</h2>
             <p className="text-sm text-slate-500">Active financed-device records enrolled for Knox Guard control.</p>
           </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="flex h-64 items-center justify-center text-slate-500">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading devices…
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 p-16 text-center text-sm text-slate-500">
-          {query ? 'No devices match your search.' : 'No managed devices enrolled yet.'}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((device) => {
-            const expanded = expandedId === device.id;
-            return (
-              <div key={device.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                {/* Row */}
-                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1.5 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-slate-900">{device.contract.contractNumber}</span>
-                      {pollingId === device.contract.id ? (
-                        <span className="inline-flex items-center gap-1.5 border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          processing…
-                        </span>
-                      ) : (
-                        <>
-                          <span className={`border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.actualState)}`}>
-                            {device.actualState}
-                          </span>
-                          <span className={`border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.enrollmentStatus)}`}>
-                            {device.enrollmentStatus}
-                          </span>
-                          {device.actualState !== device.desiredState && (
-                            <span className="border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-700">
-                              desired: {device.desiredState}
+        {loading ? (
+          <div className="flex h-48 items-center justify-center text-slate-500">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading managed devices…
+          </div>
+        ) : devices.length === 0 ? (
+          <div className="p-12 text-center text-sm text-slate-500">
+            {deferredQuery ? 'No managed devices match your search.' : 'No managed devices enrolled yet.'}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Contract</th>
+                  <th className="px-4 py-3 font-medium">Customer</th>
+                  <th className="px-4 py-3 font-medium">Device</th>
+                  <th className="px-4 py-3 font-medium">Knox state</th>
+                  <th className="px-4 py-3 font-medium">Balance</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {devices.map((device) => {
+                  const expanded = expandedId === device.id;
+                  return (
+                    <Fragment key={device.id}>
+                      <tr className="align-top">
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-900">{device.contract.contractNumber}</div>
+                          <div className="mt-1 text-xs text-slate-500">{device.contract.status}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-slate-900">{device.customer.firstName} {device.customer.lastName}</div>
+                          <div className="mt-1 text-xs text-slate-500">{device.customer.phone}</div>
+                          <div className="mt-1 text-xs text-slate-400">{device.customer.membershipId || '—'}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-mono text-xs text-slate-900">{device.deviceUid}</div>
+                          <div className="mt-1 text-xs text-slate-500">Approve ID: {device.approveId}</div>
+                          <div className="mt-1 text-xs text-slate-500">Inventory: {device.inventoryItem?.serialNumber || '—'}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {pollingId === device.contract.id ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              processing…
                             </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.actualState)}`}>
+                                {device.actualState}
+                              </span>
+                              <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.enrollmentStatus)}`}>
+                                {device.enrollmentStatus}
+                              </span>
+                              {device.actualState !== device.desiredState && (
+                                <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-700">
+                                  desired: {device.desiredState}
+                                </span>
+                              )}
+                            </div>
                           )}
-                        </>
+                          {device.lastError && (
+                            <p className="mt-2 max-w-xs text-xs text-red-600">{device.lastError}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-900">
+                          GHS {device.contract.outstandingBalance.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            {canManage && device.enrollmentStatus === 'APPROVAL_QUEUED' && (
+                              <button
+                                onClick={() => handleApprove(device.contract.id)}
+                                disabled={!!busyKey}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                                title="Queue Knox Guard approval — succeeds once the Knox Guard app connects on the device"
+                              >
+                                {busyKey === `approve:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                                Approve
+                              </button>
+                            )}
+                            {canManage && (
+                              <>
+                                <button
+                                  onClick={() => handleAction(device.contract.id, 'evaluate')}
+                                  disabled={!!busyKey}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                >
+                                  {busyKey === `evaluate:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                                  Evaluate
+                                </button>
+                                <button
+                                  onClick={() => handleAction(device.contract.id, 'lock')}
+                                  disabled={!!busyKey}
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                                >
+                                  {busyKey === `lock:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                                  Lock
+                                </button>
+                                <button
+                                  onClick={() => handleAction(device.contract.id, 'unlock')}
+                                  disabled={!!busyKey}
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                                >
+                                  {busyKey === `unlock:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlock className="h-3.5 w-3.5" />}
+                                  Unlock
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(device.deviceUid)}
+                                  disabled={!!busyKey}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                                >
+                                  {busyKey === `delete:${device.deviceUid}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                  Remove
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => setExpandedId(expanded ? null : device.id)}
+                              className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
+                            >
+                              {expanded ? 'Hide' : 'Details'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr className="bg-slate-50/70">
+                          <td colSpan={6} className="px-4 py-4">
+                            <div className="grid gap-4 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-3">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-slate-800">Device</p>
+                                <p>Approve ID: {device.approveId}</p>
+                                <p>UID type: {device.deviceUidType}</p>
+                                <p>Knox Object ID: {device.knoxObjectId || '—'}</p>
+                                <p>Inventory lock: {device.inventoryItem?.lockStatus || '—'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="font-semibold text-slate-800">Timestamps</p>
+                                <p>Last evaluated: {fmt(device.lastEvaluatedAt)}</p>
+                                <p>Last synced: {fmt(device.lastSyncedAt)}</p>
+                                <p>Last locked: {fmt(device.lastLockedAt)}</p>
+                                <p>Last unlocked: {fmt(device.lastUnlockedAt)}</p>
+                                <p>Enrolled: {fmt(device.createdAt)}</p>
+                              </div>
+                              {device.customerExperience && (
+                                <div className="space-y-1">
+                                  <p className="font-semibold text-slate-800">Lock screen</p>
+                                  <p className="flex items-center gap-1">
+                                    Disclosure:
+                                    {device.customerExperience.disclosureAccepted
+                                      ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                      : <span className="text-red-600">Missing</span>
+                                    }
+                                    {device.customerExperience.disclosureVersion && ` (${device.customerExperience.disclosureVersion})`}
+                                  </p>
+                                  <p>Support: {device.customerExperience.supportPhone || '—'}</p>
+                                  <p>App: {device.customerExperience.paymentAppLabel}</p>
+                                  <p>USSD: {device.customerExperience.paymentUssd || '—'}</p>
+                                  <p>Refresh label: {device.customerExperience.refreshActionLabel}</p>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </div>
-                    <div className="grid gap-x-6 gap-y-0.5 text-sm text-slate-600 sm:grid-cols-2">
-                      <span>{device.customer.firstName} {device.customer.lastName}</span>
-                      <span>{device.customer.phone}</span>
-                      <span className="font-mono text-xs text-slate-400">{device.deviceUid}</span>
-                      <span>Balance: GHS {device.contract.outstandingBalance.toFixed(2)}</span>
-                    </div>
-                    {device.enrollmentStatus === 'APPROVAL_QUEUED' && !device.lastError && (
-                      <p className="border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
-                        Waiting for Knox Guard app to connect on device
-                      </p>
-                    )}
-                    {device.lastError && (
-                      <p className="border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">
-                        {device.lastError}
-                      </p>
-                    )}
-                  </div>
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap shrink-0 items-center gap-2">
-                    {canManage && (
-                      <>
-                        {/* Approve — only shown when waiting for Knox Guard app to connect */}
-                        {device.enrollmentStatus === 'APPROVAL_QUEUED' && (
-                          <button
-                            onClick={() => handleApprove(device.contract.id)}
-                            disabled={!!busyKey}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-                            title="Queue Knox Guard approval — succeeds once the Knox Guard app connects on the device"
-                          >
-                            {busyKey === `approve:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-                            Approve
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleAction(device.contract.id, 'evaluate')}
-                          disabled={!!busyKey}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                        >
-                          {busyKey === `evaluate:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                          Evaluate
-                        </button>
-                        <button
-                          onClick={() => handleAction(device.contract.id, 'lock')}
-                          disabled={!!busyKey}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
-                        >
-                          {busyKey === `lock:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-                          Lock
-                        </button>
-                        <button
-                          onClick={() => handleAction(device.contract.id, 'unlock')}
-                          disabled={!!busyKey}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-                        >
-                          {busyKey === `unlock:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlock className="h-3.5 w-3.5" />}
-                          Unlock
-                        </button>
-                        <button
-                          onClick={() => handleDelete(device.deviceUid)}
-                          disabled={!!busyKey}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
-                        >
-                          {busyKey === `delete:${device.deviceUid}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          Remove
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => setExpandedId(expanded ? null : device.id)}
-                      className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
-                    >
-                      {expanded ? 'Less' : 'Details'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Expanded detail */}
-                {expanded && (
-                  <div className="border-t border-slate-100 px-4 pb-4 pt-3">
-                    <div className="grid gap-4 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-3">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-slate-800">Device</p>
-                        <p>Approve ID: {device.approveId}</p>
-                        <p>UID type: {device.deviceUidType}</p>
-                        {device.knoxObjectId && <p>Knox Object ID: {device.knoxObjectId}</p>}
-                        {device.inventoryItem && <p>Serial: {device.inventoryItem.serialNumber}</p>}
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-semibold text-slate-800">Timestamps</p>
-                        <p>Last evaluated: {fmt(device.lastEvaluatedAt)}</p>
-                        <p>Last synced: {fmt(device.lastSyncedAt)}</p>
-                        <p>Last locked: {fmt(device.lastLockedAt)}</p>
-                        <p>Last unlocked: {fmt(device.lastUnlockedAt)}</p>
-                        <p>Enrolled: {fmt(device.createdAt)}</p>
-                      </div>
-                      {device.customerExperience && (
-                        <div className="space-y-1">
-                          <p className="font-semibold text-slate-800">Lock screen</p>
-                          <p className="flex items-center gap-1">
-                            Disclosure:
-                            {device.customerExperience.disclosureAccepted
-                              ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                              : <span className="text-red-600">Missing</span>
-                            }
-                            {device.customerExperience.disclosureVersion && ` (${device.customerExperience.disclosureVersion})`}
-                          </p>
-                          <p>Support: {device.customerExperience.supportPhone || '—'}</p>
-                          <p>App: {device.customerExperience.paymentAppLabel}</p>
-                          <p>USSD: {device.customerExperience.paymentUssd || '—'}</p>
-                          <p>Refresh label: {device.customerExperience.refreshActionLabel}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {!loading && devicePagination.totalPages > 1 && (
+          <Pagination
+            currentPage={devicePagination.page}
+            totalPages={devicePagination.totalPages}
+            onPageChange={(page) => setDevicePagination((current) => ({ ...current, page }))}
+            totalItems={devicePagination.total}
+            itemsPerPage={devicePagination.limit}
+          />
+        )}
+      </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-2 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -557,9 +606,9 @@ export default function KnoxDevicesPage() {
           <div className="flex h-40 items-center justify-center text-slate-500">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Checking Knox upload visibility…
           </div>
-        ) : filteredUploads.length === 0 ? (
+        ) : uploads.length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-500">
-            {query ? 'No upload records match your search.' : 'No Knox upload records found.'}
+            {deferredQuery ? 'No upload records match your search.' : 'No Knox upload records found.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -575,7 +624,7 @@ export default function KnoxDevicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUploads.map((item) => (
+                {uploads.map((item) => (
                   <tr key={item.id} className="align-top">
                     <td className="px-4 py-3">
                       <div className="font-mono text-xs text-slate-900">{item.serialNumber}</div>
@@ -632,6 +681,16 @@ export default function KnoxDevicesPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {!loading && uploadPagination.totalPages > 1 && (
+          <Pagination
+            currentPage={uploadPagination.page}
+            totalPages={uploadPagination.totalPages}
+            onPageChange={(page) => setUploadPagination((current) => ({ ...current, page }))}
+            totalItems={uploadPagination.total}
+            itemsPerPage={uploadPagination.limit}
+          />
         )}
       </div>
     </div>
