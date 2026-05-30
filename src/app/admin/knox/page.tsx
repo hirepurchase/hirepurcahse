@@ -123,6 +123,19 @@ export default function KnoxOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {/* Dry-run warning banner */}
+      {kg?.dryRun && (
+        <div className="flex items-start gap-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="mt-0.5 text-lg leading-none">⚠</span>
+          <div>
+            <p className="font-semibold">Dry-run mode is active — no commands are being sent to Knox.</p>
+            <p className="mt-0.5 text-xs text-amber-700">
+              Set <code className="font-mono bg-amber-100 px-1">KNOX_GUARD_DRY_RUN=false</code> and <code className="font-mono bg-amber-100 px-1">KNOX_GUARD_ENABLE_LIVE_ACTIONS=true</code> in your environment to go live.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-500">System status and recent activity at a glance.</p>

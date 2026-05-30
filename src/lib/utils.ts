@@ -52,6 +52,7 @@ export function getStatusColor(status: string): string {
     COMPLETED: 'bg-green-100 text-green-800',
     DEFAULTED: 'bg-red-100 text-red-800',
     CANCELLED: 'bg-gray-100 text-gray-800',
+    WRITTEN_OFF: 'bg-zinc-800 text-zinc-100',
     PENDING: 'bg-yellow-100 text-yellow-800',
     PARTIAL: 'bg-orange-100 text-orange-800',
     PAID: 'bg-green-100 text-green-800',

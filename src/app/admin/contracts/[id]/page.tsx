@@ -101,6 +101,7 @@ export default function ContractDetailsPage() {
   const adminUser = user as AdminUser | null;
   const canViewDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL]);
   const canManageDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.MANAGE_DEVICE_CONTROL]);
+  const canWriteOff = adminHasAnyPermission(adminUser, [PERMISSIONS.WRITE_OFF_CONTRACT]);
   const [contract, setContract] = useState<any>(null);
   const [knoxContract, setKnoxContract] = useState<any>(null);
   const [knoxDefaults, setKnoxDefaults] = useState<KnoxEnrollmentDefaults | null>(null);
@@ -124,6 +125,9 @@ export default function ContractDetailsPage() {
   const [paymentEditData, setPaymentEditData] = useState({ amount: '', paymentMethod: '', reference: '', notes: '' });
   const [showFinancialAmendDialog, setShowFinancialAmendDialog] = useState(false);
   const [isAmending, setIsAmending] = useState(false);
+  const [showWriteOffDialog, setShowWriteOffDialog] = useState(false);
+  const [writeOffReason, setWriteOffReason] = useState('');
+  const [isWritingOff, setIsWritingOff] = useState(false);
   const [amendSummary, setAmendSummary] = useState<any>(null);
   const [amendFormData, setAmendFormData] = useState({
     totalPrice: '',
@@ -546,6 +550,23 @@ export default function ContractDetailsPage() {
     }
   };
 
+  const handleWriteOff = async () => {
+    if (!writeOffReason.trim()) return;
+    setIsWritingOff(true);
+    try {
+      await api.post(`/contracts/${params.id}/write-off`, { reason: writeOffReason.trim() });
+      toast({ title: 'Contract written off', description: 'The contract has been written off and the device released.' });
+      setShowWriteOffDialog(false);
+      setWriteOffReason('');
+      const response = await api.get(`/contracts/admin/${params.id}`);
+      setContract(response.data);
+    } catch (error: any) {
+      toast({ title: 'Write-off failed', description: error.response?.data?.error || 'Failed to write off contract', variant: 'destructive' });
+    } finally {
+      setIsWritingOff(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -600,6 +621,16 @@ export default function ContractDetailsPage() {
               <Edit className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Amend</span>
             </Button>
+            {canWriteOff && (
+              <Button
+                variant="outline" size="sm"
+                className="border-red-400 text-red-600 hover:bg-red-50"
+                onClick={() => setShowWriteOffDialog(true)}
+              >
+                <AlertTriangle className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Write Off</span>
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -1809,6 +1840,61 @@ export default function ContractDetailsPage() {
                 disabled={isEditingInstallment}
               >
                 Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Write-Off Dialog */}
+      <Dialog open={showWriteOffDialog} onOpenChange={(open) => { if (!isWritingOff) setShowWriteOffDialog(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-700 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Write Off Contract
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 p-4 text-sm text-red-800 space-y-1">
+              <p className="font-semibold">This action cannot be undone.</p>
+              <ul className="list-disc pl-4 space-y-1 text-xs mt-2">
+                <li>Contract status will be set to <strong>WRITTEN_OFF</strong></li>
+                <li>All remaining unpaid installments will be written off</li>
+                <li>The device will be released from Knox Guard management</li>
+                <li>The inventory item will be returned to available stock</li>
+                <li>Payment history is preserved for accounting purposes</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Outstanding balance: <span className="text-red-600 font-bold">{formatCurrency(contract.outstandingBalance)}</span></p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="writeOffReason" className="text-sm font-medium">
+                Reason for write-off <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="writeOffReason"
+                value={writeOffReason}
+                onChange={(e) => setWriteOffReason(e.target.value)}
+                placeholder="e.g. Customer untraceable, debt deemed unrecoverable after 6 months of non-payment..."
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setShowWriteOffDialog(false); setWriteOffReason(''); }}
+                disabled={isWritingOff}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleWriteOff}
+                disabled={isWritingOff || !writeOffReason.trim()}
+              >
+                {isWritingOff ? 'Writing off…' : 'Confirm Write Off'}
               </Button>
             </div>
           </div>

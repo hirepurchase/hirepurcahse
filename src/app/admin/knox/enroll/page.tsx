@@ -200,30 +200,39 @@ export default function KnoxEnrollPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-lg space-y-5">
       <p className="text-sm text-slate-500">
-        Fields pre-filled from{' '}
-        <a href="/admin/knox/settings" className="text-cyan-600 hover:underline">Knox settings</a>.
-        Override per device where needed.
+        Lock-screen settings are inherited from{' '}
+        <a href="/admin/knox/settings" className="text-cyan-600 hover:underline">Knox settings</a> automatically.
       </p>
 
-      {/* Step 1 — Contract & Device identity */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-base font-semibold text-slate-900">1. Contract & device identity</h2>
-        <p className="mb-5 text-xs text-slate-500">Identify the contract and the physical device being enrolled.</p>
+      {/* Contract ID */}
+      <div className="border border-slate-200 bg-white p-5 shadow-sm">
+        <Field label="Contract ID" required hint="Paste the hire-purchase contract UUID to link this device to.">
+          <input
+            type="text"
+            value={form.contractId}
+            onChange={(e) => set('contractId', e.target.value)}
+            placeholder="e.g. 4f7c2a…"
+            className={inputCls}
+            autoFocus
+          />
+        </Field>
+      </div>
 
+      {/* Device UID */}
+      <div className="border border-slate-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Contract ID" required hint="The internal contract UUID to enroll.">
+          <Field label="Device UID" hint="Leave blank to use the serial from the contract's inventory item.">
             <input
               type="text"
-              value={form.contractId}
-              onChange={(e) => set('contractId', e.target.value)}
-              placeholder="e.g. 4f7c2a…"
+              value={form.deviceUid}
+              onChange={(e) => set('deviceUid', e.target.value)}
+              placeholder="IMEI or serial number"
               className={inputCls}
             />
           </Field>
-
-          <Field label="Device UID type">
+          <Field label="UID type">
             <select
               value={form.deviceUidType}
               onChange={(e) => set('deviceUidType', e.target.value)}
@@ -233,55 +242,12 @@ export default function KnoxEnrollPage() {
               <option value="IMEI">IMEI</option>
             </select>
           </Field>
-
-          <Field label="Device UID" hint="Leave blank to use the device UID from the contract's inventory item.">
-            <input
-              type="text"
-              value={form.deviceUid}
-              onChange={(e) => set('deviceUid', e.target.value)}
-              placeholder="IMEI or serial number"
-              className={inputCls}
-            />
-          </Field>
-
-          <Field label="Approve ID" hint="Defaults to the contract number if left blank.">
-            <input
-              type="text"
-              value={form.approveId}
-              onChange={(e) => set('approveId', e.target.value)}
-              placeholder="Defaults to contract number"
-              className={inputCls}
-            />
-          </Field>
-
-          <Field label="Knox Object ID" hint="Only needed if re-linking an existing Knox Guard object.">
-            <input
-              type="text"
-              value={form.knoxObjectId}
-              onChange={(e) => set('knoxObjectId', e.target.value)}
-              placeholder="Optional"
-              className={inputCls}
-            />
-          </Field>
-
-          <Field label="Tenant domain" hint="Samsung Knox tenant domain for this device.">
-            <input
-              type="text"
-              value={form.knoxTenantDomain}
-              onChange={(e) => set('knoxTenantDomain', e.target.value)}
-              className={inputCls}
-            />
-          </Field>
         </div>
       </div>
 
-      {/* Step 2 — Customer disclosure */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-base font-semibold text-slate-900">2. Customer disclosure</h2>
-        <p className="mb-5 text-xs text-slate-500">Confirm the customer was informed and record the disclosure version.</p>
-
-        {/* Disclosure checkbox — prominent */}
-        <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
+      {/* Customer disclosure */}
+      <div className="border border-slate-200 bg-white p-5 shadow-sm">
+        <label className="flex cursor-pointer items-start gap-4 border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
           <input
             type="checkbox"
             checked={form.disclosureAccepted}
@@ -289,103 +255,23 @@ export default function KnoxEnrollPage() {
             className="mt-0.5 h-4 w-4 accent-cyan-600"
           />
           <div>
-            <p className="text-sm font-medium text-slate-900">Customer disclosure confirmed <span className="text-red-500">*</span></p>
+            <p className="text-sm font-medium text-slate-900">
+              Customer disclosure confirmed <span className="text-red-500">*</span>
+            </p>
             <p className="mt-0.5 text-xs text-slate-500">
-              The customer was informed that overdue payments may trigger device restriction, and that payment and support options remain available on the lock screen.
+              I confirm the customer was informed that overdue payments may trigger device restriction, and that payment and support options will remain accessible on the lock screen.
             </p>
           </div>
         </label>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Disclosure version" hint="Version tag stored with this enrolment for audit.">
+        <div className="mt-4">
+          <Field label="Disclosure version" hint="Version tag for audit trail. Pre-filled from settings.">
             <input
               type="text"
               value={form.disclosureVersion}
               onChange={(e) => set('disclosureVersion', e.target.value)}
               placeholder="e.g. v1"
               className={inputCls}
-            />
-          </Field>
-          <Field label="Terms reference URL" hint="Link to full T&Cs or internal signed-terms reference.">
-            <input
-              type="text"
-              value={form.termsReference}
-              onChange={(e) => set('termsReference', e.target.value)}
-              placeholder="https://… or internal ref"
-              className={inputCls}
-            />
-          </Field>
-        </div>
-      </div>
-
-      {/* Step 3 — Lock-screen experience */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-base font-semibold text-slate-900">3. Lock-screen experience</h2>
-        <p className="mb-5 text-xs text-slate-500">Pre-filled from global settings. Override here only if this device needs different values.</p>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Support phone">
-            <input
-              type="tel"
-              value={form.supportPhone}
-              onChange={(e) => set('supportPhone', e.target.value)}
-              placeholder="Customer service phone"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Payment app package">
-            <input
-              type="text"
-              value={form.paymentAppPackage}
-              onChange={(e) => set('paymentAppPackage', e.target.value)}
-              placeholder="com.aidootech.customer"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Payment app label">
-            <input
-              type="text"
-              value={form.paymentAppLabel}
-              onChange={(e) => set('paymentAppLabel', e.target.value)}
-              placeholder="Visible app name"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Payment USSD">
-            <input
-              type="text"
-              value={form.paymentUssd}
-              onChange={(e) => set('paymentUssd', e.target.value)}
-              placeholder="e.g. *170#"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Refresh action label" hint="Button label to re-evaluate account status.">
-            <input
-              type="text"
-              value={form.refreshActionLabel}
-              onChange={(e) => set('refreshActionLabel', e.target.value)}
-              placeholder="Refresh account status"
-              className={inputCls}
-            />
-          </Field>
-        </div>
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Support message on lock screen">
-            <textarea
-              value={form.supportMessage}
-              onChange={(e) => set('supportMessage', e.target.value)}
-              placeholder="Guidance shown to the customer on the lock screen."
-              className={textareaCls}
-            />
-          </Field>
-          <Field label="Warning message before restriction">
-            <textarea
-              value={form.warningMessage}
-              onChange={(e) => set('warningMessage', e.target.value)}
-              placeholder="Message used in warning and lock context."
-              className={textareaCls}
             />
           </Field>
         </div>
@@ -397,14 +283,14 @@ export default function KnoxEnrollPage() {
           type="button"
           onClick={() => setForm(fillFromDefaults({ ...emptyForm }, defaults))}
           disabled={submitting}
-          className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Reset
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-7 py-2.5 text-sm font-semibold text-white hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-cyan-600 px-7 py-2.5 text-sm font-semibold text-white hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
           {submitting ? 'Enrolling…' : 'Enroll device'}

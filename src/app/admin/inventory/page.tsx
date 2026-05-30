@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Package, Search, Edit2, Trash2 } from "lucide-react";
+import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +63,9 @@ export default function InventoryPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingItem, setDeletingItem] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isUploading, setIsUploading] = useState(false);
+  const canManageKnox = hasPermission(PERMISSIONS.MANAGE_DEVICE_CONTROL);
 
   useEffect(() => {
     loadProducts();
@@ -199,6 +202,49 @@ export default function InventoryPage() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === inventory.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(inventory.map((i) => i.id)));
+    }
+  };
+
+  const handleKnoxUpload = async (itemIds?: string[]) => {
+    const ids = itemIds ?? Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const items = inventory.filter((i) => ids.includes(i.id));
+    const imeis = items.map((i) => i.serialNumber);
+
+    setIsUploading(true);
+    try {
+      await api.post("/knox-guard/upload/retry", { inventoryItemIds: ids });
+      toast({
+        title: `Upload queued for ${imeis.length} device${imeis.length > 1 ? "s" : ""}`,
+        description: "Check Knox upload status for the result.",
+      });
+      setSelectedIds(new Set());
+      loadInventory();
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.response?.data?.error || "Failed to queue Knox upload",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const statusCounts = {
     all: totalItems,
     AVAILABLE: inventory.filter((i) => i.status === "AVAILABLE").length,
@@ -210,6 +256,7 @@ export default function InventoryPage() {
     return (
       <InventoryForm
         products={products}
+        canManageKnox={canManageKnox}
         onClose={() => setShowForm(false)}
         onSuccess={() => {
           setShowForm(false);
@@ -222,15 +269,29 @@ export default function InventoryPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory</h1>
           <p className="text-sm text-gray-500 mt-0.5">Track items with IMEI/Serial numbers</p>
         </div>
-        <Button onClick={() => setShowForm(true)} size="sm">
-          <Plus className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Add Item</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {canManageKnox && selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleKnoxUpload()}
+              disabled={isUploading}
+              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              {isUploading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Upload className="h-4 w-4 mr-1.5" />}
+              Upload {selectedIds.size} to Knox
+            </Button>
+          )}
+          <Button onClick={() => setShowForm(true)} size="sm">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Item</span>
+          </Button>
+        </div>
       </div>
 
       {/* Product Filter Badge */}
@@ -305,8 +366,16 @@ export default function InventoryPage() {
               {/* ── Mobile card list ── */}
               <div className="sm:hidden divide-y divide-gray-100">
                 {inventory.map((item) => (
-                  <div key={item.id} className="px-4 py-3.5">
+                  <div key={item.id} className={`px-4 py-3.5 ${selectedIds.has(item.id) ? "bg-blue-50" : ""}`}>
                     <div className="flex items-start justify-between gap-2">
+                      {canManageKnox && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                          className="mt-1 h-4 w-4 accent-blue-600 shrink-0"
+                        />
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{item.product?.name || "-"}</p>
                         <p className="text-xs font-mono text-gray-500">{item.serialNumber}</p>
@@ -321,29 +390,39 @@ export default function InventoryPage() {
                           <p className="text-xs text-gray-400">Agent: {item.contract.createdBy.firstName} {item.contract.createdBy.lastName}</p>
                         )}
                         <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                          <Badge className={getStatusColor(item.status)} >{item.status}</Badge>
+                          <Badge className={getStatusColor(item.status)}>{item.status}</Badge>
                           <Badge
                             variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
                             className={item.lockStatus !== "LOCKED" ? "bg-green-100 text-green-800" : ""}
                           >
                             {item.lockStatus || "UNLOCKED"}
                           </Badge>
+                          {canManageKnox && <KnoxUploadBadge status={item.knoxUploadStatus} />}
                         </div>
                       </div>
-                      {(canEdit || canDelete) && (
-                        <div className="flex gap-1 shrink-0">
-                          {canEdit && (
-                            <Button variant="ghost" size="sm" onClick={() => handleEditClick(item)}>
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDelete && item.status === "AVAILABLE" && (
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(item)} className="text-red-600 hover:bg-red-50">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex gap-1 shrink-0">
+                        {canEdit && (
+                          <Button variant="ghost" size="sm" onClick={() => handleEditClick(item)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && item.status === "AVAILABLE" && (
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(item)} className="text-red-600 hover:bg-red-50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canManageKnox && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleKnoxUpload([item.id])}
+                            disabled={isUploading}
+                            className="text-blue-600 hover:bg-blue-50"
+                          >
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -354,20 +433,41 @@ export default function InventoryPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {canManageKnox && (
+                        <TableHead className="w-10">
+                          <input
+                            type="checkbox"
+                            checked={inventory.length > 0 && selectedIds.size === inventory.length}
+                            onChange={toggleSelectAll}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                        </TableHead>
+                      )}
                       <TableHead>Serial/IMEI</TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Lock Status</TableHead>
+                      {canManageKnox && <TableHead>Knox Upload</TableHead>}
                       <TableHead>Registered Under</TableHead>
                       <TableHead>Contract</TableHead>
                       <TableHead>Agent</TableHead>
-                      {(canEdit || canDelete) && <TableHead>Actions</TableHead>}
+                      {(canEdit || canDelete || canManageKnox) && <TableHead>Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {inventory.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} className={selectedIds.has(item.id) ? "bg-blue-50" : ""}>
+                        {canManageKnox && (
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(item.id)}
+                              onChange={() => toggleSelect(item.id)}
+                              className="h-4 w-4 accent-blue-600"
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-mono font-medium">{item.serialNumber}</TableCell>
                         <TableCell>{item.product?.name || "-"}</TableCell>
                         <TableCell>
@@ -384,6 +484,11 @@ export default function InventoryPage() {
                             {item.lockStatus || "UNLOCKED"}
                           </Badge>
                         </TableCell>
+                        {canManageKnox && (
+                          <TableCell>
+                            <KnoxUploadBadge status={item.knoxUploadStatus} />
+                          </TableCell>
+                        )}
                         <TableCell className="max-w-[150px] truncate">{item.registeredUnder || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{item.contract?.contractNumber || "-"}</TableCell>
                         <TableCell>
@@ -393,7 +498,7 @@ export default function InventoryPage() {
                             <span className="text-xs text-gray-400">—</span>
                           )}
                         </TableCell>
-                        {(canEdit || canDelete) && (
+                        {(canEdit || canDelete || canManageKnox) && (
                           <TableCell>
                             <div className="flex gap-1">
                               {canEdit && (
@@ -404,6 +509,18 @@ export default function InventoryPage() {
                               {canDelete && item.status === "AVAILABLE" && (
                                 <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                   <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canManageKnox && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleKnoxUpload([item.id])}
+                                  disabled={isUploading}
+                                  title="Upload to Knox"
+                                  className="text-blue-600 hover:bg-blue-50"
+                                >
+                                  <Upload className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
@@ -490,14 +607,31 @@ export default function InventoryPage() {
   );
 }
 
+function KnoxUploadBadge({ status }: { status?: string | null }) {
+  if (!status) return <span className="text-xs text-gray-300">—</span>;
+  const map: Record<string, string> = {
+    UPLOADED: "bg-emerald-100 text-emerald-700",
+    PENDING:  "bg-amber-100 text-amber-700",
+    FAILED:   "bg-red-100 text-red-700",
+    SKIPPED:  "bg-gray-100 text-gray-500",
+  };
+  return (
+    <span className={`inline-block text-xs font-medium px-2 py-0.5 ${map[status] ?? "bg-gray-100 text-gray-500"}`}>
+      {status}
+    </span>
+  );
+}
+
 function InventoryForm({
   products,
   onClose,
   onSuccess,
+  canManageKnox,
 }: {
   products: Product[];
   onClose: () => void;
   onSuccess: () => void;
+  canManageKnox: boolean;
 }) {
   const [formData, setFormData] = useState({
     productId: "",
@@ -508,6 +642,7 @@ function InventoryForm({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registerWithKnox, setRegisterWithKnox] = useState(true);
   const { toast } = useToast();
 
   // Debug logging
@@ -554,17 +689,25 @@ function InventoryForm({
     setIsSubmitting(true);
 
     try {
-      await api.post("/products/inventory", formData);
-      toast({
-        title: "Success",
-        description: "Inventory item added successfully",
-      });
+      const res = await api.post("/products/inventory", formData);
+      const newItemId: string | undefined = res.data?.id ?? res.data?.item?.id;
+
+      if (canManageKnox && registerWithKnox && newItemId) {
+        try {
+          await api.post("/knox-guard/upload/retry", { inventoryItemIds: [newItemId] });
+          toast({ title: "Item added & registered with Knox Guard", description: `${formData.serialNumber} queued for Knox upload.` });
+        } catch {
+          toast({ title: "Item added", description: "Knox registration failed — you can retry from the inventory table.", variant: "destructive" });
+        }
+      } else {
+        toast({ title: "Success", description: "Inventory item added successfully" });
+      }
+
       onSuccess();
     } catch (error: any) {
       toast({
         title: "Error",
-        description:
-          error.response?.data?.error || "Failed to add inventory item",
+        description: error.response?.data?.error || "Failed to add inventory item",
         variant: "destructive",
       });
     } finally {
@@ -722,6 +865,23 @@ function InventoryForm({
                   </p>
                 </div>
               </>
+            )}
+
+            {/* Knox Guard registration */}
+            {canManageKnox && selectedProduct && (
+              <div className="flex items-start gap-3 border border-blue-100 bg-blue-50 px-4 py-3">
+                <input
+                  type="checkbox"
+                  id="registerWithKnox"
+                  checked={registerWithKnox}
+                  onChange={(e) => setRegisterWithKnox(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-blue-600"
+                />
+                <label htmlFor="registerWithKnox" className="text-sm cursor-pointer">
+                  <span className="font-medium text-blue-800">Register with Knox Guard</span>
+                  <p className="text-xs text-blue-600 mt-0.5">Upload this device's IMEI/Serial to the Samsung Devices API immediately after saving.</p>
+                </label>
+              </div>
             )}
 
             <div className="flex gap-4 pt-4">

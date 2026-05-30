@@ -81,10 +81,14 @@ export default function KnoxSettingsPage() {
   const [form, setForm] = useState<Partial<KnoxGuardSettings>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [dryRun, setDryRun] = useState(false);
 
   useEffect(() => {
     if (!canManage) { router.replace('/admin/knox'); return; }
     void fetchSettings();
+    // Check dry-run status from health endpoint
+    api.get('/knox-guard/health').then((r) => setDryRun(r.data?.policy?.knoxGuard?.dryRun ?? false)).catch(() => {});
   }, [canManage]);
 
   const fetchSettings = async () => {
@@ -109,7 +113,8 @@ export default function KnoxSettingsPage() {
       const res = await api.patch('/knox-guard/settings', form);
       setSettings(res.data.settings);
       setForm(res.data.settings);
-      toast({ title: 'Saved', description: 'Knox Guard settings updated successfully.' });
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 3000);
     } catch (err: any) {
       toast({ title: 'Error', description: err.response?.data?.error || 'Failed to save settings', variant: 'destructive' });
     } finally {
@@ -128,6 +133,19 @@ export default function KnoxSettingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Dry-run warning */}
+      {dryRun && (
+        <div className="flex items-start gap-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="mt-0.5 text-lg leading-none">⚠</span>
+          <div>
+            <p className="font-semibold">Dry-run mode is active — settings are saved but no live commands will be sent.</p>
+            <p className="mt-0.5 text-xs text-amber-700">
+              Set <code className="bg-amber-100 px-1 font-mono">KNOX_GUARD_DRY_RUN=false</code> and <code className="bg-amber-100 px-1 font-mono">KNOX_GUARD_ENABLE_LIVE_ACTIONS=true</code> to go live.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">
@@ -137,7 +155,10 @@ export default function KnoxSettingsPage() {
             <p className="mt-1 text-xs text-gray-400">Last saved: {new Date(settings.updatedAt).toLocaleString()}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {savedFlash && (
+            <span className="text-xs font-medium text-emerald-600 animate-pulse">✓ Saved</span>
+          )}
           <button
             onClick={() => settings && setForm(settings)}
             disabled={saving}

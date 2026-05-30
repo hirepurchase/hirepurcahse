@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Search,
   Smartphone,
+  Trash2,
   Unlock,
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -83,35 +84,93 @@ export default function KnoxDevicesPage() {
   const [devices, setDevices] = useState<ManagedDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [pollingId, setPollingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = async () => {
+  const fetchDevices = useCallback(async (): Promise<ManagedDevice[]> => {
+    const res = await api.get('/knox-guard/devices');
+    return res.data.devices || [];
+  }, []);
+
+  const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/knox-guard/devices');
-      setDevices(res.data.devices || []);
+      setDevices(await fetchDevices());
     } catch {
       toast({ title: 'Error', description: 'Failed to load devices', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchDevices]);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  // Stop any in-progress poll on unmount
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
+  const startPolling = (contractId: string, prevState: string) => {
+    setPollingId(contractId);
+    let attempts = 0;
+    const MAX = 15;
+    if (pollRef.current) clearInterval(pollRef.current);
+
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const updated = await fetchDevices();
+        setDevices(updated);
+        const device = updated.find((d) => d.contract.id === contractId);
+        const stateChanged = device && device.actualState !== prevState;
+        if (stateChanged || attempts >= MAX) {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          setPollingId(null);
+          if (attempts >= MAX && !stateChanged) {
+            toast({ title: 'No response yet', description: 'Command is still processing — check back shortly.' });
+          }
+        }
+      } catch {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        setPollingId(null);
+      }
+    }, 4000);
+  };
 
   const handleAction = async (contractId: string, action: 'evaluate' | 'lock' | 'unlock') => {
     const key = `${action}:${contractId}`;
+    const prevDevice = devices.find((d) => d.contract.id === contractId);
+    const prevState = prevDevice?.actualState ?? 'UNKNOWN';
     try {
       setBusyKey(key);
       await api.post(`/knox-guard/contracts/${contractId}/${action}`, {});
       toast({
         title: action === 'evaluate' ? 'Evaluation queued' : action === 'lock' ? 'Lock queued' : 'Unlock queued',
-        description: `Contract ${action} request sent.`,
+        description: 'Waiting for Knox to respond…',
       });
-      await load();
+      startPolling(contractId, prevState);
     } catch (err: any) {
       toast({ title: 'Action failed', description: err.response?.data?.error || `Failed to ${action} device`, variant: 'destructive' });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const handleDelete = async (deviceUid: string) => {
+    if (!confirm(`Remove device ${deviceUid} from the Devices API tenant?\nThis does not delete the local Knox record.`)) return;
+    const key = `delete:${deviceUid}`;
+    try {
+      setBusyKey(key);
+      const res = await api.delete('/knox-guard/devices/delete', { data: { imeis: [deviceUid] } });
+      const txId: string | null = res.data?.transactionId ?? null;
+      toast({
+        title: res.data?.dryRun ? 'Dry-run: delete simulated' : 'Deletion queued',
+        description: txId ? `Transaction ID: ${txId}` : 'Device removal submitted.',
+      });
+    } catch (err: any) {
+      toast({ title: 'Delete failed', description: err.response?.data?.error || 'Failed to delete device', variant: 'destructive' });
     } finally {
       setBusyKey(null);
     }
@@ -181,16 +240,25 @@ export default function KnoxDevicesPage() {
                   <div className="space-y-1.5 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-slate-900">{device.contract.contractNumber}</span>
-                      <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.actualState)}`}>
-                        {device.actualState}
-                      </span>
-                      <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.enrollmentStatus)}`}>
-                        {device.enrollmentStatus}
-                      </span>
-                      {device.actualState !== device.desiredState && (
-                        <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-700">
-                          desired: {device.desiredState}
+                      {pollingId === device.contract.id ? (
+                        <span className="inline-flex items-center gap-1.5 border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          processing…
                         </span>
+                      ) : (
+                        <>
+                          <span className={`border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.actualState)}`}>
+                            {device.actualState}
+                          </span>
+                          <span className={`border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(device.enrollmentStatus)}`}>
+                            {device.enrollmentStatus}
+                          </span>
+                          {device.actualState !== device.desiredState && (
+                            <span className="border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-700">
+                              desired: {device.desiredState}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                     <div className="grid gap-x-6 gap-y-0.5 text-sm text-slate-600 sm:grid-cols-2">
@@ -233,6 +301,14 @@ export default function KnoxDevicesPage() {
                         >
                           {busyKey === `unlock:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlock className="h-3.5 w-3.5" />}
                           Unlock
+                        </button>
+                        <button
+                          onClick={() => handleDelete(device.deviceUid)}
+                          disabled={!!busyKey}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          {busyKey === `delete:${device.deviceUid}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          Remove
                         </button>
                       </>
                     )}
