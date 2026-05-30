@@ -256,11 +256,19 @@ export default function InventoryPage() {
     const newStatus = item.lockStatus === "LOCKED" ? "UNLOCKED" : "LOCKED";
     setLockingId(item.id);
     try {
-      await api.patch(`/products/inventory/${item.id}/lock-status`, { lockStatus: newStatus });
-      toast({
-        title: newStatus === "LOCKED" ? `Device locked` : `Device unlocked`,
-        description: `${item.serialNumber} marked as ${newStatus.toLowerCase()}.`,
-      });
+      const res = await api.patch(`/products/inventory/${item.id}/lock-status`, { lockStatus: newStatus });
+      const { knoxCommandQueued } = res.data;
+      if (knoxCommandQueued) {
+        toast({
+          title: newStatus === "LOCKED" ? "Lock command sent to Knox Guard" : "Unlock command sent to Knox Guard",
+          description: `${item.serialNumber} — command is processing. Status will update when Knox confirms.`,
+        });
+      } else {
+        toast({
+          title: newStatus === "LOCKED" ? "Device marked as locked" : "Device marked as unlocked",
+          description: `${item.serialNumber} status updated locally.`,
+        });
+      }
       loadInventory();
     } catch (err: any) {
       toast({
