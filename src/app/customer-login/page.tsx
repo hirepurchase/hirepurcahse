@@ -1,13 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ShoppingCart, ArrowLeft, LogIn, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CreditCard } from "lucide-react";
+
+const SLIDES = [
+  {
+    url: "/slider1.png",
+    headline: "Your device.\nYour contract.\nYour account.",
+    sub: "View your hire-purchase contract, check your balance, and make payments — anytime.",
+  },
+  {
+    url: "/slider2.png",
+    headline: "The device you\nlove, made\naffordable.",
+    sub: "Spread the cost of your new device with simple weekly or monthly installments.",
+  },
+  {
+    url: "/slider3.png",
+    headline: "Track every\npayment you\nhave made.",
+    sub: "Your full payment history is always available — transparent and up to date.",
+  },
+  {
+    url: "/slider4.png",
+    headline: "Support is\nalways a call\naway.",
+    sub: "Questions about your contract? Reach out to your agent directly from the portal.",
+  },
+  {
+    url: "/slider5.png",
+    headline: "Affordable.\nSimple.\nReliable.",
+    sub: "Own the device you want with a payment plan that works for you.",
+  },
+];
 
 export default function CustomerLoginPage() {
   const router = useRouter();
@@ -15,88 +38,146 @@ export default function CustomerLoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [slide, setSlide] = useState(0);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setFading(true);
+      setTimeout(() => {
+        setSlide((s) => (s + 1) % SLIDES.length);
+        setFading(false);
+      }, 400);
+    }, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const goTo = (i: number) => {
+    if (i === slide) return;
+    setFading(true);
+    setTimeout(() => { setSlide(i); setFading(false); }, 400);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${API_URL}/auth/customer/login`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${API_URL}/auth/customer/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, password }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
+      if (!res.ok) {
+        const data = await res.json();
         throw new Error(data.error || "Login failed");
       }
-
-      const { token, user } = await response.json();
-
-      // Store auth data
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('userType', 'customer');
-        window.location.href = '/customer/dashboard';
-      }
+      const { token, user } = await res.json();
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("userType", "customer");
+      window.location.href = "/customer/dashboard";
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Invalid credentials";
-      setError(message || "Invalid credentials");
+      setError(err instanceof Error ? err.message : "Invalid credentials");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const current = SLIDES[slide];
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Back to Home Button */}
-        <Button
-          variant="ghost"
-          className="mb-4 text-sm sm:text-base text-slate-700"
-          onClick={() => router.push('/')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
-        </Button>
+    <div className="min-h-screen flex" style={{ backgroundColor: "#f5f0eb" }}>
 
-        <Card className="border-white/70 bg-white/90 shadow-[0_30px_60px_-36px_rgba(15,23,42,0.7)]">
-          <CardHeader className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 px-4 sm:px-6">
-            <div className="flex justify-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-cyan-700 to-emerald-700 rounded-2xl flex items-center justify-center shadow-[0_20px_30px_-20px_rgba(13,148,136,0.8)]">
-                <ShoppingCart className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
-              </div>
+      {/* ── Left slider panel ── */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
+        <img
+          key={slide}
+          src={current.url}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+          style={{ opacity: fading ? 0 : 1 }}
+        />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.10) 100%)" }} />
+
+        <div className="relative flex flex-col justify-between h-full p-12 text-white z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-blue-600 flex items-center justify-center">
+              <CreditCard className="w-4 h-4 text-white" />
             </div>
-            <div className="text-center">
-              <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <span className="font-bold text-sm tracking-wide">AIDOO TECH</span>
+          </div>
+
+          <div className="transition-opacity duration-500" style={{ opacity: fading ? 0 : 1 }}>
+            <div className="inline-block bg-black/60 backdrop-blur-sm px-6 py-5 max-w-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300 mb-3">
                 Customer Portal
-              </CardTitle>
-              <CardDescription className="text-sm sm:text-base mt-2">
-                Sign in to view your contracts and make payments
-              </CardDescription>
+              </p>
+              <h1 className="text-3xl font-black leading-tight mb-3 whitespace-pre-line">
+                {current.headline}
+              </h1>
+              <p className="text-white/80 text-sm leading-relaxed">
+                {current.sub}
+              </p>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6">
-            {/* Error Message */}
+          <div className="flex items-center gap-2">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                className="transition-all duration-300"
+                style={{
+                  width: i === slide ? 24 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: i === slide ? "#3b82f6" : "rgba(255,255,255,0.35)",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+                aria-label={`Slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right form panel ── */}
+      <div className="flex-1 flex items-center justify-center px-6 py-14">
+        <div className="w-full max-w-[380px]">
+
+          <div className="lg:hidden flex items-center gap-2 mb-10">
+            <div className="w-8 h-8 bg-blue-600 flex items-center justify-center">
+              <CreditCard className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-sm tracking-wide text-gray-900">AIDOO TECH</span>
+          </div>
+
+          <div className="bg-white shadow-md border border-gray-100 p-8">
+            <div className="-mx-8 -mt-8 mb-8 h-1 bg-blue-600" />
+
+            <div className="mb-7">
+              <h1 className="text-2xl font-bold text-gray-900">Customer login</h1>
+              <p className="text-sm text-gray-400 mt-1">View contracts, balances &amp; payments</p>
+            </div>
+
             {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">{error}</AlertDescription>
-              </Alert>
+              <div className="mb-5 flex items-start gap-2.5 bg-red-50 border-l-4 border-red-500 px-4 py-3 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
-                <Input
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Phone number
+                </label>
+                <input
                   id="phone"
                   type="tel"
                   value={phone}
@@ -104,59 +185,67 @@ export default function CustomerLoginPage() {
                   required
                   disabled={isLoading}
                   placeholder="0246462398"
-                  className="h-10 sm:h-11 text-sm sm:text-base"
+                  className="w-full h-11 px-3.5 border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition disabled:opacity-50"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  placeholder="Enter your password"
-                  className="h-10 sm:h-11 text-sm sm:text-base"
-                />
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/customer-reset-password")}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium transition"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    placeholder="Enter your password"
+                    className="w-full h-11 px-3.5 pr-11 border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 w-11 flex items-center justify-center text-gray-400 hover:text-gray-700 transition"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-gray-400">Default password is your phone number.</p>
               </div>
 
-              <Button
+              <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 sm:h-11 text-sm sm:text-base"
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors mt-1"
               >
                 {isLoading ? (
                   <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Signing in...
+                    <div className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Signing in…
                   </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Sign In
-                  </>
-                )}
-              </Button>
+                ) : "Sign in"}
+              </button>
             </form>
 
-            <div className="text-center text-xs sm:text-sm text-gray-600 space-y-2">
-              <p>Your login username and initial password are your phone number.</p>
-              <Button
-                variant="link"
-                className="h-auto p-0 text-primary"
-                onClick={() => router.push('/customer-reset-password')}
-              >
-                Forgot password?
-              </Button>
+            <div className="mt-7 pt-5 border-t border-gray-100 flex items-center justify-between">
+              <button onClick={() => router.push("/")} className="text-xs text-gray-400 hover:text-gray-600 transition">
+                ← Back to home
+              </button>
+              <p className="text-xs text-gray-300">© {new Date().getFullYear()} Aidoo Tech</p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-gray-600 px-4">
-          <p>&copy; 2025 AIDOO TECH. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </div>

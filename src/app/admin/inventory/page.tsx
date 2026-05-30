@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2 } from "lucide-react";
+import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +65,7 @@ export default function InventoryPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
+  const [lockingId, setLockingId] = useState<string | null>(null);
   const canManageKnox = hasPermission(PERMISSIONS.MANAGE_DEVICE_CONTROL);
 
   useEffect(() => {
@@ -227,21 +228,48 @@ export default function InventoryPage() {
 
     setIsUploading(true);
     try {
-      await api.post("/knox-guard/upload/retry", { inventoryItemIds: ids });
-      toast({
-        title: `Upload queued for ${imeis.length} device${imeis.length > 1 ? "s" : ""}`,
-        description: "Check Knox upload status for the result.",
-      });
+      const res = await api.post("/knox-guard/upload/retry", { inventoryItemIds: ids });
+      const { uploaded, failed, skipped, dryRun } = res.data;
+      if (dryRun) {
+        toast({ title: "Dry-run mode active", description: "No devices were actually uploaded. Disable dry-run in Knox settings to go live." });
+      } else if (failed > 0 && uploaded === 0) {
+        toast({ title: "Upload failed", description: `All ${failed} device(s) failed to upload. Check Knox upload status.`, variant: "destructive" });
+      } else if (failed > 0) {
+        toast({ title: `${uploaded} uploaded, ${failed} failed`, description: "Some devices failed. Check Knox upload status for details.", variant: "destructive" });
+      } else {
+        toast({ title: `${uploaded} device${uploaded !== 1 ? "s" : ""} uploaded successfully`, description: "All devices registered with Knox Guard." });
+      }
       setSelectedIds(new Set());
       loadInventory();
     } catch (err: any) {
       toast({
         title: "Upload failed",
-        description: err.response?.data?.error || "Failed to queue Knox upload",
+        description: err.response?.data?.error || "Failed to upload devices to Knox",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleLockToggle = async (item: any) => {
+    const newStatus = item.lockStatus === "LOCKED" ? "UNLOCKED" : "LOCKED";
+    setLockingId(item.id);
+    try {
+      await api.patch(`/products/inventory/${item.id}/lock-status`, { lockStatus: newStatus });
+      toast({
+        title: newStatus === "LOCKED" ? `Device locked` : `Device unlocked`,
+        description: `${item.serialNumber} marked as ${newStatus.toLowerCase()}.`,
+      });
+      loadInventory();
+    } catch (err: any) {
+      toast({
+        title: "Failed",
+        description: err.response?.data?.error || "Could not update lock status",
+        variant: "destructive",
+      });
+    } finally {
+      setLockingId(null);
     }
   };
 
@@ -422,6 +450,23 @@ export default function InventoryPage() {
                             <Upload className="h-4 w-4" />
                           </Button>
                         )}
+                        {canManageKnox && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLockToggle(item)}
+                            disabled={lockingId === item.id}
+                            title={item.lockStatus === "LOCKED" ? "Unlock" : "Lock"}
+                            className={item.lockStatus === "LOCKED" ? "text-red-600 hover:bg-red-50" : "text-emerald-600 hover:bg-emerald-50"}
+                          >
+                            {lockingId === item.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : item.lockStatus === "LOCKED"
+                                ? <Lock className="h-4 w-4" />
+                                : <Unlock className="h-4 w-4" />
+                            }
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -512,16 +557,33 @@ export default function InventoryPage() {
                                 </Button>
                               )}
                               {canManageKnox && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleKnoxUpload([item.id])}
-                                  disabled={isUploading}
-                                  title="Upload to Knox"
-                                  className="text-blue-600 hover:bg-blue-50"
-                                >
-                                  <Upload className="h-4 w-4" />
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleKnoxUpload([item.id])}
+                                    disabled={isUploading}
+                                    title="Upload to Knox"
+                                    className="text-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Upload className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleLockToggle(item)}
+                                    disabled={lockingId === item.id}
+                                    title={item.lockStatus === "LOCKED" ? "Unlock device" : "Lock device"}
+                                    className={item.lockStatus === "LOCKED" ? "text-red-600 hover:bg-red-50" : "text-emerald-600 hover:bg-emerald-50"}
+                                  >
+                                    {lockingId === item.id
+                                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                                      : item.lockStatus === "LOCKED"
+                                        ? <Lock className="h-4 w-4" />
+                                        : <Unlock className="h-4 w-4" />
+                                    }
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -694,8 +756,15 @@ function InventoryForm({
 
       if (canManageKnox && registerWithKnox && newItemId) {
         try {
-          await api.post("/knox-guard/upload/retry", { inventoryItemIds: [newItemId] });
-          toast({ title: "Item added & registered with Knox Guard", description: `${formData.serialNumber} queued for Knox upload.` });
+          const knoxRes = await api.post("/knox-guard/upload/retry", { inventoryItemIds: [newItemId] });
+          const { uploaded, dryRun } = knoxRes.data;
+          if (dryRun) {
+            toast({ title: "Item added", description: "Knox dry-run mode active — device not actually uploaded." });
+          } else if (uploaded > 0) {
+            toast({ title: "Item added & uploaded to Knox Guard", description: `${formData.serialNumber} successfully registered.` });
+          } else {
+            toast({ title: "Item added", description: "Knox upload failed — retry from the inventory table.", variant: "destructive" });
+          }
         } catch {
           toast({ title: "Item added", description: "Knox registration failed — you can retry from the inventory table.", variant: "destructive" });
         }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   CheckCircle2,
+  ShieldCheck,
   Loader2,
   Lock,
   RefreshCw,
@@ -158,6 +159,20 @@ export default function KnoxDevicesPage() {
     }
   };
 
+  const handleApprove = async (contractId: string) => {
+    const key = `approve:${contractId}`;
+    try {
+      setBusyKey(key);
+      await api.post(`/knox-guard/contracts/${contractId}/approve`, {});
+      toast({ title: 'Approval queued', description: 'Knox Guard will approve the device on the next command cycle.' });
+      await load();
+    } catch (err: any) {
+      toast({ title: 'Approval failed', description: err.response?.data?.error || 'Failed to queue approval', variant: 'destructive' });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   const handleDelete = async (deviceUid: string) => {
     if (!confirm(`Remove device ${deviceUid} from the Devices API tenant?\nThis does not delete the local Knox record.`)) return;
     const key = `delete:${deviceUid}`;
@@ -267,8 +282,13 @@ export default function KnoxDevicesPage() {
                       <span className="font-mono text-xs text-slate-400">{device.deviceUid}</span>
                       <span>Balance: GHS {device.contract.outstandingBalance.toFixed(2)}</span>
                     </div>
+                    {device.enrollmentStatus === 'APPROVAL_QUEUED' && !device.lastError && (
+                      <p className="border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+                        Waiting for Knox Guard app to connect on device
+                      </p>
+                    )}
                     {device.lastError && (
-                      <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">
+                      <p className="border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">
                         {device.lastError}
                       </p>
                     )}
@@ -278,6 +298,18 @@ export default function KnoxDevicesPage() {
                   <div className="flex flex-wrap shrink-0 items-center gap-2">
                     {canManage && (
                       <>
+                        {/* Approve — only shown when waiting for Knox Guard app to connect */}
+                        {device.enrollmentStatus === 'APPROVAL_QUEUED' && (
+                          <button
+                            onClick={() => handleApprove(device.contract.id)}
+                            disabled={!!busyKey}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                            title="Queue Knox Guard approval — succeeds once the Knox Guard app connects on the device"
+                          >
+                            {busyKey === `approve:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                            Approve
+                          </button>
+                        )}
                         <button
                           onClick={() => handleAction(device.contract.id, 'evaluate')}
                           disabled={!!busyKey}

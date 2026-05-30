@@ -40,38 +40,18 @@ interface KnoxEnrollmentDefaults {
 const emptyKnoxEnrollForm = {
   deviceUid: '',
   deviceUidType: 'SERIAL_NUMBER',
-  approveId: '',
   disclosureAccepted: false,
   disclosureVersion: '',
-  termsReference: '',
-  supportPhone: '',
-  supportMessage: '',
-  warningMessage: '',
-  paymentAppPackage: '',
-  paymentAppLabel: '',
-  paymentUssd: '',
-  refreshActionLabel: 'Refresh account status',
 };
 
 function withKnoxEnrollDefaults(
   current: typeof emptyKnoxEnrollForm,
   defaults?: KnoxEnrollmentDefaults | null
 ) {
-  if (!defaults) {
-    return current;
-  }
-
+  if (!defaults) return current;
   return {
     ...current,
     disclosureVersion: current.disclosureVersion || defaults.disclosureVersion || '',
-    termsReference: current.termsReference || defaults.termsReference || '',
-    supportPhone: current.supportPhone || defaults.supportPhone || '',
-    supportMessage: current.supportMessage || defaults.supportMessage || '',
-    warningMessage: current.warningMessage || defaults.warningMessage || '',
-    paymentAppPackage: current.paymentAppPackage || defaults.paymentAppPackage || '',
-    paymentAppLabel: current.paymentAppLabel || defaults.paymentAppLabel || '',
-    paymentUssd: current.paymentUssd || defaults.paymentUssd || '',
-    refreshActionLabel: current.refreshActionLabel || defaults.refreshActionLabel || 'Refresh account status',
   };
 }
 
@@ -215,31 +195,16 @@ export default function ContractDetailsPage() {
     }
 
     try {
-      const allowCustomerAppOnLockScreen = knoxDefaults?.allowCustomerAppOnLockScreen ?? true;
-      const allowSupportOnLockScreen = knoxDefaults?.allowSupportOnLockScreen ?? true;
-      const allowPaymentUssdOnLockScreen = (knoxDefaults?.allowPaymentUssdOnLockScreen ?? true)
-        && Boolean(knoxEnrollForm.paymentUssd.trim());
-
       setKnoxBusyAction('enroll');
+      // Lock-screen fields (support phone, messages, app package, USSD) are
+      // inherited from global Knox settings — no per-contract overrides needed.
       await api.post(`/knox-guard/contracts/${params.id}/enroll`, {
         deviceUid: knoxEnrollForm.deviceUid.trim() || undefined,
         deviceUidType: knoxEnrollForm.deviceUidType,
-        approveId: knoxEnrollForm.approveId.trim() || undefined,
         metadata: {
           customerExperience: {
             disclosureAccepted: knoxEnrollForm.disclosureAccepted,
             disclosureVersion: knoxEnrollForm.disclosureVersion.trim() || undefined,
-            termsReference: knoxEnrollForm.termsReference.trim() || undefined,
-            supportPhone: knoxEnrollForm.supportPhone.trim() || undefined,
-            supportMessage: knoxEnrollForm.supportMessage.trim() || undefined,
-            warningMessage: knoxEnrollForm.warningMessage.trim() || undefined,
-            paymentAppPackage: knoxEnrollForm.paymentAppPackage.trim() || undefined,
-            paymentAppLabel: knoxEnrollForm.paymentAppLabel.trim() || undefined,
-            paymentUssd: knoxEnrollForm.paymentUssd.trim() || undefined,
-            refreshActionLabel: knoxEnrollForm.refreshActionLabel.trim() || undefined,
-            allowCustomerAppOnLockScreen,
-            allowSupportOnLockScreen,
-            allowPaymentUssdOnLockScreen,
           },
         },
       });
@@ -873,6 +838,15 @@ export default function ContractDetailsPage() {
                 Loading Knox Guard details...
               </div>
             ) : knoxContract?.managedDevice ? (
+              <div className="relative">
+                {/* Enrolled — gray out the entire section to indicate it's read-only here */}
+                <div className="mb-3 flex items-center gap-2 border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                  <Shield className="h-3.5 w-3.5 shrink-0" />
+                  Device is enrolled. Use the{' '}
+                  <a href="/admin/knox/devices" className="font-semibold underline hover:text-blue-900">Knox Guard Devices page</a>
+                  {' '}to manage lock, unlock and approval actions.
+                </div>
+                <div className="opacity-60 pointer-events-none select-none">
               <>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -1038,161 +1012,78 @@ export default function ContractDetailsPage() {
                   </div>
                 )}
               </>
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5">
-                  <p className="font-medium text-slate-900">No Knox Guard device enrolled yet</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    This contract is not yet linked to a managed Samsung device. If the inventory serial number is correct,
-                    you can enroll it below after capturing disclosure and the lock-screen payment/support setup.
-                  </p>
+                <div className="border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                  <p className="font-medium text-slate-900 mb-0.5">No device enrolled yet</p>
+                  Lock-screen settings (support phone, messages, payment app) are inherited from{' '}
+                  <a href="/admin/knox/settings" className="text-blue-600 hover:underline">Knox settings</a> automatically.
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <Label>Inventory serial / IMEI</Label>
+                    <Label>Device IMEI / Serial</Label>
                     <Input
                       value={knoxEnrollForm.deviceUid}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, deviceUid: e.target.value }))}
+                      onChange={(e) => setKnoxEnrollForm((c) => ({ ...c, deviceUid: e.target.value }))}
                       placeholder={contract.inventoryItem?.serialNumber || 'Uses contract inventory serial by default'}
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Leave empty to use the contract inventory serial automatically.
-                    </p>
+                    <p className="mt-1 text-xs text-gray-400">Leave blank to use the contract inventory serial.</p>
                   </div>
                   <div>
-                    <Label>Device UID Type</Label>
+                    <Label>UID Type</Label>
                     <Select
                       value={knoxEnrollForm.deviceUidType}
-                      onValueChange={(value) => setKnoxEnrollForm((current) => ({ ...current, deviceUidType: value }))}
+                      onValueChange={(v) => setKnoxEnrollForm((c) => ({ ...c, deviceUidType: v }))}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="SERIAL_NUMBER">Serial Number</SelectItem>
                         <SelectItem value="IMEI">IMEI</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>Approve ID</Label>
-                    <Input
-                      value={knoxEnrollForm.approveId}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, approveId: e.target.value }))}
-                      placeholder={contract.contractNumber}
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Leave empty to use the contract number as the approve ID.
-                    </p>
-                  </div>
                 </div>
 
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="border border-slate-200 bg-slate-50 p-4">
                   <div className="flex items-start gap-3">
                     <Checkbox
                       id="contract-knox-disclosure"
                       checked={knoxEnrollForm.disclosureAccepted}
-                      onCheckedChange={(checked) =>
-                        setKnoxEnrollForm((current) => ({ ...current, disclosureAccepted: checked === true }))
-                      }
+                      onCheckedChange={(checked) => setKnoxEnrollForm((c) => ({ ...c, disclosureAccepted: checked === true }))}
                       className="mt-0.5"
                     />
-                    <div className="space-y-1">
-                      <label htmlFor="contract-knox-disclosure" className="text-sm font-medium text-slate-900">
-                        Customer disclosure confirmed
+                    <div>
+                      <label htmlFor="contract-knox-disclosure" className="text-sm font-medium text-slate-900 cursor-pointer">
+                        Customer disclosure confirmed <span className="text-red-500">*</span>
                       </label>
-                      <p className="text-sm text-slate-600">
-                        Confirm the customer was told that overdue payments can trigger restriction while payment and support options remain available.
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        The customer was informed that overdue payments may trigger device restriction.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <div>
-                    <Label>Disclosure version</Label>
-                    <Input
-                      value={knoxEnrollForm.disclosureVersion}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, disclosureVersion: e.target.value }))}
-                      placeholder={knoxDefaults?.disclosureVersion || 'e.g. v1'}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Terms reference or URL</Label>
-                    <Input
-                      value={knoxEnrollForm.termsReference}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, termsReference: e.target.value }))}
-                      placeholder={knoxDefaults?.termsReference || 'Policy URL or signed terms reference'}
-                    />
-                  </div>
-                  <div>
-                    <Label>Support phone</Label>
-                    <Input
-                      value={knoxEnrollForm.supportPhone}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, supportPhone: e.target.value }))}
-                      placeholder={knoxDefaults?.supportPhone || 'Customer service line'}
-                    />
-                  </div>
-                  <div>
-                    <Label>Payment app package</Label>
-                    <Input
-                      value={knoxEnrollForm.paymentAppPackage}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, paymentAppPackage: e.target.value }))}
-                      placeholder={knoxDefaults?.paymentAppPackage || 'com.aidootech.customer'}
-                    />
-                  </div>
-                  <div>
-                    <Label>Payment app label</Label>
-                    <Input
-                      value={knoxEnrollForm.paymentAppLabel}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, paymentAppLabel: e.target.value }))}
-                      placeholder={knoxDefaults?.paymentAppLabel || 'AIDOO TECH'}
-                    />
-                  </div>
-                  <div>
-                    <Label>Payment USSD</Label>
-                    <Input
-                      value={knoxEnrollForm.paymentUssd}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, paymentUssd: e.target.value }))}
-                      placeholder={knoxDefaults?.paymentUssd || '*170#'}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Refresh action label</Label>
-                    <Input
-                      value={knoxEnrollForm.refreshActionLabel}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, refreshActionLabel: e.target.value }))}
-                      placeholder={knoxDefaults?.refreshActionLabel || 'Refresh account status'}
-                    />
-                  </div>
-                  <div className="md:col-span-2 xl:col-span-3">
-                    <Label>Support message on lock screen</Label>
-                    <Textarea
-                      value={knoxEnrollForm.supportMessage}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, supportMessage: e.target.value }))}
-                      placeholder={knoxDefaults?.supportMessage || 'Message shown to the customer while the device is restricted.'}
-                      className="min-h-[90px]"
-                    />
-                  </div>
-                  <div className="md:col-span-2 xl:col-span-3">
-                    <Label>Warning message before restriction</Label>
-                    <Textarea
-                      value={knoxEnrollForm.warningMessage}
-                      onChange={(e) => setKnoxEnrollForm((current) => ({ ...current, warningMessage: e.target.value }))}
-                      placeholder={knoxDefaults?.warningMessage || 'Reminder shown before the device is locked.'}
-                      className="min-h-[90px]"
-                    />
-                  </div>
+                <div>
+                  <Label>Disclosure version</Label>
+                  <Input
+                    value={knoxEnrollForm.disclosureVersion}
+                    onChange={(e) => setKnoxEnrollForm((c) => ({ ...c, disclosureVersion: e.target.value }))}
+                    placeholder={knoxDefaults?.disclosureVersion || 'e.g. v1'}
+                    className="max-w-[200px]"
+                  />
                 </div>
 
                 {canManageDeviceControl && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => void handleKnoxEnroll()} disabled={knoxBusyAction !== null}>
-                      {knoxBusyAction === 'enroll' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Smartphone className="mr-2 h-4 w-4" />}
-                      Enroll Device
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => void handleKnoxEnroll()}
+                    disabled={knoxBusyAction !== null || !knoxEnrollForm.disclosureAccepted}
+                  >
+                    {knoxBusyAction === 'enroll' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Smartphone className="mr-2 h-4 w-4" />}
+                    Enroll Device
+                  </Button>
                 )}
               </div>
             )}
