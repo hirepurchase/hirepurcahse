@@ -12,6 +12,7 @@ import {
   Smartphone,
   Trash2,
   Unlock,
+  Server,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
@@ -124,6 +125,24 @@ interface PaginationState {
   totalPages: number;
 }
 
+interface DevicesApiDevice {
+  objectId: string;
+  deviceUid: number | string;
+  status: string;
+  createDate?: number | null;
+  modifiedDate?: number | null;
+  imeiNumber?: string | null;
+  imei2?: string | null;
+  agentVersion?: string | null;
+  firmwareVersion?: string | null;
+  licenseExpiryDate?: number | null;
+  isOfflineLocked?: boolean | null;
+  isOfflineLockApplied?: boolean | null;
+  simControlEnabled?: boolean | null;
+  simControlApplied?: boolean | null;
+  isSimControlLocked?: boolean | null;
+}
+
 function statusPill(status: string) {
   const s = status.toUpperCase();
   if (['LOCKED', 'FAILED', 'OVERDUE'].includes(s)) return 'bg-red-100 text-red-700 border-red-200';
@@ -185,6 +204,18 @@ export default function KnoxDevicesPage() {
     total: 0,
     totalPages: 1,
   });
+
+  // Devices API section
+  const [apiDevices, setApiDevices] = useState<DevicesApiDevice[]>([]);
+  const [apiDevicesLoading, setApiDevicesLoading] = useState(false);
+  const [apiDevicesError, setApiDevicesError] = useState<string | null>(null);
+  const [apiDevicesPage, setApiDevicesPage] = useState(1);
+  const API_DEVICES_PAGE_SIZE = 20;
+  const [apiStatusFilter, setApiStatusFilter] = useState('');
+  const [apiLockFilter, setApiLockFilter] = useState('');
+  const [apiImeiSearch, setApiImeiSearch] = useState('');
+  const deferredApiImei = useDeferredValue(apiImeiSearch.trim());
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deferredQuery = useDeferredValue(query.trim());
 
@@ -248,6 +279,52 @@ export default function KnoxDevicesPage() {
   }, [devicePagination.page, fetchDevices, fetchUploads, toast, uploadPagination.page]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const fetchApiDevices = useCallback(async () => {
+    setApiDevicesLoading(true);
+    setApiDevicesError(null);
+    try {
+      const res = await api.get('/knox-guard/devices/list-api');
+      const list: DevicesApiDevice[] = res.data?.deviceList ?? [];
+      setApiDevices(list);
+    } catch (err: any) {
+      setApiDevicesError(err.response?.data?.error || 'Failed to fetch devices from Devices API');
+    } finally {
+      setApiDevicesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void fetchApiDevices(); }, [fetchApiDevices]);
+
+  // Client-side filter + paginate the Devices API list
+  const filteredApiDevices = useMemo(() => {
+    return apiDevices.filter((d) => {
+      if (apiStatusFilter && d.status?.toLowerCase() !== apiStatusFilter.toLowerCase()) return false;
+      if (apiLockFilter === 'locked' && !d.isOfflineLocked) return false;
+      if (apiLockFilter === 'unlocked' && d.isOfflineLocked !== false) return false;
+      if (deferredApiImei) {
+        const imei = deferredApiImei.toLowerCase();
+        const match =
+          String(d.imeiNumber || '').toLowerCase().includes(imei) ||
+          String(d.imei2 || '').toLowerCase().includes(imei) ||
+          String(d.deviceUid || '').toLowerCase().includes(imei) ||
+          String(d.objectId || '').toLowerCase().includes(imei);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [apiDevices, apiStatusFilter, apiLockFilter, deferredApiImei]);
+
+  const apiDevicesTotalPages = Math.max(1, Math.ceil(filteredApiDevices.length / API_DEVICES_PAGE_SIZE));
+  const pagedApiDevices = filteredApiDevices.slice(
+    (apiDevicesPage - 1) * API_DEVICES_PAGE_SIZE,
+    apiDevicesPage * API_DEVICES_PAGE_SIZE,
+  );
+
+  const apiStatusOptions = useMemo(() => {
+    const set = new Set(apiDevices.map((d) => d.status).filter(Boolean));
+    return Array.from(set).sort();
+  }, [apiDevices]);
 
   // Stop any in-progress poll on unmount
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
@@ -354,7 +431,7 @@ export default function KnoxDevicesPage() {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-slate-500">
-            {devicePagination.total} managed · {uploadPagination.total} uploaded
+            {devicePagination.total} managed · {uploadPagination.total} uploaded · {apiDevices.length} in API
           </span>
           <button
             onClick={() => void load()}
@@ -690,6 +767,139 @@ export default function KnoxDevicesPage() {
             onPageChange={(page) => setUploadPagination((current) => ({ ...current, page }))}
             totalItems={uploadPagination.total}
             itemsPerPage={uploadPagination.limit}
+          />
+        )}
+      </div>
+
+      {/* ── Devices API ─────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Server className="h-5 w-5 text-cyan-600" />
+              Devices API
+            </h2>
+            <p className="text-sm text-slate-500">
+              Live device list fetched directly from the Samsung Devices API tenant.
+            </p>
+          </div>
+          <button
+            onClick={() => void fetchApiDevices()}
+            disabled={apiDevicesLoading}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {apiDevicesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="relative min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="IMEI / Object ID…"
+              value={apiImeiSearch}
+              onChange={(e) => { setApiImeiSearch(e.target.value); setApiDevicesPage(1); }}
+              className="w-full rounded-xl border border-slate-300 py-1.5 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+            />
+          </div>
+          <select
+            value={apiStatusFilter}
+            onChange={(e) => { setApiStatusFilter(e.target.value); setApiDevicesPage(1); }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All statuses</option>
+            {apiStatusOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            value={apiLockFilter}
+            onChange={(e) => { setApiLockFilter(e.target.value); setApiDevicesPage(1); }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All lock states</option>
+            <option value="locked">Offline locked</option>
+            <option value="unlocked">Not locked</option>
+          </select>
+          <span className="ml-auto text-xs text-slate-500">
+            {filteredApiDevices.length} of {apiDevices.length} devices
+          </span>
+        </div>
+
+        {apiDevicesLoading ? (
+          <div className="flex h-40 items-center justify-center text-slate-500">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Fetching from Devices API…
+          </div>
+        ) : apiDevicesError ? (
+          <div className="p-10 text-center text-sm text-red-600">{apiDevicesError}</div>
+        ) : pagedApiDevices.length === 0 ? (
+          <div className="p-10 text-center text-sm text-slate-500">
+            {apiDevices.length === 0 ? 'No devices registered in the tenant.' : 'No devices match the current filters.'}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">IMEI</th>
+                  <th className="px-4 py-3 font-medium">Object ID</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Lock</th>
+                  <th className="px-4 py-3 font-medium">Agent / Firmware</th>
+                  <th className="px-4 py-3 font-medium">Registered</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pagedApiDevices.map((d) => (
+                  <tr key={d.objectId} className="align-top">
+                    <td className="px-4 py-3">
+                      <div className="font-mono text-xs text-slate-900">{d.imeiNumber || String(d.deviceUid)}</div>
+                      {d.imei2 && <div className="mt-1 font-mono text-xs text-slate-500">SIM 2: {d.imei2}</div>}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{d.objectId}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(d.status || 'UNKNOWN')}`}>
+                        {d.status || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {d.isOfflineLocked ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700">
+                          <Lock className="h-3 w-3" /> Locked
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                          <Unlock className="h-3 w-3" /> Unlocked
+                        </span>
+                      )}
+                      {d.simControlEnabled && (
+                        <div className="mt-1 text-xs text-slate-500">SIM control on</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      <div>Agent: {d.agentVersion || '—'}</div>
+                      <div className="mt-1">FW: {d.firmwareVersion || '—'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {d.createDate ? new Date(d.createDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!apiDevicesLoading && apiDevicesTotalPages > 1 && (
+          <Pagination
+            currentPage={apiDevicesPage}
+            totalPages={apiDevicesTotalPages}
+            onPageChange={(page) => setApiDevicesPage(page)}
+            totalItems={filteredApiDevices.length}
+            itemsPerPage={API_DEVICES_PAGE_SIZE}
           />
         )}
       </div>
