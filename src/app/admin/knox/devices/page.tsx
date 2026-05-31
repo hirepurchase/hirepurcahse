@@ -3,10 +3,12 @@
 import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
+  AlertCircle,
   CheckCircle2,
   ShieldCheck,
   Loader2,
   Lock,
+  Radio,
   RefreshCw,
   Search,
   Smartphone,
@@ -143,6 +145,32 @@ interface DevicesApiDevice {
   isSimControlLocked?: boolean | null;
 }
 
+interface PortalCheckDevice {
+  managedDeviceId: string;
+  deviceUid: string;
+  contractNumber: string | null;
+  customer: string | null;
+  localState: string;
+  localEnrollmentStatus: string;
+  portalFound: boolean;
+  portalStatus: string | null;
+  portalObjectId: string | null;
+  portalModel: string | null;
+  dryRun: boolean;
+  error: string | null;
+}
+
+interface PortalCheckResult {
+  summary: {
+    total: number;
+    foundOnPortal: number;
+    notFoundOnPortal: number;
+    lookupErrors: number;
+    dryRun: boolean;
+  };
+  devices: PortalCheckDevice[];
+}
+
 function statusPill(status: string) {
   const s = status.toUpperCase();
   if (['LOCKED', 'FAILED', 'OVERDUE'].includes(s)) return 'bg-red-100 text-red-700 border-red-200';
@@ -215,6 +243,11 @@ export default function KnoxDevicesPage() {
   const [apiLockFilter, setApiLockFilter] = useState('');
   const [apiImeiSearch, setApiImeiSearch] = useState('');
   const deferredApiImei = useDeferredValue(apiImeiSearch.trim());
+
+  // Knox portal live check
+  const [portalCheck, setPortalCheck] = useState<PortalCheckResult | null>(null);
+  const [portalCheckLoading, setPortalCheckLoading] = useState(false);
+  const [portalCheckError, setPortalCheckError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deferredQuery = useDeferredValue(query.trim());
@@ -295,6 +328,19 @@ export default function KnoxDevicesPage() {
   }, []);
 
   useEffect(() => { void fetchApiDevices(); }, [fetchApiDevices]);
+
+  const fetchPortalCheck = useCallback(async () => {
+    setPortalCheckLoading(true);
+    setPortalCheckError(null);
+    try {
+      const res = await api.get('/knox-guard/devices/portal-check');
+      setPortalCheck(res.data);
+    } catch (err: any) {
+      setPortalCheckError(err.response?.data?.error || 'Failed to check Knox portal');
+    } finally {
+      setPortalCheckLoading(false);
+    }
+  }, []);
 
   // Client-side filter + paginate the Devices API list
   const filteredApiDevices = useMemo(() => {
@@ -768,6 +814,142 @@ export default function KnoxDevicesPage() {
             totalItems={uploadPagination.total}
             itemsPerPage={uploadPagination.limit}
           />
+        )}
+      </div>
+
+      {/* ── Knox Portal Live Check ──────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Radio className="h-5 w-5 text-cyan-600" />
+              Knox Portal Live Check
+            </h2>
+            <p className="text-sm text-slate-500">
+              Queries the Samsung Knox Guard portal for every active enrolled device and shows real-time status.
+            </p>
+          </div>
+          <button
+            onClick={() => void fetchPortalCheck()}
+            disabled={portalCheckLoading}
+            className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
+          >
+            {portalCheckLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+            {portalCheck ? 'Re-check portal' : 'Check portal now'}
+          </button>
+        </div>
+
+        {!portalCheck && !portalCheckLoading && !portalCheckError && (
+          <div className="flex flex-col items-center justify-center gap-3 p-12 text-center text-slate-500">
+            <Radio className="h-10 w-10 text-slate-300" />
+            <p className="text-sm">Click <span className="font-medium text-cyan-600">Check portal now</span> to query Samsung Knox Guard for all enrolled active devices.</p>
+          </div>
+        )}
+
+        {portalCheckLoading && (
+          <div className="flex h-40 items-center justify-center text-slate-500">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Querying Knox Guard portal…
+          </div>
+        )}
+
+        {portalCheckError && (
+          <div className="flex items-center gap-3 p-6 text-sm text-red-600">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            {portalCheckError}
+          </div>
+        )}
+
+        {portalCheck && !portalCheckLoading && (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 gap-3 border-b border-slate-100 p-4 sm:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total checked</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">{portalCheck.summary.total}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
+                <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">Found on portal</p>
+                <p className="mt-1 text-2xl font-bold text-emerald-900">{portalCheck.summary.foundOnPortal}</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-700">Not on portal</p>
+                <p className="mt-1 text-2xl font-bold text-amber-900">{portalCheck.summary.notFoundOnPortal}</p>
+              </div>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
+                <p className="text-xs font-medium uppercase tracking-wide text-red-700">Lookup errors</p>
+                <p className="mt-1 text-2xl font-bold text-red-900">{portalCheck.summary.lookupErrors}</p>
+              </div>
+            </div>
+
+            {portalCheck.summary.dryRun && (
+              <div className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Dry-run mode active — results are simulated, not from the live Knox portal.
+              </div>
+            )}
+
+            {portalCheck.devices.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-500">No active enrolled devices to check.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Device / Contract</th>
+                      <th className="px-4 py-3 font-medium">Customer</th>
+                      <th className="px-4 py-3 font-medium">Local state</th>
+                      <th className="px-4 py-3 font-medium">Portal status</th>
+                      <th className="px-4 py-3 font-medium">Object ID</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {portalCheck.devices.map((d) => (
+                      <tr key={d.managedDeviceId} className="align-top">
+                        <td className="px-4 py-3">
+                          <div className="font-mono text-xs text-slate-900">{d.deviceUid}</div>
+                          <div className="mt-1 text-xs text-slate-500">{d.contractNumber ?? '—'}</div>
+                          {d.portalModel && <div className="mt-1 text-xs text-slate-400">{d.portalModel}</div>}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-700">{d.customer ?? '—'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex w-fit rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(d.localState)}`}>
+                              {d.localState}
+                            </span>
+                            <span className={`inline-flex w-fit rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(d.localEnrollmentStatus)}`}>
+                              {d.localEnrollmentStatus}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {d.error ? (
+                            <div className="flex items-center gap-1.5 text-xs text-red-600">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              {d.error}
+                            </div>
+                          ) : d.portalFound ? (
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                              <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(d.portalStatus ?? 'UNKNOWN')}`}>
+                                {d.portalStatus ?? 'UNKNOWN'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-xs text-amber-700">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              Not found on portal
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                          {d.portalObjectId ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </div>
 
