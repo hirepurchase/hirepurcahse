@@ -66,6 +66,12 @@ export default function InventoryPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [lockingId, setLockingId] = useState<string | null>(null);
+  const [knoxConfirm, setKnoxConfirm] = useState<{
+    item: any;
+    newStatus: 'LOCKED' | 'UNLOCKED';
+    portalDevice: { status: string; isOfflineLocked: boolean | null; agentVersion: string | null; imeiNumber: string | null } | null;
+    dryRun: boolean;
+  } | null>(null);
   const canManageKnox = hasPermission(PERMISSIONS.MANAGE_DEVICE_CONTROL);
 
   useEffect(() => {
@@ -253,7 +259,31 @@ export default function InventoryPage() {
   };
 
   const handleLockToggle = async (item: any) => {
-    const newStatus = item.lockStatus === "LOCKED" ? "UNLOCKED" : "LOCKED";
+    const newStatus: 'LOCKED' | 'UNLOCKED' = item.lockStatus === "LOCKED" ? "UNLOCKED" : "LOCKED";
+    // Only do portal lookup if the item has a Knox-enrolled managed device
+    if (item.managedDevice?.isActive) {
+      setLockingId(item.id);
+      try {
+        const res = await api.get(`/knox-guard/devices/portal-status/${encodeURIComponent(item.serialNumber)}`);
+        setKnoxConfirm({
+          item,
+          newStatus,
+          portalDevice: res.data.device,
+          dryRun: res.data.dryRun ?? false,
+        });
+      } catch {
+        // Lookup failed — still allow the action but warn
+        setKnoxConfirm({ item, newStatus, portalDevice: null, dryRun: false });
+      } finally {
+        setLockingId(null);
+      }
+    } else {
+      // No Knox device — proceed directly with local update
+      await executeLockToggle(item, newStatus);
+    }
+  };
+
+  const executeLockToggle = async (item: any, newStatus: 'LOCKED' | 'UNLOCKED') => {
     setLockingId(item.id);
     try {
       const res = await api.patch(`/products/inventory/${item.id}/lock-status`, { lockStatus: newStatus });
@@ -669,6 +699,74 @@ export default function InventoryPage() {
               className="bg-red-600 hover:bg-red-700"
             >
               {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Knox portal status confirmation before lock / unlock */}
+      <AlertDialog open={!!knoxConfirm} onOpenChange={(open) => { if (!open) setKnoxConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {knoxConfirm?.newStatus === 'LOCKED' ? 'Lock device via Knox Guard?' : 'Unlock device via Knox Guard?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  <span className="font-medium">IMEI:</span>{' '}
+                  <span className="font-mono">{knoxConfirm?.item?.serialNumber}</span>
+                </p>
+                {knoxConfirm?.dryRun && (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
+                    Knox Guard is in <strong>dry-run mode</strong> — no real command will be sent.
+                  </p>
+                )}
+                {knoxConfirm?.portalDevice ? (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
+                    <p className="font-medium text-slate-700">Knox Portal Status</p>
+                    <p>
+                      Status:{' '}
+                      <span className={`font-semibold ${knoxConfirm.portalDevice.status === 'active' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {knoxConfirm.portalDevice.status ?? '—'}
+                      </span>
+                    </p>
+                    <p>
+                      Offline locked:{' '}
+                      <span className={`font-semibold ${knoxConfirm.portalDevice.isOfflineLocked ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {knoxConfirm.portalDevice.isOfflineLocked == null ? '—' : knoxConfirm.portalDevice.isOfflineLocked ? 'Yes' : 'No'}
+                      </span>
+                    </p>
+                    {knoxConfirm.portalDevice.agentVersion && (
+                      <p>Agent: <span className="font-mono">{knoxConfirm.portalDevice.agentVersion}</span></p>
+                    )}
+                    {knoxConfirm.portalDevice.status !== 'active' && (
+                      <p className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">
+                        Device is not <strong>active</strong> on the Knox portal — the command may not reach the device.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                    Could not fetch portal status — device may not be visible on Knox. Proceeding will queue the command locally.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setKnoxConfirm(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={knoxConfirm?.newStatus === 'LOCKED' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+              onClick={async () => {
+                if (knoxConfirm) {
+                  const { item, newStatus } = knoxConfirm;
+                  setKnoxConfirm(null);
+                  await executeLockToggle(item, newStatus);
+                }
+              }}
+            >
+              {knoxConfirm?.newStatus === 'LOCKED' ? 'Lock device' : 'Unlock device'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
