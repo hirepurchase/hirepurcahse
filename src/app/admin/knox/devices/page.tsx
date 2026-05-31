@@ -14,7 +14,6 @@ import {
   Smartphone,
   Trash2,
   Unlock,
-  Server,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
@@ -127,23 +126,6 @@ interface PaginationState {
   totalPages: number;
 }
 
-interface DevicesApiDevice {
-  objectId: string;
-  deviceUid: number | string;
-  status: string;
-  createDate?: number | null;
-  modifiedDate?: number | null;
-  imeiNumber?: string | null;
-  imei2?: string | null;
-  agentVersion?: string | null;
-  firmwareVersion?: string | null;
-  licenseExpiryDate?: number | null;
-  isOfflineLocked?: boolean | null;
-  isOfflineLockApplied?: boolean | null;
-  simControlEnabled?: boolean | null;
-  simControlApplied?: boolean | null;
-  isSimControlLocked?: boolean | null;
-}
 
 interface PortalCheckDevice {
   managedDeviceId: string;
@@ -233,16 +215,18 @@ export default function KnoxDevicesPage() {
     totalPages: 1,
   });
 
-  // Devices API section
-  const [apiDevices, setApiDevices] = useState<DevicesApiDevice[]>([]);
-  const [apiDevicesLoading, setApiDevicesLoading] = useState(false);
-  const [apiDevicesError, setApiDevicesError] = useState<string | null>(null);
-  const [apiDevicesPage, setApiDevicesPage] = useState(1);
-  const API_DEVICES_PAGE_SIZE = 20;
-  const [apiStatusFilter, setApiStatusFilter] = useState('');
-  const [apiLockFilter, setApiLockFilter] = useState('');
-  const [apiImeiSearch, setApiImeiSearch] = useState('');
-  const deferredApiImei = useDeferredValue(apiImeiSearch.trim());
+
+  // Managed devices search + filter
+  const [deviceQuery, setDeviceQuery] = useState('');
+  const [deviceActualStateFilter, setDeviceActualStateFilter] = useState('');
+  const [deviceEnrollmentFilter, setDeviceEnrollmentFilter] = useState('');
+  const deferredDeviceQuery = useDeferredValue(deviceQuery.trim());
+
+  // Upload table search + filter (independent from the global search)
+  const [uploadQuery, setUploadQuery] = useState('');
+  const [uploadStatusFilter, setUploadStatusFilter] = useState('');
+  const [uploadSyncFilter, setUploadSyncFilter] = useState('');
+  const deferredUploadQuery = useDeferredValue(uploadQuery.trim());
 
   // Knox portal live check
   const [portalCheck, setPortalCheck] = useState<PortalCheckResult | null>(null);
@@ -257,7 +241,7 @@ export default function KnoxDevicesPage() {
       params: {
         page,
         limit: devicePagination.limit,
-        q: deferredQuery || undefined,
+        q: deferredDeviceQuery || undefined,
       },
     });
     return {
@@ -269,7 +253,7 @@ export default function KnoxDevicesPage() {
         totalPages: 1,
       },
     };
-  }, [deferredQuery, devicePagination.limit, devicePagination.page]);
+  }, [deferredDeviceQuery, devicePagination.limit, devicePagination.page]);
 
   const fetchUploads = useCallback(async (page = uploadPagination.page): Promise<{ items: KnoxUploadItem[]; portalSummary: KnoxUploadSummary | null; pagination: PaginationState }> => {
     const res = await api.get('/knox-guard/upload/status', {
@@ -277,7 +261,8 @@ export default function KnoxDevicesPage() {
         page,
         limit: uploadPagination.limit,
         includePortal: true,
-        q: deferredQuery || undefined,
+        q: deferredUploadQuery || undefined,
+        status: uploadStatusFilter || undefined,
       },
     });
     return {
@@ -290,7 +275,7 @@ export default function KnoxDevicesPage() {
         totalPages: 1,
       },
     };
-  }, [deferredQuery, uploadPagination.limit, uploadPagination.page]);
+  }, [deferredUploadQuery, uploadStatusFilter, uploadPagination.limit, uploadPagination.page]);
 
   const load = useCallback(async () => {
     try {
@@ -313,22 +298,6 @@ export default function KnoxDevicesPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const fetchApiDevices = useCallback(async () => {
-    setApiDevicesLoading(true);
-    setApiDevicesError(null);
-    try {
-      const res = await api.get('/knox-guard/devices/list-api');
-      const list: DevicesApiDevice[] = res.data?.deviceList ?? [];
-      setApiDevices(list);
-    } catch (err: any) {
-      setApiDevicesError(err.response?.data?.error || 'Failed to fetch devices from Devices API');
-    } finally {
-      setApiDevicesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void fetchApiDevices(); }, [fetchApiDevices]);
-
   const fetchPortalCheck = useCallback(async () => {
     setPortalCheckLoading(true);
     setPortalCheckError(null);
@@ -341,36 +310,6 @@ export default function KnoxDevicesPage() {
       setPortalCheckLoading(false);
     }
   }, []);
-
-  // Client-side filter + paginate the Devices API list
-  const filteredApiDevices = useMemo(() => {
-    return apiDevices.filter((d) => {
-      if (apiStatusFilter && d.status?.toLowerCase() !== apiStatusFilter.toLowerCase()) return false;
-      if (apiLockFilter === 'locked' && !d.isOfflineLocked) return false;
-      if (apiLockFilter === 'unlocked' && d.isOfflineLocked !== false) return false;
-      if (deferredApiImei) {
-        const imei = deferredApiImei.toLowerCase();
-        const match =
-          String(d.imeiNumber || '').toLowerCase().includes(imei) ||
-          String(d.imei2 || '').toLowerCase().includes(imei) ||
-          String(d.deviceUid || '').toLowerCase().includes(imei) ||
-          String(d.objectId || '').toLowerCase().includes(imei);
-        if (!match) return false;
-      }
-      return true;
-    });
-  }, [apiDevices, apiStatusFilter, apiLockFilter, deferredApiImei]);
-
-  const apiDevicesTotalPages = Math.max(1, Math.ceil(filteredApiDevices.length / API_DEVICES_PAGE_SIZE));
-  const pagedApiDevices = filteredApiDevices.slice(
-    (apiDevicesPage - 1) * API_DEVICES_PAGE_SIZE,
-    apiDevicesPage * API_DEVICES_PAGE_SIZE,
-  );
-
-  const apiStatusOptions = useMemo(() => {
-    const set = new Set(apiDevices.map((d) => d.status).filter(Boolean));
-    return Array.from(set).sort();
-  }, [apiDevices]);
 
   // Stop any in-progress poll on unmount
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
@@ -438,8 +377,40 @@ export default function KnoxDevicesPage() {
     }
   };
 
+  const handleResync = async (inventoryItemId: string) => {
+    const key = `resync:${inventoryItemId}`;
+    try {
+      setBusyKey(key);
+      const res = await api.post('/knox-guard/upload/retry', { inventoryItemIds: [inventoryItemId] });
+      toast({
+        title: res.data?.dryRun ? 'Dry-run: resync simulated' : 'Resync submitted',
+        description: res.data?.message || 'Device queued for re-upload to Knox.',
+      });
+      await load();
+    } catch (err: any) {
+      toast({ title: 'Resync failed', description: err.response?.data?.error || 'Failed to resync device', variant: 'destructive' });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const handleReset = async (serialNumber: string) => {
+    if (!confirm(`Reset Knox upload state for ${serialNumber}?\nThis clears the upload record in the local database so it can be re-uploaded fresh.`)) return;
+    const key = `reset:${serialNumber}`;
+    try {
+      setBusyKey(key);
+      const res = await api.post('/knox-guard/devices/reset', { imei: serialNumber });
+      toast({ title: 'Reset successful', description: res.data?.message || `${serialNumber} reset for re-upload.` });
+      await load();
+    } catch (err: any) {
+      toast({ title: 'Reset failed', description: err.response?.data?.error || 'Failed to reset device', variant: 'destructive' });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   const handleDelete = async (deviceUid: string) => {
-    if (!confirm(`Remove device ${deviceUid} from the Devices API tenant?\nThis does not delete the local Knox record.`)) return;
+    if (!confirm(`Remove device ${deviceUid} from the Knox tenant?\nThis does not delete the local Knox record.`)) return;
     const key = `delete:${deviceUid}`;
     try {
       setBusyKey(key);
@@ -477,7 +448,7 @@ export default function KnoxDevicesPage() {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-slate-500">
-            {devicePagination.total} managed · {uploadPagination.total} uploaded · {apiDevices.length} in API
+            {devicePagination.total} managed · {uploadPagination.total} uploaded
           </span>
           <button
             onClick={() => void load()}
@@ -521,13 +492,72 @@ export default function KnoxDevicesPage() {
           </div>
         </div>
 
+        {/* Search + Knox state filters */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="relative min-w-[200px] flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Contract, customer, IMEI…"
+              value={deviceQuery}
+              onChange={(e) => {
+                setDeviceQuery(e.target.value);
+                setExpandedId(null);
+                setDevicePagination((c) => ({ ...c, page: 1 }));
+              }}
+              className="w-full rounded-xl border border-slate-300 py-1.5 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+            />
+          </div>
+          <select
+            value={deviceActualStateFilter}
+            onChange={(e) => { setDeviceActualStateFilter(e.target.value); setDevicePagination((c) => ({ ...c, page: 1 })); }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All states</option>
+            <option value="LOCKED">Locked</option>
+            <option value="UNLOCKED">Unlocked</option>
+            <option value="PENDING">Pending</option>
+            <option value="UNKNOWN">Unknown</option>
+          </select>
+          <select
+            value={deviceEnrollmentFilter}
+            onChange={(e) => { setDeviceEnrollmentFilter(e.target.value); setDevicePagination((c) => ({ ...c, page: 1 })); }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All enrollment</option>
+            <option value="ACTIVE">Active</option>
+            <option value="APPROVED">Approved</option>
+            <option value="APPROVAL_QUEUED">Approval queued</option>
+            <option value="PENDING">Pending</option>
+            <option value="COMPLETING">Completing</option>
+            <option value="COMPLETE">Complete</option>
+          </select>
+          {(deviceQuery || deviceActualStateFilter || deviceEnrollmentFilter) && (
+            <button
+              onClick={() => {
+                setDeviceQuery('');
+                setDeviceActualStateFilter('');
+                setDeviceEnrollmentFilter('');
+                setDevicePagination((c) => ({ ...c, page: 1 }));
+              }}
+              className="text-xs text-slate-500 hover:text-slate-700 underline"
+            >
+              Clear filters
+            </button>
+          )}
+          <span className="ml-auto text-xs text-slate-500">{devicePagination.total} devices</span>
+        </div>
+
         {loading ? (
           <div className="flex h-48 items-center justify-center text-slate-500">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading managed devices…
           </div>
-        ) : devices.length === 0 ? (
+        ) : devices.filter((d) =>
+            (!deviceActualStateFilter || d.actualState === deviceActualStateFilter) &&
+            (!deviceEnrollmentFilter || d.enrollmentStatus === deviceEnrollmentFilter)
+          ).length === 0 ? (
           <div className="p-12 text-center text-sm text-slate-500">
-            {deferredQuery ? 'No managed devices match your search.' : 'No managed devices enrolled yet.'}
+            {deviceQuery || deviceActualStateFilter || deviceEnrollmentFilter ? 'No managed devices match your filters.' : 'No managed devices enrolled yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -543,7 +573,10 @@ export default function KnoxDevicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {devices.map((device) => {
+                {devices.filter((d) =>
+                  (!deviceActualStateFilter || d.actualState === deviceActualStateFilter) &&
+                  (!deviceEnrollmentFilter || d.enrollmentStatus === deviceEnrollmentFilter)
+                ).map((device) => {
                   const expanded = expandedId === device.id;
                   return (
                     <Fragment key={device.id}>
@@ -725,13 +758,75 @@ export default function KnoxDevicesPage() {
           </div>
         </div>
 
+        {/* Search + filters */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="relative min-w-[200px] flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Serial, contract, product…"
+              value={uploadQuery}
+              onChange={(e) => {
+                setUploadQuery(e.target.value);
+                setUploadPagination((c) => ({ ...c, page: 1 }));
+              }}
+              className="w-full rounded-xl border border-slate-300 py-1.5 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+            />
+          </div>
+          <select
+            value={uploadStatusFilter}
+            onChange={(e) => {
+              setUploadStatusFilter(e.target.value);
+              setUploadPagination((c) => ({ ...c, page: 1 }));
+            }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All upload statuses</option>
+            <option value="UPLOADED">Uploaded</option>
+            <option value="PENDING">Pending</option>
+            <option value="FAILED">Failed</option>
+            <option value="DELETED">Deleted</option>
+            <option value="DELETE_PENDING">Delete pending</option>
+            <option value="SKIPPED">Skipped</option>
+          </select>
+          <select
+            value={uploadSyncFilter}
+            onChange={(e) => {
+              setUploadSyncFilter(e.target.value);
+              setUploadPagination((c) => ({ ...c, page: 1 }));
+            }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All sync states</option>
+            <option value="SYNCED">Visible in Knox</option>
+            <option value="MISSING_IN_KNOX">Missing in Knox</option>
+            <option value="VISIBLE_WITH_LOCAL_MISMATCH">Portal/local mismatch</option>
+            <option value="LOOKUP_FAILED">Lookup failed</option>
+            <option value="NOT_VISIBLE">Not visible</option>
+          </select>
+          {(uploadQuery || uploadStatusFilter || uploadSyncFilter) && (
+            <button
+              onClick={() => {
+                setUploadQuery('');
+                setUploadStatusFilter('');
+                setUploadSyncFilter('');
+                setUploadPagination((c) => ({ ...c, page: 1 }));
+              }}
+              className="text-xs text-slate-500 hover:text-slate-700 underline"
+            >
+              Clear filters
+            </button>
+          )}
+          <span className="ml-auto text-xs text-slate-500">{uploadPagination.total} records</span>
+        </div>
+
         {loading ? (
           <div className="flex h-40 items-center justify-center text-slate-500">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Checking Knox upload visibility…
           </div>
-        ) : uploads.length === 0 ? (
+        ) : uploads.filter((item) => !uploadSyncFilter || item.portal?.syncState === uploadSyncFilter).length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-500">
-            {deferredQuery ? 'No upload records match your search.' : 'No Knox upload records found.'}
+            {uploadQuery || uploadStatusFilter || uploadSyncFilter ? 'No upload records match your filters.' : 'No Knox upload records found.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -744,10 +839,11 @@ export default function KnoxDevicesPage() {
                   <th className="px-4 py-3 font-medium">Sync</th>
                   <th className="px-4 py-3 font-medium">Device</th>
                   <th className="px-4 py-3 font-medium">Updated</th>
+                  {canManage && <th className="px-4 py-3 font-medium">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {uploads.map((item) => (
+                {uploads.filter((item) => !uploadSyncFilter || item.portal?.syncState === uploadSyncFilter).map((item) => (
                   <tr key={item.id} className="align-top">
                     <td className="px-4 py-3">
                       <div className="font-mono text-xs text-slate-900">{item.serialNumber}</div>
@@ -799,6 +895,41 @@ export default function KnoxDevicesPage() {
                       <div>Local: {fmt(item.updatedAt)}</div>
                       <div className="mt-1">Portal: {fmt(item.portal?.modifiedDate)}</div>
                     </td>
+                    {canManage && (() => {
+                      const isFailed = item.knoxUploadStatus === 'FAILED';
+                      const isNotVisible = item.portal?.syncState === 'MISSING_IN_KNOX' || item.portal?.syncState === 'NOT_VISIBLE';
+                      const showActions = isFailed || isNotVisible;
+                      return (
+                        <td className="px-4 py-3">
+                          {showActions ? (
+                            <div className="flex flex-col gap-1.5">
+                              {isFailed && (
+                                <button
+                                  onClick={() => void handleResync(item.id)}
+                                  disabled={!!busyKey}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
+                                  title="Re-upload this device to Knox"
+                                >
+                                  {busyKey === `resync:${item.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                                  Resync
+                                </button>
+                              )}
+                              <button
+                                onClick={() => void handleReset(item.serialNumber)}
+                                disabled={!!busyKey}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                                title="Clear Knox upload state in local DB"
+                              >
+                                {busyKey === `reset:${item.serialNumber}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                Reset
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-300">—</span>
+                          )}
+                        </td>
+                      );
+                    })()}
                   </tr>
                 ))}
               </tbody>
@@ -953,138 +1084,6 @@ export default function KnoxDevicesPage() {
         )}
       </div>
 
-      {/* ── Devices API ─────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Server className="h-5 w-5 text-cyan-600" />
-              Devices API
-            </h2>
-            <p className="text-sm text-slate-500">
-              Live device list fetched directly from the Samsung Devices API tenant.
-            </p>
-          </div>
-          <button
-            onClick={() => void fetchApiDevices()}
-            disabled={apiDevicesLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-          >
-            {apiDevicesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Refresh
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
-          <div className="relative min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              placeholder="IMEI / Object ID…"
-              value={apiImeiSearch}
-              onChange={(e) => { setApiImeiSearch(e.target.value); setApiDevicesPage(1); }}
-              className="w-full rounded-xl border border-slate-300 py-1.5 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-            />
-          </div>
-          <select
-            value={apiStatusFilter}
-            onChange={(e) => { setApiStatusFilter(e.target.value); setApiDevicesPage(1); }}
-            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-          >
-            <option value="">All statuses</option>
-            {apiStatusOptions.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          <select
-            value={apiLockFilter}
-            onChange={(e) => { setApiLockFilter(e.target.value); setApiDevicesPage(1); }}
-            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-          >
-            <option value="">All lock states</option>
-            <option value="locked">Offline locked</option>
-            <option value="unlocked">Not locked</option>
-          </select>
-          <span className="ml-auto text-xs text-slate-500">
-            {filteredApiDevices.length} of {apiDevices.length} devices
-          </span>
-        </div>
-
-        {apiDevicesLoading ? (
-          <div className="flex h-40 items-center justify-center text-slate-500">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Fetching from Devices API…
-          </div>
-        ) : apiDevicesError ? (
-          <div className="p-10 text-center text-sm text-red-600">{apiDevicesError}</div>
-        ) : pagedApiDevices.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-500">
-            {apiDevices.length === 0 ? 'No devices registered in the tenant.' : 'No devices match the current filters.'}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">IMEI</th>
-                  <th className="px-4 py-3 font-medium">Object ID</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Lock</th>
-                  <th className="px-4 py-3 font-medium">Agent / Firmware</th>
-                  <th className="px-4 py-3 font-medium">Registered</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pagedApiDevices.map((d) => (
-                  <tr key={d.objectId} className="align-top">
-                    <td className="px-4 py-3">
-                      <div className="font-mono text-xs text-slate-900">{d.imeiNumber || String(d.deviceUid)}</div>
-                      {d.imei2 && <div className="mt-1 font-mono text-xs text-slate-500">SIM 2: {d.imei2}</div>}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{d.objectId}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(d.status || 'UNKNOWN')}`}>
-                        {d.status || 'UNKNOWN'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {d.isOfflineLocked ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700">
-                          <Lock className="h-3 w-3" /> Locked
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                          <Unlock className="h-3 w-3" /> Unlocked
-                        </span>
-                      )}
-                      {d.simControlEnabled && (
-                        <div className="mt-1 text-xs text-slate-500">SIM control on</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      <div>Agent: {d.agentVersion || '—'}</div>
-                      <div className="mt-1">FW: {d.firmwareVersion || '—'}</div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {d.createDate ? new Date(d.createDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!apiDevicesLoading && apiDevicesTotalPages > 1 && (
-          <Pagination
-            currentPage={apiDevicesPage}
-            totalPages={apiDevicesTotalPages}
-            onPageChange={(page) => setApiDevicesPage(page)}
-            totalItems={filteredApiDevices.length}
-            itemsPerPage={API_DEVICES_PAGE_SIZE}
-          />
-        )}
-      </div>
     </div>
   );
 }

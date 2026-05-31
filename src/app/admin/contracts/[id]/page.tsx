@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2, Smartphone, Shield, Lock, Unlock, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2, Smartphone, Shield, Lock, Unlock, RefreshCw, Loader2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -822,10 +822,9 @@ export default function ContractDetailsPage() {
                   {isKnoxLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                   Refresh
                 </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/admin/device-control">
-                    <Shield className="mr-2 h-4 w-4" />
-                    Open Console
+                <Button variant="outline" size="sm" asChild title="Knox Guard settings">
+                  <Link href="/admin/knox/devices">
+                    <Settings className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -842,9 +841,14 @@ export default function ContractDetailsPage() {
                 {/* Enrolled — gray out the entire section to indicate it's read-only here */}
                 <div className="mb-3 flex items-center gap-2 border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                   <Shield className="h-3.5 w-3.5 shrink-0" />
-                  Device is enrolled. Use the{' '}
-                  <a href="/admin/knox/devices" className="font-semibold underline hover:text-blue-900">Knox Guard Devices page</a>
-                  {' '}to manage lock, unlock and approval actions.
+                  <span>Enrolled —</span>
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getKnoxStatusClasses(knoxContract.managedDevice.actualState)}`}>
+                    {knoxContract.managedDevice.actualState}
+                  </span>
+                  <span className="text-blue-500">/</span>
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getKnoxStatusClasses(knoxContract.managedDevice.enrollmentStatus)}`}>
+                    {knoxContract.managedDevice.enrollmentStatus}
+                  </span>
                 </div>
                 <div className="opacity-60 pointer-events-none select-none">
               <>
@@ -1015,76 +1019,11 @@ export default function ContractDetailsPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                  <p className="font-medium text-slate-900 mb-0.5">No device enrolled yet</p>
-                  Lock-screen settings (support phone, messages, payment app) are inherited from{' '}
-                  <a href="/admin/knox/settings" className="text-blue-600 hover:underline">Knox settings</a> automatically.
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label>Device IMEI / Serial</Label>
-                    <Input
-                      value={knoxEnrollForm.deviceUid}
-                      onChange={(e) => setKnoxEnrollForm((c) => ({ ...c, deviceUid: e.target.value }))}
-                      placeholder={contract.inventoryItem?.serialNumber || 'Uses contract inventory serial by default'}
-                    />
-                    <p className="mt-1 text-xs text-gray-400">Leave blank to use the contract inventory serial.</p>
-                  </div>
-                  <div>
-                    <Label>UID Type</Label>
-                    <Select
-                      value={knoxEnrollForm.deviceUidType}
-                      onValueChange={(v) => setKnoxEnrollForm((c) => ({ ...c, deviceUidType: v }))}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SERIAL_NUMBER">Serial Number</SelectItem>
-                        <SelectItem value="IMEI">IMEI</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      id="contract-knox-disclosure"
-                      checked={knoxEnrollForm.disclosureAccepted}
-                      onCheckedChange={(checked) => setKnoxEnrollForm((c) => ({ ...c, disclosureAccepted: checked === true }))}
-                      className="mt-0.5"
-                    />
-                    <div>
-                      <label htmlFor="contract-knox-disclosure" className="text-sm font-medium text-slate-900 cursor-pointer">
-                        Customer disclosure confirmed <span className="text-red-500">*</span>
-                      </label>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        The customer was informed that overdue payments may trigger device restriction.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Disclosure version</Label>
-                  <Input
-                    value={knoxEnrollForm.disclosureVersion}
-                    onChange={(e) => setKnoxEnrollForm((c) => ({ ...c, disclosureVersion: e.target.value }))}
-                    placeholder={knoxDefaults?.disclosureVersion || 'e.g. v1'}
-                    className="max-w-[200px]"
-                  />
-                </div>
-
-                {canManageDeviceControl && (
-                  <Button
-                    onClick={() => void handleKnoxEnroll()}
-                    disabled={knoxBusyAction !== null || !knoxEnrollForm.disclosureAccepted}
-                  >
-                    {knoxBusyAction === 'enroll' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Smartphone className="mr-2 h-4 w-4" />}
-                    Enroll Device
-                  </Button>
-                )}
+              <div className="border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                <p className="font-medium text-slate-900 mb-0.5">No device enrolled yet</p>
+                Lock-screen settings (support phone, messages, payment app) are inherited from{' '}
+                <a href="/admin/knox/settings" className="text-blue-600 hover:underline">Knox settings</a> automatically.
+                Locking this contract will auto-enroll the device.
               </div>
             )}
           </CardContent>
