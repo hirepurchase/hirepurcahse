@@ -97,14 +97,17 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex" style={{ backgroundColor: "#f5f0eb" }}>
       {/* ── Left slider panel ── */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
-        {/* Slide image — cross-fade via opacity */}
-        <img
-          key={slide}
-          src={current.url}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-          style={{ opacity: fading ? 0 : 1 }}
-        />
+        {/* Preload all slide images so transitions are instant */}
+        {SLIDES.map((s, i) => (
+          <img
+            key={s.url}
+            src={s.url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+            style={{ opacity: i === slide && !fading ? 1 : 0, pointerEvents: 'none' }}
+          />
+        ))}
 
         {/* Gradient overlay */}
         <div

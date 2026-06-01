@@ -228,6 +228,27 @@ export default function KnoxDevicesPage() {
   const [uploadSyncFilter, setUploadSyncFilter] = useState('');
   const deferredUploadQuery = useDeferredValue(uploadQuery.trim());
 
+  // Uploaded without contract
+  const [noContractUploads, setNoContractUploads] = useState<KnoxUploadItem[]>([]);
+  const [noContractLoading, setNoContractLoading] = useState(false);
+
+  const fetchNoContractUploads = useCallback(async () => {
+    setNoContractLoading(true);
+    try {
+      const res = await api.get('/knox-guard/upload/status', {
+        params: { limit: 100, includePortal: false },
+      });
+      const items: KnoxUploadItem[] = res.data.items || [];
+      setNoContractUploads(items.filter((i) => !i.contract));
+    } catch {
+      // silent — non-critical section
+    } finally {
+      setNoContractLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void fetchNoContractUploads(); }, [fetchNoContractUploads]);
+
   // Knox portal live check
   const [portalCheck, setPortalCheck] = useState<PortalCheckResult | null>(null);
   const [portalCheckLoading, setPortalCheckLoading] = useState(false);
@@ -945,6 +966,92 @@ export default function KnoxDevicesPage() {
             totalItems={uploadPagination.total}
             itemsPerPage={uploadPagination.limit}
           />
+        )}
+      </div>
+
+      {/* ── Uploaded Without Contract ───────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Uploaded Without Contract</h2>
+            <p className="text-sm text-slate-500">Devices registered in Knox but not linked to any contract.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-500">{noContractUploads.length} device{noContractUploads.length !== 1 ? 's' : ''}</span>
+            <button
+              onClick={() => void fetchNoContractUploads()}
+              disabled={noContractLoading}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {noContractLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {noContractLoading ? (
+          <div className="flex h-32 items-center justify-center text-slate-500">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
+          </div>
+        ) : noContractUploads.length === 0 ? (
+          <div className="p-8 text-center text-sm text-slate-500">All uploaded devices are linked to a contract.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Serial / IMEI</th>
+                  <th className="px-4 py-3 font-medium">Product</th>
+                  <th className="px-4 py-3 font-medium">Upload status</th>
+                  <th className="px-4 py-3 font-medium">Retries</th>
+                  <th className="px-4 py-3 font-medium">Updated</th>
+                  {canManage && <th className="px-4 py-3 font-medium">Actions</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {noContractUploads.map((item) => (
+                  <tr key={item.id} className="align-top">
+                    <td className="px-4 py-3 font-mono text-xs text-slate-900">{item.serialNumber}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600">{item.product.name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusPill(item.knoxUploadStatus || 'UNKNOWN')}`}>
+                        {item.knoxUploadStatus || 'UNKNOWN'}
+                      </span>
+                      {item.knoxUploadError && (
+                        <p className="mt-1 max-w-xs text-xs text-red-600">{item.knoxUploadError}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{item.knoxUploadRetries}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{fmt(item.updatedAt)}</td>
+                    {canManage && (
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1.5">
+                          {item.knoxUploadStatus === 'FAILED' && (
+                            <button
+                              onClick={() => void handleResync(item.id)}
+                              disabled={!!busyKey}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
+                            >
+                              {busyKey === `resync:${item.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                              Resync
+                            </button>
+                          )}
+                          <button
+                            onClick={() => void handleReset(item.serialNumber)}
+                            disabled={!!busyKey}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                          >
+                            {busyKey === `reset:${item.serialNumber}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                            Reset
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
