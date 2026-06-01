@@ -229,12 +229,18 @@ export default function InventoryPage() {
     const ids = itemIds ?? Array.from(selectedIds);
     if (ids.length === 0) return;
 
-    const items = inventory.filter((i) => ids.includes(i.id));
+    // Filter out already uploaded items to prevent DEVICE_DUPLICATE errors
+    const items = inventory.filter((i) => ids.includes(i.id) && i.knoxUploadStatus !== 'UPLOADED' && i.knoxUploadStatus !== 'DELETE_PENDING');
+    if (items.length === 0) {
+      toast({ title: 'Nothing to upload', description: 'All selected devices are already uploaded to Knox Guard.' });
+      return;
+    }
+    const filteredIds = items.map((i) => i.id);
     const imeis = items.map((i) => i.serialNumber);
 
     setIsUploading(true);
     try {
-      const res = await api.post("/knox-guard/upload/retry", { inventoryItemIds: ids });
+      const res = await api.post("/knox-guard/upload/retry", { inventoryItemIds: filteredIds });
       const { uploaded, failed, skipped, dryRun } = res.data;
       if (dryRun) {
         toast({ title: "Dry-run mode active", description: "No devices were actually uploaded. Disable dry-run in Knox settings to go live." });
@@ -341,18 +347,23 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500 mt-0.5">Track items with IMEI/Serial numbers</p>
         </div>
         <div className="flex items-center gap-2">
-          {canManageKnox && selectedIds.size > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleKnoxUpload()}
-              disabled={isUploading}
-              className="border-blue-300 text-blue-700 hover:bg-blue-50"
-            >
-              {isUploading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Upload className="h-4 w-4 mr-1.5" />}
-              Upload {selectedIds.size} to Knox
-            </Button>
-          )}
+          {canManageKnox && selectedIds.size > 0 && (() => {
+            const uploadableCount = inventory.filter(
+              (i) => selectedIds.has(i.id) && i.knoxUploadStatus !== 'UPLOADED' && i.knoxUploadStatus !== 'DELETE_PENDING'
+            ).length;
+            return uploadableCount > 0 ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleKnoxUpload()}
+                disabled={isUploading}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+              >
+                {isUploading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Upload className="h-4 w-4 mr-1.5" />}
+                Upload {uploadableCount} to Knox
+              </Button>
+            ) : null;
+          })()}
           <Button onClick={() => setShowForm(true)} size="sm">
             <Plus className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Add Item</span>
@@ -477,12 +488,13 @@ export default function InventoryPage() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
-                        {canManageKnox && (
+                        {canManageKnox && item.knoxUploadStatus !== 'UPLOADED' && item.knoxUploadStatus !== 'DELETE_PENDING' && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleKnoxUpload([item.id])}
-                            disabled={isUploading}
+                            disabled={isUploading || item.knoxUploadStatus === 'PENDING'}
+                            title={item.knoxUploadStatus === 'PENDING' ? 'Upload in progress…' : 'Upload to Knox Guard'}
                             className="text-blue-600 hover:bg-blue-50"
                           >
                             <Upload className="h-4 w-4" />
