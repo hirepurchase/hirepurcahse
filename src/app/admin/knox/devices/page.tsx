@@ -236,7 +236,7 @@ export default function KnoxDevicesPage() {
     setNoContractLoading(true);
     try {
       const res = await api.get('/knox-guard/upload/status', {
-        params: { limit: 100, includePortal: false },
+        params: { limit: 100, includePortal: true },
       });
       const items: KnoxUploadItem[] = res.data.items || [];
       setNoContractUploads(items.filter((i) => !i.contract));
@@ -1003,6 +1003,7 @@ export default function KnoxDevicesPage() {
                   <th className="px-4 py-3 font-medium">Serial / IMEI</th>
                   <th className="px-4 py-3 font-medium">Product</th>
                   <th className="px-4 py-3 font-medium">Upload status</th>
+                  <th className="px-4 py-3 font-medium">Knox portal</th>
                   <th className="px-4 py-3 font-medium">Retries</th>
                   <th className="px-4 py-3 font-medium">Updated</th>
                   {canManage && <th className="px-4 py-3 font-medium">Actions</th>}
@@ -1019,6 +1020,30 @@ export default function KnoxDevicesPage() {
                       </span>
                       {item.knoxUploadError && (
                         <p className="mt-1 max-w-xs text-xs text-red-600">{item.knoxUploadError}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.portal ? (
+                        item.portal.visible ? (
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                            <div>
+                              <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusPill(item.portal.status || 'VISIBLE')}`}>
+                                {item.portal.status || 'Visible'}
+                              </span>
+                              {item.portal.objectId && (
+                                <p className="mt-0.5 font-mono text-[10px] text-slate-400">{item.portal.objectId}</p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            {item.portal.lookupError || 'Not visible'}
+                          </div>
+                        )
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">{item.knoxUploadRetries}</td>
