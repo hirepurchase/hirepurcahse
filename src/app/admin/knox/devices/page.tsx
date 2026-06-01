@@ -430,6 +430,24 @@ export default function KnoxDevicesPage() {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const res = await api.post('/knox-guard/upload/sync', {});
+      toast({
+        title: res.data?.dryRun ? 'Dry-run sync complete' : 'Sync complete',
+        description: res.data?.message || 'Portal sync finished.',
+      });
+      await Promise.all([load(), fetchNoContractUploads()]);
+    } catch (err: any) {
+      toast({ title: 'Sync failed', description: err.response?.data?.error || 'Failed to sync from portal', variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleDelete = async (deviceUid: string) => {
     if (!confirm(`Remove device ${deviceUid} from the Knox tenant?\nThis does not delete the local Knox record.`)) return;
     const key = `delete:${deviceUid}`;
@@ -472,10 +490,12 @@ export default function KnoxDevicesPage() {
             {devicePagination.total} managed · {uploadPagination.total} uploaded
           </span>
           <button
-            onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            onClick={() => void handleSync()}
+            disabled={syncing || loading}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
-            <RefreshCw className="h-4 w-4" /> Refresh
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {syncing ? 'Syncing…' : 'Refresh'}
           </button>
           <Link
             href="/admin/knox/enroll"
