@@ -59,7 +59,7 @@ interface ManagedDevice {
     firstName: string;
     lastName: string;
     phone: string;
-  };
+  } | null;
   inventoryItem?: {
     serialNumber: string;
     lockStatus?: string | null;
@@ -627,9 +627,9 @@ export default function KnoxDevicesPage() {
                           <div className="mt-1 text-xs text-slate-500">{device.contract?.status ?? 'No contract'}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-slate-900">{device.customer.firstName} {device.customer.lastName}</div>
-                          <div className="mt-1 text-xs text-slate-500">{device.customer.phone}</div>
-                          <div className="mt-1 text-xs text-slate-400">{device.customer.membershipId || '—'}</div>
+                          <div className="text-slate-900">{device.customer ? `${device.customer.firstName} ${device.customer.lastName}` : '—'}</div>
+                          <div className="mt-1 text-xs text-slate-500">{device.customer?.phone || '—'}</div>
+                          <div className="mt-1 text-xs text-slate-400">{device.customer?.membershipId || '—'}</div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="font-mono text-xs text-slate-900">{device.deviceUid}</div>
