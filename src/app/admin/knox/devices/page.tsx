@@ -53,7 +53,7 @@ interface ManagedDevice {
     contractNumber: string;
     status: string;
     outstandingBalance: number;
-  };
+  } | null;
   customer: {
     membershipId: string;
     firstName: string;
@@ -347,7 +347,7 @@ export default function KnoxDevicesPage() {
         const updated = await fetchDevices(devicePagination.page);
         setDevices(updated.devices);
         setDevicePagination(updated.pagination);
-        const device = updated.devices.find((d) => d.contract.id === contractId);
+        const device = updated.devices.find((d) => d.contract?.id === contractId);
         const stateChanged = device && device.actualState !== prevState;
         if (stateChanged || attempts >= MAX) {
           clearInterval(pollRef.current!);
@@ -367,7 +367,7 @@ export default function KnoxDevicesPage() {
 
   const handleAction = async (contractId: string, action: 'evaluate' | 'lock' | 'unlock') => {
     const key = `${action}:${contractId}`;
-    const prevDevice = devices.find((d) => d.contract.id === contractId);
+    const prevDevice = devices.find((d) => d.contract?.id === contractId);
     const prevState = prevDevice?.actualState ?? 'UNKNOWN';
     try {
       setBusyKey(key);
@@ -623,8 +623,8 @@ export default function KnoxDevicesPage() {
                     <Fragment key={device.id}>
                       <tr className="align-top">
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900">{device.contract.contractNumber}</div>
-                          <div className="mt-1 text-xs text-slate-500">{device.contract.status}</div>
+                          <div className="font-semibold text-slate-900">{device.contract?.contractNumber ?? '—'}</div>
+                          <div className="mt-1 text-xs text-slate-500">{device.contract?.status ?? 'No contract'}</div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-slate-900">{device.customer.firstName} {device.customer.lastName}</div>
@@ -637,7 +637,7 @@ export default function KnoxDevicesPage() {
                           <div className="mt-1 text-xs text-slate-500">Inventory: {device.inventoryItem?.serialNumber || '—'}</div>
                         </td>
                         <td className="px-4 py-3">
-                          {pollingId === device.contract.id ? (
+                          {pollingId === device.contract?.id ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
                               <Loader2 className="h-3 w-3 animate-spin" />
                               processing…
@@ -662,13 +662,13 @@ export default function KnoxDevicesPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-slate-900">
-                          GHS {device.contract.outstandingBalance.toFixed(2)}
+                          {device.contract ? `GHS ${device.contract.outstandingBalance.toFixed(2)}` : '—'}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-2">
-                            {canManage && device.enrollmentStatus === 'APPROVAL_QUEUED' && (
+                            {canManage && device.contract && device.enrollmentStatus === 'APPROVAL_QUEUED' && (
                               <button
-                                onClick={() => handleApprove(device.contract.id)}
+                                onClick={() => handleApprove(device.contract!.id)}
                                 disabled={!!busyKey}
                                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60"
                                 title="Queue Knox Guard approval — succeeds once the Knox Guard app connects on the device"
@@ -677,10 +677,10 @@ export default function KnoxDevicesPage() {
                                 Approve
                               </button>
                             )}
-                            {canManage && (
+                            {canManage && device.contract && (
                               <>
                                 <button
-                                  onClick={() => handleAction(device.contract.id, 'evaluate')}
+                                  onClick={() => handleAction(device.contract!.id, 'evaluate')}
                                   disabled={!!busyKey}
                                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                                 >
@@ -688,7 +688,7 @@ export default function KnoxDevicesPage() {
                                   Evaluate
                                 </button>
                                 <button
-                                  onClick={() => handleAction(device.contract.id, 'lock')}
+                                  onClick={() => handleAction(device.contract!.id, 'lock')}
                                   disabled={!!busyKey}
                                   className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
                                 >
@@ -696,7 +696,7 @@ export default function KnoxDevicesPage() {
                                   Lock
                                 </button>
                                 <button
-                                  onClick={() => handleAction(device.contract.id, 'unlock')}
+                                  onClick={() => handleAction(device.contract!.id, 'unlock')}
                                   disabled={!!busyKey}
                                   className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                                 >
