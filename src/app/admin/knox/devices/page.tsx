@@ -263,6 +263,7 @@ export default function KnoxDevicesPage() {
         page,
         limit: devicePagination.limit,
         q: deferredDeviceQuery || undefined,
+        enrollmentStatus: 'ACTIVE',
       },
     });
     return {
@@ -529,7 +530,7 @@ export default function KnoxDevicesPage() {
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Managed Devices</h2>
-            <p className="text-sm text-slate-500">Active financed-device records enrolled for Knox Guard control.</p>
+            <p className="text-sm text-slate-500">Devices active on Knox Guard portal and ready for lock/unlock control.</p>
           </div>
         </div>
 
@@ -560,20 +561,7 @@ export default function KnoxDevicesPage() {
             <option value="PENDING">Pending</option>
             <option value="UNKNOWN">Unknown</option>
           </select>
-          <select
-            value={deviceEnrollmentFilter}
-            onChange={(e) => { setDeviceEnrollmentFilter(e.target.value); setDevicePagination((c) => ({ ...c, page: 1 })); }}
-            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
-          >
-            <option value="">All enrollment</option>
-            <option value="ACTIVE">Active</option>
-            <option value="APPROVED">Approved</option>
-            <option value="APPROVAL_QUEUED">Approval queued</option>
-            <option value="PENDING">Pending</option>
-            <option value="COMPLETING">Completing</option>
-            <option value="COMPLETE">Complete</option>
-          </select>
-          {(deviceQuery || deviceActualStateFilter || deviceEnrollmentFilter) && (
+          {(deviceQuery || deviceActualStateFilter) && (
             <button
               onClick={() => {
                 setDeviceQuery('');
@@ -593,12 +581,9 @@ export default function KnoxDevicesPage() {
           <div className="flex h-48 items-center justify-center text-slate-500">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading managed devices…
           </div>
-        ) : devices.filter((d) =>
-            (!deviceActualStateFilter || d.actualState === deviceActualStateFilter) &&
-            (!deviceEnrollmentFilter || d.enrollmentStatus === deviceEnrollmentFilter)
-          ).length === 0 ? (
+        ) : devices.filter((d) => !deviceActualStateFilter || d.actualState === deviceActualStateFilter).length === 0 ? (
           <div className="p-12 text-center text-sm text-slate-500">
-            {deviceQuery || deviceActualStateFilter || deviceEnrollmentFilter ? 'No managed devices match your filters.' : 'No managed devices enrolled yet.'}
+            {deviceQuery || deviceActualStateFilter ? 'No managed devices match your filters.' : 'No active managed devices yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -614,10 +599,7 @@ export default function KnoxDevicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {devices.filter((d) =>
-                  (!deviceActualStateFilter || d.actualState === deviceActualStateFilter) &&
-                  (!deviceEnrollmentFilter || d.enrollmentStatus === deviceEnrollmentFilter)
-                ).map((device) => {
+                {devices.filter((d) => !deviceActualStateFilter || d.actualState === deviceActualStateFilter).map((device) => {
                   const expanded = expandedId === device.id;
                   return (
                     <Fragment key={device.id}>
