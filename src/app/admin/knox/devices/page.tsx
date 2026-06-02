@@ -399,15 +399,37 @@ export default function KnoxDevicesPage() {
     }
   };
 
-  const handleResync = async (inventoryItemId: string) => {
+  const handleResync = async (inventoryItemId: string, serialNumber: string) => {
     const key = `resync:${inventoryItemId}`;
     try {
       setBusyKey(key);
-      const res = await api.post('/knox-guard/upload/retry', { inventoryItemIds: [inventoryItemId] });
-      toast({
-        title: res.data?.dryRun ? 'Dry-run: resync simulated' : 'Resync submitted',
-        description: res.data?.message || 'Device queued for re-upload to Knox.',
+
+      // Step 1 — check if device is visible on Knox portal
+      const portalRes = await api.get(`/knox-guard/devices/portal-status/${serialNumber}`);
+      const portalFound: boolean = portalRes.data?.found ?? false;
+      const portalStatus: string | null = portalRes.data?.device?.status ?? null;
+
+      if (!portalFound) {
+        // Not on portal — tell user to upload first
+        toast({
+          title: 'Device not found on Knox portal',
+          description: `${serialNumber} is not registered with Samsung Knox. Use the Upload button to register it first.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Step 2 — device is on portal, mark as UPLOADED and clear error
+      await api.patch(`/knox-guard/upload/status/${serialNumber}`, {
+        knoxUploadStatus: 'UPLOADED',
+        knoxUploadError: null,
       });
+
+      toast({
+        title: 'Status updated',
+        description: `${serialNumber} is on the Knox portal with status "${portalStatus}". Local record updated to UPLOADED.`,
+      });
+
       await load();
     } catch (err: any) {
       toast({ title: 'Resync failed', description: err.response?.data?.error || 'Failed to resync device', variant: 'destructive' });
@@ -437,9 +459,12 @@ export default function KnoxDevicesPage() {
     try {
       setSyncing(true);
       const res = await api.post('/knox-guard/upload/sync', {});
+      const { marked = 0, enrolled = 0, managed = 0, dryRun } = res.data || {};
       toast({
-        title: res.data?.dryRun ? 'Dry-run sync complete' : 'Sync complete',
-        description: res.data?.message || 'Portal sync finished.',
+        title: dryRun ? 'Dry-run sync complete' : 'Sync complete',
+        description: dryRun
+          ? 'Dry-run mode — no changes made.'
+          : `${marked} uploaded, ${enrolled} enrolled, ${managed} activated`,
       });
       await Promise.all([load(), fetchNoContractUploads()]);
     } catch (err: any) {
@@ -928,7 +953,7 @@ export default function KnoxDevicesPage() {
                             <div className="flex flex-col gap-1.5">
                               {isFailed && (
                                 <button
-                                  onClick={() => void handleResync(item.id)}
+                                  onClick={() => void handleResync(item.id, item.serialNumber)}
                                   disabled={!!busyKey}
                                   className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
                                   title="Re-upload this device to Knox"
@@ -1055,7 +1080,7 @@ export default function KnoxDevicesPage() {
                         <div className="flex flex-col gap-1.5">
                           {item.knoxUploadStatus === 'FAILED' && (
                             <button
-                              onClick={() => void handleResync(item.id)}
+                              onClick={() => void handleResync(item.id, item.serialNumber)}
                               disabled={!!busyKey}
                               className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
                             >

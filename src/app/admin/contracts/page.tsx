@@ -615,6 +615,7 @@ function DesktopStepContent({
   customersLoading,
   selectedCustomer, setSelectedCustomer,
   selectedInventory, setSelectedInventory,
+  unlockOnContract, setUnlockOnContract,
   searchQuery, setSearchQuery,
   productSearchQuery, setProductSearchQuery,
   signaturePreview, signatureFile,
@@ -704,6 +705,7 @@ function DesktopStepContent({
                 onClick={() => {
                   setFormData({ ...formData, inventoryItemId: item.id, totalPrice: item.product?.basePrice?.toString() || "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
                   setSelectedInventory(item);
+                  setUnlockOnContract(item.lockStatus === 'LOCKED');
                 }}
               >
                 <div className="flex justify-between items-start">
@@ -729,6 +731,28 @@ function DesktopStepContent({
             ))}
             {filteredInventory.length === 0 && <div className="text-center py-8 text-gray-500"><p>No inventory items found matching your search</p></div>}
           </div>
+
+          {/* Unlock checkbox — only shown when locked device is selected */}
+          {selectedInventory?.lockStatus === 'LOCKED' && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <input
+                type="checkbox"
+                id="unlockOnContract"
+                checked={unlockOnContract}
+                onChange={(e) => setUnlockOnContract(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600"
+              />
+              <div>
+                <label htmlFor="unlockOnContract" className="text-sm font-medium text-amber-900 cursor-pointer">
+                  Unlock device when contract is created
+                </label>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Device <span className="font-mono font-semibold">{selectedInventory?.serialNumber}</span> is currently locked. Check to automatically unlock it via Knox Guard when this contract is saved.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-4">
             <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Back</Button>
             <Button onClick={() => setStep(3)} disabled={!step2Valid} className="flex-1">Next: Payment Terms</Button>
@@ -751,6 +775,23 @@ function DesktopStepContent({
             <p className="text-lg">{selectedInventory?.product?.name}</p>
             <p className="text-sm text-green-700 font-mono">{selectedInventory?.serialNumber}</p>
           </div>
+
+          {/* Unlock checkbox in step 3 too */}
+          {selectedInventory?.lockStatus === 'LOCKED' && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <input
+                type="checkbox"
+                id="unlockOnContractStep3"
+                checked={unlockOnContract}
+                onChange={(e) => setUnlockOnContract(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600"
+              />
+              <label htmlFor="unlockOnContractStep3" className="text-sm text-amber-900 cursor-pointer">
+                <span className="font-medium">Unlock device on contract creation</span>
+                <span className="text-xs text-amber-700 block mt-0.5">Device is currently locked — will be unlocked via Knox Guard when contract is saved.</span>
+              </label>
+            </div>
+          )}
 
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h4 className="text-sm font-semibold mb-3 text-gray-700">Additional Device Info (Optional)</h4>
@@ -942,6 +983,7 @@ function CreateHirePurchaseSale({
   const [availableInventory, setAvailableInventory] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [selectedInventory, setSelectedInventory] = useState<any>(null);
+  const [unlockOnContract, setUnlockOnContract] = useState(false);
   const [installmentSchedule, setInstallmentSchedule] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
@@ -1227,10 +1269,52 @@ function CreateHirePurchaseSale({
       }
 
       const response = await api.post("/contracts", submitData);
+      const createdContractId = response.data?.id;
+      const createdContractNumber = response.data?.contractNumber;
+
+      // Unlock device if checkbox checked and device was locked
+      let unlockSucceeded = false;
+      if (unlockOnContract && selectedInventory?.lockStatus === 'LOCKED' && createdContractId) {
+        // Link managed device to this contract first if it has no contract yet
+        if (selectedInventory?.managedDevice?.id && !selectedInventory?.managedDevice?.contractId) {
+          try {
+            await api.patch(`/knox-guard/devices/${selectedInventory.managedDevice.id}/link-contract`, { contractId: createdContractId });
+          } catch (linkErr) {
+            console.error('Link managed device to contract failed:', linkErr);
+          }
+        }
+
+        // Retry unlock up to 3 times with 3s delay between attempts
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            await api.post(`/knox-guard/contracts/${createdContractId}/unlock`, { reason: 'Device unlocked on contract creation.' });
+            unlockSucceeded = true;
+            break;
+          } catch (unlockErr: any) {
+            console.error(`Unlock attempt ${attempt}/3 failed:`, unlockErr?.response?.data?.error || unlockErr?.message);
+            if (attempt < 3) {
+              await new Promise((r) => setTimeout(r, 3000));
+            }
+          }
+        }
+
+        // If all retries failed, set desiredState=UNLOCKED on the backend so the cron picks it up
+        if (!unlockSucceeded) {
+          try {
+            await api.post(`/knox-guard/contracts/${createdContractId}/evaluate`, {});
+          } catch {
+            // cron will handle it on next cycle
+          }
+        }
+      }
 
       toast({
         title: "Contract Created!",
-        description: `Contract ${response.data.contractNumber} has been created successfully.`,
+        description: unlockOnContract && selectedInventory?.lockStatus === 'LOCKED'
+          ? unlockSucceeded
+            ? `Contract ${createdContractNumber} created and device unlocked.`
+            : `Contract ${createdContractNumber} created — unlock pending. The device will be unlocked shortly.`
+          : `Contract ${createdContractNumber} has been created successfully.`,
       });
 
       onSuccess();
@@ -1345,6 +1429,7 @@ function CreateHirePurchaseSale({
               customersLoading={customersLoading}
               selectedCustomer={selectedCustomer} setSelectedCustomer={setSelectedCustomer}
               selectedInventory={selectedInventory} setSelectedInventory={setSelectedInventory}
+              unlockOnContract={unlockOnContract} setUnlockOnContract={setUnlockOnContract}
               searchQuery={searchQuery} setSearchQuery={setSearchQuery}
               productSearchQuery={productSearchQuery} setProductSearchQuery={setProductSearchQuery}
               signaturePreview={signaturePreview} signatureFile={signatureFile}
@@ -1460,6 +1545,7 @@ function CreateHirePurchaseSale({
                     onClick={() => {
                       setFormData({ ...formData, inventoryItemId: item.id, totalPrice: item.product?.basePrice?.toString() || "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
                       setSelectedInventory(item);
+                      setUnlockOnContract(item.lockStatus === 'LOCKED');
                     }}
                   >
                     <div className="flex justify-between items-start gap-2">
