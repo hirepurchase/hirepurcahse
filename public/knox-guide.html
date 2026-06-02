@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knox Guard — How It Works | AIDOO TECH</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand: #0f766e;
+      --brand-dark: #0f172a;
+      --brand-light: #ccfbf1;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --white: #ffffff;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%);
+      color: white;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+    header .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    header h1 { font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 800; margin-bottom: 0.5rem; }
+    header p  { font-size: 1rem; opacity: 0.8; max-width: 540px; margin: 0 auto; }
+
+    /* ── Layout ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Section titles ── */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--brand-dark);
+      margin: 2.5rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      margin-left: 0.75rem;
+    }
+
+    /* ── Overview card ── */
+    .overview {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .overview p { color: var(--muted); font-size: 0.95rem; }
+
+    /* ── Flow steps ── */
+    .flow {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .step {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      position: relative;
+    }
+    .step-num {
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 50%;
+      background: var(--brand);
+      color: white;
+      font-weight: 800;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .step-body p  { font-size: 0.88rem; color: var(--muted); }
+    .step-body .tag {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--brand-light);
+      color: var(--brand);
+    }
+    .step-body .tag.auto  { background: #fef3c7; color: #92400e; }
+    .step-body .tag.knox  { background: #ede9fe; color: #5b21b6; }
+
+    /* connector line between steps */
+    .step-connector {
+      display: flex;
+      justify-content: flex-start;
+      padding-left: 1.85rem;
+    }
+    .step-connector span {
+      width: 2px;
+      height: 1rem;
+      background: var(--border);
+      display: block;
+    }
+
+    /* ── Big diagram ── */
+    .diagram {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      overflow-x: auto;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .diagram-inner {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      min-width: 520px;
+      justify-content: center;
+    }
+    .d-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      min-width: 90px;
+    }
+    .d-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .d-label { font-size: 0.72rem; font-weight: 600; text-align: center; color: var(--muted); }
+    .d-arrow {
+      font-size: 1.2rem;
+      color: var(--border);
+      margin: 0 0.25rem;
+      padding-bottom: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Status pills ── */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+    }
+    .status-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .status-dot {
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 50%;
+      margin-top: 0.35rem;
+      flex-shrink: 0;
+    }
+    .status-card h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .status-card p  { font-size: 0.8rem; color: var(--muted); }
+
+    /* ── FAQ ── */
+    details {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    summary {
+      padding: 1rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    summary::after { content: '＋'; font-size: 1rem; color: var(--muted); }
+    details[open] summary::after { content: '－'; }
+    summary::-webkit-details-marker { display: none; }
+    .faq-body {
+      padding: 0 1.25rem 1rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .faq-body p { margin-top: 0.75rem; }
+
+    /* ── Action cards ── */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+    .action-card {
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+      border: 1px solid transparent;
+    }
+    .action-card h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.4rem; }
+    .action-card p  { font-size: 0.8rem; }
+    .action-card.lock    { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .action-card.lock p  { color: #b91c1c; }
+    .action-card.unlock  { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .action-card.unlock p{ color: #15803d; }
+    .action-card.approve { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .action-card.approve p { color: #1e40af; }
+    .action-card.eval    { background: #fefce8; border-color: #fde68a; color: #92400e; }
+    .action-card.eval p  { color: #b45309; }
+
+    /* ── Warning box ── */
+    .warn {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      font-size: 0.88rem;
+      color: #92400e;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .warn span { font-size: 1.1rem; flex-shrink: 0; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .step { grid-template-columns: 1fr; }
+      .step-num { display: none; }
+      .diagram-inner { gap: 0; }
+      .d-node { min-width: 70px; }
+      .d-icon { width: 2.5rem; height: 2.5rem; font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">📱 Samsung Knox Guard</div>
+  <h1>Knox Guard — How It Works</h1>
+  <p>A step-by-step guide to device registration, enrollment, and remote control on AIDOO TECH hire-purchase phones.</p>
+</header>
+
+<main>
+
+  <!-- Overview -->
+  <div class="overview">
+    <p>Knox Guard is Samsung's remote device management system. AIDOO TECH uses it to <strong>lock and unlock financed phones</strong> when customers miss payments or settle their account. This guide explains the four-stage flow from receiving a new phone to controlling it remotely.</p>
+  </div>
+
+  <!-- Diagram -->
+  <div class="section-title">📊 The Full Flow at a Glance</div>
+  <div class="diagram">
+    <div class="diagram-inner">
+      <div class="d-node">
+        <div class="d-icon" style="background:#e0f2fe;">📦</div>
+        <div class="d-label">1. UPLOAD<br>Register IMEI</div>
+      </div>
+      <div class="d-arrow">→</div>
+      <div class="d-node">
+        <div class="d-icon" style="background:#f0fdf4;">📋</div>
+        <div class="d-label">2. ENROLL<br>Link Contract</div>
+      </div>
+      <div class="d-arrow">→</div>
+      <div class="d-node">
+        <div class="d-icon" style="background:#ede9fe;">✅</div>
+        <div class="d-label">3. APPROVE<br>App Connects</div>
+      </div>
+      <div class="d-arrow">→</div>
+      <div class="d-node">
+        <div class="d-icon" style="background:#fef2f2;">🔒</div>
+        <div class="d-label">4. LOCK /<br>UNLOCK</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="section-title">🪜 Step-by-Step</div>
+  <div class="flow">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Upload — Register the IMEI with Samsung</h3>
+        <p>When a new Samsung device arrives in inventory, its IMEI is sent to Samsung's Devices API. This tells Samsung the phone belongs to the AIDOO TECH Knox tenant.</p>
+        <p style="margin-top:0.4rem;">This happens automatically when the device is added to inventory (if the Knox upload checkbox is ticked), or manually from the Knox Devices page.</p>
+        <span class="tag">Inventory → Knox Upload Status = UPLOADED</span>
+      </div>
+    </div>
+
+    <div class="step-connector"><span></span></div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>Enroll — Link the Device to a Contract</h3>
+        <p>When a hire-purchase contract is created, the system automatically enrolls the device. Enrollment links the phone to the contract and assigns an <em>approveId</em> (the contract number) that Samsung uses to identify it.</p>
+        <p style="margin-top:0.4rem;">A <strong>ManagedDevice</strong> record is created in the system. The device appears in the <em>Managed Devices</em> table.</p>
+        <span class="tag auto">Auto on contract creation/approval</span>
+        <span class="tag">ManagedDevice record created</span>
+      </div>
+    </div>
+
+    <div class="step-connector"><span></span></div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Approve — Knox Guard App Connects</h3>
+        <p>The customer powers on the phone. The Knox Guard app (pre-installed on Samsung devices) connects to Samsung's servers and the device moves from <em>Accepted</em> to <em>Enrolled</em> on the portal.</p>
+        <p style="margin-top:0.4rem;">This step is <strong>automatic</strong> — no admin action needed. The cron job checks every 5 minutes and updates the local record to <strong>ACTIVE</strong> once the portal confirms enrollment.</p>
+        <span class="tag auto">Automatic — phone must be online</span>
+        <span class="tag knox">enrollmentStatus = ACTIVE</span>
+      </div>
+    </div>
+
+    <div class="step-connector"><span></span></div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>Lock / Unlock — Remote Device Control</h3>
+        <p>Once a device is <strong>ACTIVE</strong>, the system can send lock and unlock commands directly to Samsung. Samsung pushes the command to the phone the next time it connects to the internet.</p>
+        <ul style="margin-top:0.5rem;padding-left:1.2rem;font-size:0.88rem;color:var(--muted);">
+          <li><strong>Auto-lock:</strong> contract overdue ≥ 3 days → cron locks the device</li>
+          <li><strong>Auto-unlock:</strong> payment received → overdue amount = 0 → device unlocked</li>
+          <li><strong>Manual lock/unlock:</strong> admin button on Knox Devices or Inventory page</li>
+        </ul>
+        <span class="tag" style="background:#fef2f2;color:#991b1b;">🔒 actualState = LOCKED / UNLOCKED</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lock screen -->
+  <div class="section-title">📵 What the Customer Sees When Locked</div>
+  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1rem;">The Knox Guard lock screen replaces the normal phone screen with:</p>
+    <div style="background:#1e293b;border-radius:10px;padding:1.5rem;color:white;max-width:320px;margin:0 auto;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">🔒</div>
+      <p style="font-size:0.85rem;line-height:1.5;margin-bottom:1.25rem;">Your phone has been restricted because your payment is overdue. Amount due: <strong>GHS 250.00</strong>. Please pay now using the AIDOO TECH App, USSD, or call <strong>0530505547</strong>.</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <div style="background:#0f766e;border-radius:8px;padding:0.6rem;font-size:0.8rem;font-weight:600;">📱 Open AIDOO TECH App</div>
+        <div style="background:#374151;border-radius:8px;padding:0.6rem;font-size:0.8rem;">📞 Call *713*9572#</div>
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:var(--muted);margin-top:1rem;text-align:center;">The customer can open the payment app or dial the USSD directly from the lock screen.</p>
+  </div>
+
+  <!-- Status meanings -->
+  <div class="section-title">🏷️ Status Meanings</div>
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="status-dot" style="background:#94a3b8;"></div>
+      <div><h4>Accepted</h4><p>IMEI uploaded to Samsung but Knox Guard app hasn't connected yet. Phone needs to go online.</p></div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot" style="background:#10b981;"></div>
+      <div><h4>Enrolled / ACTIVE</h4><p>Knox Guard app connected. Device is ready to receive lock/unlock commands.</p></div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot" style="background:#ef4444;"></div>
+      <div><h4>Locked</h4><p>Lock command sent and confirmed. Customer's phone shows the Knox lock screen.</p></div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot" style="background:#f59e0b;"></div>
+      <div><h4>APPROVAL_QUEUED</h4><p>Enrolled locally but Samsung hasn't confirmed yet. Waiting for phone to come online.</p></div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot" style="background:#8b5cf6;"></div>
+      <div><h4>PENDING</h4><p>A command (lock/unlock) has been sent to Samsung and is waiting to be delivered to the phone.</p></div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot" style="background:#64748b;"></div>
+      <div><h4>FAILED / DEVICE_DUPLICATE</h4><p>Upload failed. If <em>DEVICE_DUPLICATE</em>, the device is already on Samsung — use Resync to fix.</p></div>
+    </div>
+  </div>
+
+  <!-- Admin actions -->
+  <div class="section-title">🛠️ Admin Actions</div>
+  <div class="action-grid">
+    <div class="action-card lock">
+      <h4>🔒 Lock</h4>
+      <p>Sends a lock command to Samsung. Phone locks on next internet connection. Message and support number shown on screen.</p>
+    </div>
+    <div class="action-card unlock">
+      <h4>🔓 Unlock</h4>
+      <p>Sends an unlock command. Retries up to 3 times automatically. If it fails, the cron retries every 5 minutes.</p>
+    </div>
+    <div class="action-card approve">
+      <h4>✅ Approve</h4>
+      <p>Manually triggers Knox Guard approval. Usually automatic — use only if the device is stuck in APPROVAL_QUEUED.</p>
+    </div>
+    <div class="action-card eval">
+      <h4>⚙️ Evaluate</h4>
+      <p>Re-runs the overdue policy for the contract right now — locks if overdue, unlocks if paid, without waiting for cron.</p>
+    </div>
+  </div>
+
+  <!-- Refresh button -->
+  <div class="section-title">🔄 The Refresh / Sync Button</div>
+  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+    <p style="font-size:0.88rem;color:var(--muted);">Clicking <strong>Refresh</strong> on the Knox Devices page does three things in one shot:</p>
+    <ol style="margin-top:0.75rem;padding-left:1.3rem;font-size:0.88rem;color:var(--muted);display:flex;flex-direction:column;gap:0.4rem;">
+      <li><strong>Marks uploads</strong> — any device visible on the Samsung portal but showing FAILED locally is corrected to UPLOADED.</li>
+      <li><strong>Auto-enrolls</strong> — devices on the portal with a contract but no ManagedDevice record are enrolled automatically.</li>
+      <li><strong>Syncs states</strong> — devices that are Enrolled on the portal but APPROVAL_QUEUED locally are promoted to ACTIVE.</li>
+    </ol>
+  </div>
+
+  <!-- Warning -->
+  <div style="margin-top:1.5rem;">
+    <div class="warn">
+      <span>⚠️</span>
+      <div>
+        <strong>DEVICE_STATE_INVALID error?</strong> This means the Knox Guard app on the phone has not yet connected to Samsung's servers. The phone needs to be powered on with an internet connection. Once it connects, all pending commands (lock/unlock/approve) will be delivered automatically.
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section-title">❓ Common Questions</div>
+
+  <details>
+    <summary>Why is my device showing UPLOADED but not in Managed Devices?</summary>
+    <div class="faq-body">
+      <p>Uploaded means the IMEI is registered with Samsung. Managed Devices only shows devices that have been <strong>enrolled</strong> (linked to a contract) AND are <strong>ACTIVE</strong> (Knox Guard app connected). Click <strong>Refresh</strong> on the Knox Devices page to auto-enroll and sync.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>I sent a lock command but the phone is still unlocked. Why?</summary>
+    <div class="faq-body">
+      <p>The lock command was sent to Samsung but the phone hasn't received it yet. This happens when the phone is offline or the Knox Guard app isn't running. Once the phone connects to the internet, it will lock automatically. Check the portal status — if it shows <em>Enrolled</em> the command will arrive shortly.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>What is DEVICE_DUPLICATE?</summary>
+    <div class="faq-body">
+      <p>This means the device IMEI was uploaded to Samsung more than once. The device IS registered — Samsung just rejected the second attempt. Click the <strong>Resync</strong> button next to the device in the Knox Upload Status table. The system will check the portal and update the local record to UPLOADED automatically.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Can I lock a device that has no contract yet?</summary>
+    <div class="faq-body">
+      <p>Yes. From the <strong>Inventory</strong> page, use the lock button on the device row. The message shown on the phone will be: <em>"This Phone is locked Awaiting Contract, Contact AidooTech Manager."</em> The device must be enrolled (ACTIVE) on the Knox portal first.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>The payment app button on the lock screen doesn't open. Why?</summary>
+    <div class="faq-body">
+      <p>The app whitelist is configured in the Samsung Knox Guard portal under <strong>Profiles → Allowed Applications</strong>. Make sure <code>com.aidootech.customer</code> is added with label <em>AIDOO TECH</em> and the correct app signature. This is a portal setting, not an API call. Also note: older Android versions (below Android 13) may not support lock screen app launching.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>How does the automatic lock/unlock work?</summary>
+    <div class="faq-body">
+      <p>A background job runs every <strong>5 minutes</strong>. It checks every active enrolled device:</p>
+      <p>• If overdue amount &gt; 0 and days overdue ≥ 3 → <strong>lock</strong> the device.</p>
+      <p>• If overdue amount = 0 and device is locked → <strong>unlock</strong> the device.</p>
+      <p>• Before locking, a blink warning is sent at day 1–2 overdue.</p>
+      <p>Payments trigger an immediate re-evaluation, so a customer who pays will be unlocked within seconds — not at the next cron cycle.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>What does the support number on the lock screen do?</summary>
+    <div class="faq-body">
+      <p>Tapping it dials <strong>*713*9572#</strong> (the AIDOO TECH payment USSD) directly from the lock screen. The customer can make a payment without needing to unlock the phone first. This is set in <strong>Knox Guard Settings → Support Phone</strong>.</p>
+    </div>
+  </details>
+
+</main>
+
+<footer>
+  <p>AIDOO TECH Hire Purchase · Knox Guard Admin Guide · <a href="/admin/knox" style="color:var(--brand);">Go to Knox Dashboard →</a></p>
+</footer>
+
+</body>
+</html>

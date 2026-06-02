@@ -293,16 +293,32 @@ export default function InventoryPage() {
     setLockingId(item.id);
     try {
       const res = await api.patch(`/products/inventory/${item.id}/lock-status`, { lockStatus: newStatus });
-      const { knoxCommandQueued } = res.data;
-      if (knoxCommandQueued) {
+      const {
+        via,
+        dryRun,
+        message,
+        knoxActionAttempted,
+      } = res.data as {
+        via?: 'knox_guard' | 'knox_guard_direct' | 'knox_guard_standalone' | 'local';
+        dryRun?: boolean;
+        message?: string;
+        knoxActionAttempted?: boolean;
+      };
+
+      if (dryRun && knoxActionAttempted) {
         toast({
-          title: newStatus === "LOCKED" ? "Lock command sent to Knox Guard" : "Unlock command sent to Knox Guard",
-          description: `${item.serialNumber} — command is processing. Status will update when Knox confirms.`,
+          title: "Knox Guard dry-run",
+          description: message || `${item.serialNumber} — no real Knox command was sent.`,
+        });
+      } else if (via === 'knox_guard' || via === 'knox_guard_direct' || via === 'knox_guard_standalone' || knoxActionAttempted) {
+        toast({
+          title: newStatus === "LOCKED" ? "Knox Guard lock sent" : "Knox Guard unlock sent",
+          description: message || `${item.serialNumber} — Samsung accepted the request and the device will update when it next checks in.`,
         });
       } else {
         toast({
           title: newStatus === "LOCKED" ? "Device marked as locked" : "Device marked as unlocked",
-          description: `${item.serialNumber} status updated locally.`,
+          description: message || `${item.serialNumber} status updated locally.`,
         });
       }
       loadInventory();
@@ -760,7 +776,7 @@ export default function InventoryPage() {
                   </div>
                 ) : (
                   <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
-                    Could not fetch portal status — device may not be visible on Knox. Proceeding will queue the command locally.
+                    Could not fetch portal status. Proceeding will still try the Knox Guard action using the device details saved in this system.
                   </p>
                 )}
               </div>
