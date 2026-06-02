@@ -214,6 +214,12 @@ export default function KnoxDevicesPage() {
     total: 0,
     totalPages: 1,
   });
+  const [noContractPagination, setNoContractPagination] = useState<PaginationState>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
 
 
   // Managed devices search + filter
@@ -232,23 +238,6 @@ export default function KnoxDevicesPage() {
   const [noContractUploads, setNoContractUploads] = useState<KnoxUploadItem[]>([]);
   const [noContractLoading, setNoContractLoading] = useState(false);
 
-  const fetchNoContractUploads = useCallback(async () => {
-    setNoContractLoading(true);
-    try {
-      const res = await api.get('/knox-guard/upload/status', {
-        params: { limit: 100, includePortal: true },
-      });
-      const items: KnoxUploadItem[] = res.data.items || [];
-      setNoContractUploads(items.filter((i) => !i.contract));
-    } catch {
-      // silent — non-critical section
-    } finally {
-      setNoContractLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void fetchNoContractUploads(); }, [fetchNoContractUploads]);
-
   // Knox portal live check
   const [portalCheck, setPortalCheck] = useState<PortalCheckResult | null>(null);
   const [portalCheckLoading, setPortalCheckLoading] = useState(false);
@@ -256,14 +245,16 @@ export default function KnoxDevicesPage() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deferredQuery = useDeferredValue(query.trim());
+  const effectiveDeviceQuery = deferredDeviceQuery || deferredQuery;
+  const effectiveUploadQuery = deferredUploadQuery || deferredQuery;
 
   const fetchDevices = useCallback(async (page = devicePagination.page): Promise<{ devices: ManagedDevice[]; pagination: PaginationState }> => {
     const res = await api.get('/knox-guard/devices', {
       params: {
         page,
         limit: devicePagination.limit,
-        q: deferredDeviceQuery || undefined,
-        enrollmentStatus: 'ACTIVE',
+        q: effectiveDeviceQuery || undefined,
+        enrollmentStatus: deviceEnrollmentFilter || undefined,
       },
     });
     return {
@@ -275,7 +266,7 @@ export default function KnoxDevicesPage() {
         totalPages: 1,
       },
     };
-  }, [deferredDeviceQuery, devicePagination.limit, devicePagination.page]);
+  }, [deviceEnrollmentFilter, devicePagination.limit, devicePagination.page, effectiveDeviceQuery]);
 
   const fetchUploads = useCallback(async (page = uploadPagination.page): Promise<{ items: KnoxUploadItem[]; portalSummary: KnoxUploadSummary | null; pagination: PaginationState }> => {
     const res = await api.get('/knox-guard/upload/status', {
@@ -283,7 +274,7 @@ export default function KnoxDevicesPage() {
         page,
         limit: uploadPagination.limit,
         includePortal: true,
-        q: deferredUploadQuery || undefined,
+        q: effectiveUploadQuery || undefined,
         status: uploadStatusFilter || undefined,
       },
     });
@@ -297,7 +288,7 @@ export default function KnoxDevicesPage() {
         totalPages: 1,
       },
     };
-  }, [deferredUploadQuery, uploadStatusFilter, uploadPagination.limit, uploadPagination.page]);
+  }, [effectiveUploadQuery, uploadStatusFilter, uploadPagination.limit, uploadPagination.page]);
 
   const load = useCallback(async () => {
     try {
@@ -319,6 +310,35 @@ export default function KnoxDevicesPage() {
   }, [devicePagination.page, fetchDevices, fetchUploads, toast, uploadPagination.page]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const fetchNoContractUploads = useCallback(async (page = noContractPagination.page) => {
+    setNoContractLoading(true);
+    try {
+      const res = await api.get('/knox-guard/upload/status', {
+        params: {
+          page,
+          limit: noContractPagination.limit,
+          includePortal: true,
+          withoutContract: true,
+          q: deferredQuery || undefined,
+        },
+      });
+      const items: KnoxUploadItem[] = res.data.items || [];
+      setNoContractUploads(items);
+      setNoContractPagination(res.data.pagination || {
+        page,
+        limit: noContractPagination.limit,
+        total: 0,
+        totalPages: 1,
+      });
+    } catch {
+      // silent — non-critical section
+    } finally {
+      setNoContractLoading(false);
+    }
+  }, [deferredQuery, noContractPagination.limit, noContractPagination.page]);
+
+  useEffect(() => { void fetchNoContractUploads(); }, [fetchNoContractUploads]);
 
   const fetchPortalCheck = useCallback(async () => {
     setPortalCheckLoading(true);
@@ -372,10 +392,11 @@ export default function KnoxDevicesPage() {
     const prevState = prevDevice?.actualState ?? 'UNKNOWN';
     try {
       setBusyKey(key);
-      await api.post(`/knox-guard/contracts/${contractId}/${action}`, {});
+      const res = await api.post(`/knox-guard/contracts/${contractId}/${action}`, {});
+      const actionLabel = action === 'evaluate' ? 'Evaluation requested' : action === 'lock' ? 'Lock requested' : 'Unlock requested';
       toast({
-        title: action === 'evaluate' ? 'Evaluation queued' : action === 'lock' ? 'Lock queued' : 'Unlock queued',
-        description: 'Waiting for Knox to respond…',
+        title: actionLabel,
+        description: res.data?.message || 'Waiting for Knox to respond…',
       });
       startPolling(contractId, prevState);
     } catch (err: any) {
@@ -389,8 +410,11 @@ export default function KnoxDevicesPage() {
     const key = `approve:${contractId}`;
     try {
       setBusyKey(key);
-      await api.post(`/knox-guard/contracts/${contractId}/approve`, {});
-      toast({ title: 'Approval queued', description: 'Knox Guard will approve the device on the next command cycle.' });
+      const res = await api.post(`/knox-guard/contracts/${contractId}/approve`, {});
+      toast({
+        title: 'Approval requested',
+        description: res.data?.message || 'Knox Guard approval request sent successfully.',
+      });
       await load();
     } catch (err: any) {
       toast({ title: 'Approval failed', description: err.response?.data?.error || 'Failed to queue approval', variant: 'destructive' });
@@ -413,7 +437,7 @@ export default function KnoxDevicesPage() {
         // Not on portal — tell user to upload first
         toast({
           title: 'Device not found on Knox portal',
-          description: `${serialNumber} is not registered with Samsung Knox. Use the Upload button to register it first.`,
+          description: `${serialNumber} is not registered with Samsung Knox. Upload it to Knox before marking the local record as uploaded.`,
           variant: 'destructive',
         });
         return;
@@ -430,7 +454,7 @@ export default function KnoxDevicesPage() {
         description: `${serialNumber} is on the Knox portal with status "${portalStatus}". Local record updated to UPLOADED.`,
       });
 
-      await load();
+      await Promise.all([load(), fetchNoContractUploads()]);
     } catch (err: any) {
       toast({ title: 'Resync failed', description: err.response?.data?.error || 'Failed to resync device', variant: 'destructive' });
     } finally {
@@ -445,7 +469,7 @@ export default function KnoxDevicesPage() {
       setBusyKey(key);
       const res = await api.post('/knox-guard/devices/reset', { imei: serialNumber });
       toast({ title: 'Reset successful', description: res.data?.message || `${serialNumber} reset for re-upload.` });
-      await load();
+      await Promise.all([load(), fetchNoContractUploads()]);
     } catch (err: any) {
       toast({ title: 'Reset failed', description: err.response?.data?.error || 'Failed to reset device', variant: 'destructive' });
     } finally {
@@ -461,10 +485,10 @@ export default function KnoxDevicesPage() {
       const res = await api.post('/knox-guard/upload/sync', {});
       const { marked = 0, enrolled = 0, managed = 0, dryRun } = res.data || {};
       toast({
-        title: dryRun ? 'Dry-run sync complete' : 'Sync complete',
+        title: dryRun ? 'Dry-run sync complete' : 'Portal sync complete',
         description: dryRun
           ? 'Dry-run mode — no changes made.'
-          : `${marked} uploaded, ${enrolled} enrolled, ${managed} activated`,
+          : `${marked} marked uploaded, ${enrolled} enrolled, ${managed} synced`,
       });
       await Promise.all([load(), fetchNoContractUploads()]);
     } catch (err: any) {
@@ -507,6 +531,7 @@ export default function KnoxDevicesPage() {
               setExpandedId(null);
               setDevicePagination((current) => ({ ...current, page: 1 }));
               setUploadPagination((current) => ({ ...current, page: 1 }));
+              setNoContractPagination((current) => ({ ...current, page: 1 }));
             }}
             className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-4 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
           />
@@ -521,7 +546,7 @@ export default function KnoxDevicesPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            {syncing ? 'Syncing…' : 'Refresh'}
+            {syncing ? 'Syncing…' : 'Sync portal'}
           </button>
           <Link
             href="/admin/knox/enroll"
@@ -555,7 +580,7 @@ export default function KnoxDevicesPage() {
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Managed Devices</h2>
-            <p className="text-sm text-slate-500">Devices active on Knox Guard portal and ready for lock/unlock control.</p>
+            <p className="text-sm text-slate-500">Locally tracked Knox Guard devices, including devices awaiting approval or activation.</p>
           </div>
         </div>
 
@@ -586,7 +611,20 @@ export default function KnoxDevicesPage() {
             <option value="PENDING">Pending</option>
             <option value="UNKNOWN">Unknown</option>
           </select>
-          {(deviceQuery || deviceActualStateFilter) && (
+          <select
+            value={deviceEnrollmentFilter}
+            onChange={(e) => { setDeviceEnrollmentFilter(e.target.value); setDevicePagination((c) => ({ ...c, page: 1 })); }}
+            className="rounded-xl border border-slate-300 py-1.5 pl-3 pr-8 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+          >
+            <option value="">All enrollment states</option>
+            <option value="ACTIVE">Active</option>
+            <option value="APPROVAL_QUEUED">Approval queued</option>
+            <option value="APPROVED">Approved</option>
+            <option value="PENDING">Pending</option>
+            <option value="COMPLETING">Completing</option>
+            <option value="COMPLETE">Complete</option>
+          </select>
+          {(deviceQuery || deviceActualStateFilter || deviceEnrollmentFilter) && (
             <button
               onClick={() => {
                 setDeviceQuery('');
@@ -608,7 +646,7 @@ export default function KnoxDevicesPage() {
           </div>
         ) : devices.filter((d) => !deviceActualStateFilter || d.actualState === deviceActualStateFilter).length === 0 ? (
           <div className="p-12 text-center text-sm text-slate-500">
-            {deviceQuery || deviceActualStateFilter ? 'No managed devices match your filters.' : 'No active managed devices yet.'}
+            {deviceQuery || deviceActualStateFilter || deviceEnrollmentFilter ? 'No managed devices match your filters.' : 'No managed devices yet.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -956,10 +994,10 @@ export default function KnoxDevicesPage() {
                                   onClick={() => void handleResync(item.id, item.serialNumber)}
                                   disabled={!!busyKey}
                                   className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
-                                  title="Re-upload this device to Knox"
+                                  title="Verify the device on the Knox portal and mark the local row as uploaded"
                                 >
                                   {busyKey === `resync:${item.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                                  Resync
+                                  Verify portal
                                 </button>
                               )}
                               <button
@@ -1004,7 +1042,7 @@ export default function KnoxDevicesPage() {
             <p className="text-sm text-slate-500">Devices registered in Knox but not linked to any contract.</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">{noContractUploads.length} device{noContractUploads.length !== 1 ? 's' : ''}</span>
+            <span className="text-sm text-slate-500">{noContractPagination.total} device{noContractPagination.total !== 1 ? 's' : ''}</span>
             <button
               onClick={() => void fetchNoContractUploads()}
               disabled={noContractLoading}
@@ -1085,7 +1123,7 @@ export default function KnoxDevicesPage() {
                               className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-60"
                             >
                               {busyKey === `resync:${item.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                              Resync
+                              Verify portal
                             </button>
                           )}
                           <button
@@ -1105,6 +1143,15 @@ export default function KnoxDevicesPage() {
             </table>
           </div>
         )}
+        {!noContractLoading && noContractPagination.totalPages > 1 && (
+          <Pagination
+            currentPage={noContractPagination.page}
+            totalPages={noContractPagination.totalPages}
+            onPageChange={(page) => setNoContractPagination((current) => ({ ...current, page }))}
+            totalItems={noContractPagination.total}
+            itemsPerPage={noContractPagination.limit}
+          />
+        )}
       </div>
 
       {/* ── Knox Portal Live Check ──────────────────────────────────────── */}
@@ -1116,7 +1163,7 @@ export default function KnoxDevicesPage() {
               Knox Portal Live Check
             </h2>
             <p className="text-sm text-slate-500">
-              Queries the Samsung Knox Guard portal for every active enrolled device and shows real-time status.
+              Queries the Samsung Knox Guard portal for every active managed device and shows real-time status.
             </p>
           </div>
           <button
@@ -1132,7 +1179,7 @@ export default function KnoxDevicesPage() {
         {!portalCheck && !portalCheckLoading && !portalCheckError && (
           <div className="flex flex-col items-center justify-center gap-3 p-12 text-center text-slate-500">
             <Radio className="h-10 w-10 text-slate-300" />
-            <p className="text-sm">Click <span className="font-medium text-cyan-600">Check portal now</span> to query Samsung Knox Guard for all enrolled active devices.</p>
+            <p className="text-sm">Click <span className="font-medium text-cyan-600">Check portal now</span> to query Samsung Knox Guard for all active managed devices.</p>
           </div>
         )}
 
