@@ -705,7 +705,7 @@ function DesktopStepContent({
                 onClick={() => {
                   setFormData({ ...formData, inventoryItemId: item.id, totalPrice: item.product?.basePrice?.toString() || "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
                   setSelectedInventory(item);
-                  setUnlockOnContract(item.lockStatus === 'LOCKED');
+                  setUnlockOnContract(false);
                 }}
               >
                 <div className="flex justify-between items-start">
@@ -1260,6 +1260,9 @@ function CreateHirePurchaseSale({
       if (formData.lockStatus) {
         submitData.append("lockStatus", formData.lockStatus);
       }
+      if (selectedInventory?.lockStatus === "LOCKED" && unlockOnContract) {
+        submitData.append("unlockOnContract", "true");
+      }
       if (formData.registeredUnder) {
         submitData.append("registeredUnder", formData.registeredUnder);
       }
@@ -1269,52 +1272,23 @@ function CreateHirePurchaseSale({
       }
 
       const response = await api.post("/contracts", submitData);
-      const createdContractId = response.data?.id;
       const createdContractNumber = response.data?.contractNumber;
-
-      // Unlock device if checkbox checked and device was locked
-      let unlockSucceeded = false;
-      if (unlockOnContract && selectedInventory?.lockStatus === 'LOCKED' && createdContractId) {
-        // Link managed device to this contract first if it has no contract yet
-        if (selectedInventory?.managedDevice?.id && !selectedInventory?.managedDevice?.contractId) {
-          try {
-            await api.patch(`/knox-guard/devices/${selectedInventory.managedDevice.id}/link-contract`, { contractId: createdContractId });
-          } catch (linkErr) {
-            console.error('Link managed device to contract failed:', linkErr);
-          }
-        }
-
-        // Retry unlock up to 3 times with 3s delay between attempts
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            await api.post(`/knox-guard/contracts/${createdContractId}/unlock`, { reason: 'Device unlocked on contract creation.' });
-            unlockSucceeded = true;
-            break;
-          } catch (unlockErr: any) {
-            console.error(`Unlock attempt ${attempt}/3 failed:`, unlockErr?.response?.data?.error || unlockErr?.message);
-            if (attempt < 3) {
-              await new Promise((r) => setTimeout(r, 3000));
-            }
-          }
-        }
-
-        // If all retries failed, set desiredState=UNLOCKED on the backend so the cron picks it up
-        if (!unlockSucceeded) {
-          try {
-            await api.post(`/knox-guard/contracts/${createdContractId}/evaluate`, {});
-          } catch {
-            // cron will handle it on next cycle
-          }
-        }
-      }
+      const deviceUnlock = response.data?.deviceUnlock;
+      const contractLabel = createdContractNumber ? `Contract ${createdContractNumber}` : "Contract";
+      const unlockPendingDescription =
+        typeof deviceUnlock?.message === "string" && deviceUnlock.message.trim().length > 0
+          ? deviceUnlock.message.replace(/^Contract created\b\.?\s*/i, `${contractLabel} created. `)
+          : `${contractLabel} created — unlock pending. The device will be unlocked shortly.`;
 
       toast({
         title: "Contract Created!",
-        description: unlockOnContract && selectedInventory?.lockStatus === 'LOCKED'
-          ? unlockSucceeded
-            ? `Contract ${createdContractNumber} created and device unlocked.`
-            : `Contract ${createdContractNumber} created — unlock pending. The device will be unlocked shortly.`
-          : `Contract ${createdContractNumber} has been created successfully.`,
+        description: deviceUnlock?.status === "succeeded"
+          ? deviceUnlock?.dryRun
+            ? `${contractLabel} created and device unlock simulated.`
+            : `${contractLabel} created and device unlocked.`
+          : deviceUnlock?.status === "pending"
+            ? unlockPendingDescription
+            : `${contractLabel} has been created successfully.`,
       });
 
       onSuccess();
@@ -1545,7 +1519,7 @@ function CreateHirePurchaseSale({
                     onClick={() => {
                       setFormData({ ...formData, inventoryItemId: item.id, totalPrice: item.product?.basePrice?.toString() || "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
                       setSelectedInventory(item);
-                      setUnlockOnContract(item.lockStatus === 'LOCKED');
+                      setUnlockOnContract(false);
                     }}
                   >
                     <div className="flex justify-between items-start gap-2">

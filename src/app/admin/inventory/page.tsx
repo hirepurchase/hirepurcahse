@@ -734,7 +734,7 @@ export default function InventoryPage() {
 
       {/* Knox portal status confirmation before lock / unlock */}
       <AlertDialog open={!!knoxConfirm} onOpenChange={(open) => { if (!open) setKnoxConfirm(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white text-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {knoxConfirm?.newStatus === 'LOCKED' ? 'Lock device via Knox Guard?' : 'Unlock device via Knox Guard?'}
