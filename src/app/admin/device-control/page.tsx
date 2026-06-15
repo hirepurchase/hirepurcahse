@@ -636,7 +636,7 @@ export default function DeviceControlPage() {
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-base font-semibold text-slate-900">{device.contract.contractNumber}</span>
+                          <span className="text-base font-semibold text-slate-900">{device.contract?.contractNumber ?? '—'}</span>
                           <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusPillClasses(device.actualState)}`}>
                             actual: {device.actualState}
                           </span>
@@ -648,11 +648,11 @@ export default function DeviceControlPage() {
                           </span>
                         </div>
                         <div className="grid gap-1 text-sm text-slate-600 sm:grid-cols-2">
-                          <div>Customer: {device.customer.firstName} {device.customer.lastName}</div>
-                          <div>Phone: {device.customer.phone}</div>
+                          <div>Customer: {device.customer?.firstName ?? '—'} {device.customer?.lastName ?? ''}</div>
+                          <div>Phone: {device.customer?.phone ?? '—'}</div>
                           <div>Approve ID: {device.approveId}</div>
                           <div>Device UID: {device.deviceUid}</div>
-                          <div>Outstanding: GHS {device.contract.outstandingBalance.toFixed(2)}</div>
+                          <div>Outstanding: GHS {device.contract?.outstandingBalance?.toFixed(2) ?? '—'}</div>
                           <div>Inventory lock: {device.inventoryItem?.lockStatus || "—"}</div>
                         </div>
                         {device.customerExperience && (
@@ -683,27 +683,27 @@ export default function DeviceControlPage() {
                       {canManage && (
                         <div className="flex flex-wrap gap-2">
                           <button
-                            onClick={() => handleContractAction(device.contract.id, "evaluate")}
-                            disabled={busyKey === `evaluate:${device.contract.id}`}
+                            onClick={() => device.contract?.id && handleContractAction(device.contract.id, "evaluate")}
+                            disabled={!device.contract?.id || busyKey === `evaluate:${device.contract?.id}`}
                             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                           >
-                            {busyKey === `evaluate:${device.contract.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                            {busyKey === `evaluate:${device.contract?.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                             Evaluate
                           </button>
                           <button
-                            onClick={() => handleContractAction(device.contract.id, "lock")}
-                            disabled={busyKey === `lock:${device.contract.id}`}
+                            onClick={() => device.contract?.id && handleContractAction(device.contract.id, "lock")}
+                            disabled={!device.contract?.id || busyKey === `lock:${device.contract?.id}`}
                             className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
                           >
-                            {busyKey === `lock:${device.contract.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                            {busyKey === `lock:${device.contract?.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                             Lock
                           </button>
                           <button
-                            onClick={() => handleContractAction(device.contract.id, "unlock")}
-                            disabled={busyKey === `unlock:${device.contract.id}`}
+                            onClick={() => device.contract?.id && handleContractAction(device.contract.id, "unlock")}
+                            disabled={!device.contract?.id || busyKey === `unlock:${device.contract?.id}`}
                             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                           >
-                            {busyKey === `unlock:${device.contract.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unlock className="h-4 w-4" />}
+                            {busyKey === `unlock:${device.contract?.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unlock className="h-4 w-4" />}
                             Unlock
                           </button>
                         </div>
@@ -731,7 +731,7 @@ export default function DeviceControlPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-slate-900">{command.type}</div>
-                          <div className="text-xs text-slate-500">{command.managedDevice.contract.contractNumber}</div>
+                          <div className="text-xs text-slate-500">{command.managedDevice?.contract?.contractNumber ?? '—'}</div>
                         </div>
                         <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusPillClasses(command.status)}`}>
                           {command.status}

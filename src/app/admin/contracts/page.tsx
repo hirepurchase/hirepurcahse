@@ -706,7 +706,7 @@ function DesktopStepContent({
                 key={item.id}
                 className={`p-4 border rounded-lg cursor-pointer transition-all ${formData.inventoryItemId === item.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}
                 onClick={() => {
-                  setFormData({ ...formData, inventoryItemId: item.id, totalPrice: "", depositAmount: "", totalInstallments: "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
+                  setFormData({ ...formData, inventoryItemId: item.id, totalPrice: "", depositAmount: "", totalInstallments: "", lockStatus: item.lockStatus || "UNLOCKED" });
                   setSelectedInventory(item);
                   setSelectedPeriodMonths(null);
                   setUnlockOnContract(false);
@@ -812,22 +812,37 @@ function DesktopStepContent({
           )}
 
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-semibold mb-3 text-gray-700">Additional Device Info (Optional)</h4>
+            <h4 className="text-sm font-semibold mb-3 text-gray-700 flex items-center gap-1.5">
+              Device Info
+              <Lock className="h-3 w-3 text-gray-400" />
+            </h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Lock Status</label>
-                <select className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm" value={formData.lockStatus} onChange={(e: any) => setFormData({ ...formData, lockStatus: e.target.value })}>
-                  <option value="">Not specified</option>
-                  <option value="UNLOCKED">Unlocked</option>
-                  <option value="LOCKED">Locked</option>
-                </select>
+                <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                  Lock Status
+                  <Lock className="h-3 w-3 text-gray-400" />
+                </label>
+                <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-900">
+                  {formData.lockStatus ? (
+                    <span className={formData.lockStatus === 'LOCKED' ? 'text-red-600' : 'text-green-700'}>
+                      {formData.lockStatus === 'LOCKED' ? 'Locked' : 'Unlocked'}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">Not specified</span>
+                  )}
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Registered Under</label>
-                <Input placeholder="e.g., Customer Name" value={formData.registeredUnder} onChange={(e: any) => setFormData({ ...formData, registeredUnder: e.target.value })} />
+                <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                  Registered Under
+                  <Lock className="h-3 w-3 text-gray-400" />
+                </label>
+                <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-900">
+                  {formData.registeredUnder || <span className="text-gray-400">—</span>}
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">These details can be updated independently later if needed</p>
+            <p className="text-xs text-gray-500 mt-2">Lock status is read from inventory. Registered under is the creating agent/user.</p>
           </div>
 
           {/* Installment Period Selector */}
@@ -1085,6 +1100,10 @@ function CreateHirePurchaseSale({
     return months * 30;
   };
 
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const isAgent = (user as AdminUser | null)?.role === 'AGENT';
+
   const [formData, setFormData] = useState({
     customerId: "",
     inventoryItemId: "",
@@ -1111,13 +1130,18 @@ function CreateHirePurchaseSale({
   const [isDraggingSignature, setIsDraggingSignature] = useState(false);
   const [guardrails, setGuardrails] = useState<ContractGuardrailAssessment | null>(null);
   const [isGuardrailLoading, setIsGuardrailLoading] = useState(false);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const isAgent = (user as AdminUser | null)?.role === 'AGENT';
 
   useEffect(() => {
     loadAvailableInventory();
   }, []);
+
+  // Auto-fill registeredUnder with the logged-in user's name once auth resolves
+  useEffect(() => {
+    if (user && !formData.registeredUnder) {
+      const name = `${(user as any).firstName ?? ''} ${(user as any).lastName ?? ''}`.trim();
+      if (name) setFormData(prev => ({ ...prev, registeredUnder: name }));
+    }
+  }, [user]);
 
   // Debounced live customer search — fetches from server on every keystroke (300ms delay)
   useEffect(() => {
@@ -1647,7 +1671,7 @@ function CreateHirePurchaseSale({
                         : "border-gray-200 bg-white"
                     }`}
                     onClick={() => {
-                      setFormData({ ...formData, inventoryItemId: item.id, totalPrice: "", depositAmount: "", totalInstallments: "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
+                      setFormData({ ...formData, inventoryItemId: item.id, totalPrice: "", depositAmount: "", totalInstallments: "", lockStatus: item.lockStatus || "UNLOCKED" });
                       setSelectedInventory(item);
                       setSelectedPeriodMonths(null);
                       setUnlockOnContract(false);
@@ -1702,23 +1726,31 @@ function CreateHirePurchaseSale({
 
               {/* Device info */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Device Info (Optional)</p>
+                <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-1">
+                  Device Info <Lock className="h-3 w-3 text-gray-400" />
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-600">Lock Status</label>
-                    <select
-                      className="mt-1 flex h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={formData.lockStatus}
-                      onChange={(e) => setFormData({ ...formData, lockStatus: e.target.value as any })}
-                    >
-                      <option value="">Not specified</option>
-                      <option value="UNLOCKED">Unlocked</option>
-                      <option value="LOCKED">Locked</option>
-                    </select>
+                    <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                      Lock Status <Lock className="h-3 w-3 text-gray-400" />
+                    </label>
+                    <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold">
+                      {formData.lockStatus ? (
+                        <span className={formData.lockStatus === 'LOCKED' ? 'text-red-600' : 'text-green-700'}>
+                          {formData.lockStatus === 'LOCKED' ? 'Locked' : 'Unlocked'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </div>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600">Registered Under</label>
-                    <Input className="mt-1 h-9 text-sm" placeholder="e.g., Name" value={formData.registeredUnder} onChange={(e) => setFormData({ ...formData, registeredUnder: e.target.value })} />
+                    <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                      Registered Under <Lock className="h-3 w-3 text-gray-400" />
+                    </label>
+                    <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold text-gray-900 truncate">
+                      {formData.registeredUnder || <span className="text-gray-400">—</span>}
+                    </div>
                   </div>
                 </div>
               </div>
