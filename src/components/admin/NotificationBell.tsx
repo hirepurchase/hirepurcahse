@@ -119,7 +119,7 @@ export default function NotificationBell({ variant = 'light' }: { variant?: 'lig
                       </div>
                       <div className="flex items-center justify-between mt-2 pl-11">
                         <p className="text-xs text-cyan-100/50">
-                          {p.contract.contractNumber} · {getPaymentMethodLabel(p.paymentMethod)}
+                          {p.contract?.contractNumber ?? '—'} · {getPaymentMethodLabel(p.paymentMethod)}
                         </p>
                             <p className="text-xs text-cyan-100/40">
                           {formatDate(p.paymentDate || p.createdAt)}

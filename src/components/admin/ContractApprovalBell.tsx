@@ -122,9 +122,9 @@ export default function ContractApprovalBell({ variant = 'light' }: { variant?: 
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-white">
-                              {c.customer.firstName} {c.customer.lastName}
+                              {c.customer?.firstName} {c.customer?.lastName}
                             </p>
-                            <p className="text-xs text-cyan-100/50 mt-0.5">{c.customer.membershipId}</p>
+                            <p className="text-xs text-cyan-100/50 mt-0.5">{c.customer?.membershipId}</p>
                           </div>
                         </div>
                         <p className="text-sm font-bold text-amber-400 shrink-0">
@@ -139,7 +139,7 @@ export default function ContractApprovalBell({ variant = 'light' }: { variant?: 
                       </div>
                       <div className="mt-1 pl-11">
                         <p className="text-xs text-cyan-100/40">
-                          By {c.createdBy.firstName} {c.createdBy.lastName} ({c.createdBy.role.name})
+                          By {c.createdBy?.firstName} {c.createdBy?.lastName} ({c.createdBy?.role?.name ?? '—'})
                         </p>
                       </div>
                     </li>
