@@ -20,7 +20,7 @@ interface PendingContract {
   createdBy: { firstName: string; lastName: string; role: { name: string } };
 }
 
-export default function ContractApprovalBell() {
+export default function ContractApprovalBell({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
   const { count, refresh } = usePendingContractApprovals();
   const [open, setOpen] = useState(false);
   const [contracts, setContracts] = useState<PendingContract[]>([]);
@@ -49,11 +49,15 @@ export default function ContractApprovalBell() {
     }
   };
 
+  const btnCls = variant === 'dark'
+    ? 'text-slate-400 hover:bg-white/10 hover:text-white'
+    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700';
+
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="relative flex items-center justify-center rounded-lg p-2 text-cyan-50/85 transition-colors hover:bg-white/10 hover:text-white"
+        className={`relative flex items-center justify-center rounded-lg p-2 transition-colors ${btnCls}`}
         aria-label="Pending contract approvals"
       >
         <ClipboardCheck className="h-5 w-5" />

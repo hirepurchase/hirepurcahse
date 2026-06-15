@@ -45,20 +45,20 @@ export default function DailyPaymentsBanner() {
   if (!visible || !data) return null;
 
   return (
-    <div className="mx-4 mt-4 sm:mx-6 lg:mx-8 rounded-xl border border-green-500/30 bg-green-950/40 px-4 py-3 text-white backdrop-blur-sm">
+    <div className="mx-4 mt-4 sm:mx-6 lg:mx-8 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
-            <TrendingUp className="h-5 w-5 text-green-400" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100">
+            <TrendingUp className="h-5 w-5 text-green-600" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-green-300">
+            <p className="text-sm font-semibold text-green-800">
               {data.count === 0
                 ? 'No successful payments yet today'
                 : `${data.count} payment${data.count !== 1 ? 's' : ''} received today`}
             </p>
             {data.count > 0 && (
-              <p className="text-xs text-green-400/80 mt-0.5">
+              <p className="text-xs text-green-700 mt-0.5">
                 Total collected today: <span className="font-bold">{formatCurrency(data.totalAmount)}</span>
               </p>
             )}
@@ -66,7 +66,7 @@ export default function DailyPaymentsBanner() {
         </div>
         <button
           onClick={handleDismiss}
-          className="flex-shrink-0 rounded-md p-1 text-green-400/70 transition-colors hover:bg-green-500/20 hover:text-green-300"
+          className="shrink-0 rounded-md p-1 text-green-600 transition-colors hover:bg-green-100 hover:text-green-800"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

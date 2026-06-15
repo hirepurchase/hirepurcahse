@@ -129,11 +129,11 @@ function RejectModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+      <div className="relative z-10 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 w-full sm:max-w-md sm:mx-4">
         <div className="flex items-center gap-2 mb-4">
-          <XCircle className="h-5 w-5 text-red-500" />
+          <XCircle className="h-5 w-5 text-red-500 shrink-0" />
           <h2 className="text-base font-semibold text-gray-900">Request Revision</h2>
         </div>
         <p className="text-sm text-gray-600 mb-1">
@@ -252,18 +252,18 @@ function EditModal({
   const labelCls = "text-xs font-medium text-gray-600 block mb-1";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-        <div className="flex items-center gap-2 px-6 pt-6 pb-4 border-b">
-          <Pencil className="h-5 w-5 text-amber-500" />
+      <div className="relative z-10 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg sm:mx-4 max-h-[92vh] flex flex-col">
+        <div className="flex items-center gap-2 px-5 pt-5 pb-4 border-b">
+          <Pencil className="h-5 w-5 text-amber-500 shrink-0" />
           <h2 className="text-base font-semibold text-gray-900">Edit Contract</h2>
           <Badge variant="outline" className="ml-auto text-[10px] border-amber-300 text-amber-700 bg-amber-50">
             {contract.contractNumber}
           </Badge>
         </div>
 
-        <div className="px-6 py-3 bg-gray-50 border-b text-xs text-gray-600 flex gap-4">
+        <div className="px-5 py-3 bg-gray-50 border-b text-xs text-gray-600 flex flex-wrap gap-3">
           <span className="flex items-center gap-1">
             <User className="h-3 w-3" />
             {contract.customer.firstName} {contract.customer.lastName}
@@ -274,7 +274,7 @@ function EditModal({
           </span>
         </div>
 
-        <div className="overflow-y-auto px-6 py-5 space-y-4 flex-1">
+        <div className="overflow-y-auto px-5 py-5 space-y-4 flex-1">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Total Price (GHS)</label>
@@ -379,7 +379,7 @@ function EditModal({
           </div>
         </div>
 
-        <div className="flex gap-2 px-6 pb-6 pt-4 border-t">
+        <div className="flex gap-2 px-5 pb-5 pt-4 border-t">
           <button
             onClick={handleSave}
             disabled={loading}
@@ -521,54 +521,46 @@ export default function ContractApprovalsPage() {
     f === "DAILY" ? "Daily" : f === "WEEKLY" ? "Weekly" : "Monthly";
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-4 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-          <ClipboardCheck className="h-5 w-5 text-amber-600" />
+        <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-amber-100 shrink-0">
+          <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Contract Approvals</h1>
-          <p className="text-sm text-gray-500">
-            Review, assign, and decision pending contracts from agents
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">Contract Approvals</h1>
+          <p className="text-xs sm:text-sm text-gray-500 truncate">
+            Review, assign, and decision pending contracts
           </p>
         </div>
         {totalItems > 0 && (
-          <span className="ml-auto flex h-7 min-w-7 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white">
+          <span className="ml-auto flex h-7 min-w-7 items-center justify-center rounded-full bg-amber-500 px-2 text-xs font-bold text-white shrink-0">
             {totalItems}
           </span>
         )}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Waiting</p>
-            <p className="text-2xl font-bold text-gray-900">{queueSummary?.total ?? totalItems}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">High Priority</p>
-            <p className="text-2xl font-bold text-red-600">{queueSummary?.highPriority ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">SLA Breached</p>
-            <p className="text-2xl font-bold text-amber-600">{queueSummary?.breached ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-500">Unassigned</p>
-            <p className="text-2xl font-bold text-slate-700">{queueSummary?.unassigned ?? 0}</p>
-          </CardContent>
-        </Card>
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        {[
+          { label: "Waiting", value: queueSummary?.total ?? totalItems, color: "text-gray-900" },
+          { label: "High Priority", value: queueSummary?.highPriority ?? 0, color: "text-red-600" },
+          { label: "SLA Breached", value: queueSummary?.breached ?? 0, color: "text-amber-600" },
+          { label: "Unassigned", value: queueSummary?.unassigned ?? 0, color: "text-slate-700" },
+        ].map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="p-3 sm:p-4">
+              <p className="text-xs text-gray-500 leading-tight">{stat.label}</p>
+              <p className={`text-xl sm:text-2xl font-bold mt-0.5 ${stat.color}`}>{stat.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
+      {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid gap-3 md:grid-cols-[2fr,1fr,1fr,1fr,auto]">
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-2 sm:space-y-0 sm:grid sm:gap-3 sm:grid-cols-[2fr,1fr,1fr,1fr,auto]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -577,76 +569,76 @@ export default function ContractApprovalsPage() {
                   setCurrentPage(1);
                   setSearchQuery(e.target.value);
                 }}
-                placeholder="Search contract, customer, product, agent..."
+                placeholder="Search contract, customer, agent..."
                 className="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
 
-            <select
-              value={priorityFilter}
-              onChange={(e) => {
-                setCurrentPage(1);
-                setPriorityFilter(e.target.value);
-              }}
-              className="h-10 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">All priorities</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2 sm:contents">
+              <select
+                value={priorityFilter}
+                onChange={(e) => { setCurrentPage(1); setPriorityFilter(e.target.value); }}
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">All priorities</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
 
-            <select
-              value={assignedFilter}
-              onChange={(e) => {
-                setCurrentPage(1);
-                setAssignedFilter(e.target.value);
-              }}
-              className="h-10 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">All assignments</option>
-              <option value="unassigned">Unassigned</option>
-              <option value="me">Assigned to me</option>
-            </select>
+              <select
+                value={assignedFilter}
+                onChange={(e) => { setCurrentPage(1); setAssignedFilter(e.target.value); }}
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">All assignments</option>
+                <option value="unassigned">Unassigned</option>
+                <option value="me">Assigned to me</option>
+              </select>
+            </div>
 
-            <select
-              value={`${sortBy}:${sortOrder}`}
-              onChange={(e) => {
-                const [nextSortBy, nextSortOrder] = e.target.value.split(":");
-                setSortBy(nextSortBy);
-                setSortOrder((nextSortOrder as "asc" | "desc") || "desc");
-              }}
-              className="h-10 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="age:desc">Oldest first</option>
-              <option value="priority:desc">Highest priority</option>
-              <option value="amount:desc">Highest value</option>
-              <option value="submittedAt:desc">Newest submitted</option>
-              <option value="customer:asc">Customer A-Z</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2 sm:contents">
+              <select
+                value={`${sortBy}:${sortOrder}`}
+                onChange={(e) => {
+                  const [nextSortBy, nextSortOrder] = e.target.value.split(":");
+                  setSortBy(nextSortBy);
+                  setSortOrder((nextSortOrder as "asc" | "desc") || "desc");
+                }}
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="age:desc">Oldest first</option>
+                <option value="priority:desc">Highest priority</option>
+                <option value="amount:desc">Highest value</option>
+                <option value="submittedAt:desc">Newest submitted</option>
+                <option value="customer:asc">Customer A-Z</option>
+              </select>
 
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery("");
-                setPriorityFilter("");
-                setAssignedFilter("");
-                setSortBy("age");
-                setSortOrder("desc");
-                setCurrentPage(1);
-              }}
-            >
-              Clear
-            </Button>
+              <Button
+                variant="outline"
+                className="h-10 w-full sm:w-auto"
+                onClick={() => {
+                  setSearchQuery("");
+                  setPriorityFilter("");
+                  setAssignedFilter("");
+                  setSortBy("age");
+                  setSortOrder("desc");
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
           <p className="mt-3 text-xs text-gray-500">
-            Pending contracts cannot receive payments until they are approved.
+            Pending contracts cannot receive payments until approved.
           </p>
         </CardContent>
       </Card>
 
+      {/* Queue */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 px-4 sm:px-6">
           <CardTitle className="text-base">Approval Queue</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -655,13 +647,14 @@ export default function ContractApprovalsPage() {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
             </div>
           ) : contracts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <CheckCircle className="h-12 w-12 text-green-400 mb-3" />
               <p className="text-base font-semibold text-gray-700">All caught up!</p>
               <p className="text-sm text-gray-400 mt-1">No contracts match the current queue filters.</p>
             </div>
           ) : (
             <>
+              {/* Desktop table */}
               <div className="hidden xl:block overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -787,71 +780,81 @@ export default function ContractApprovalsPage() {
                 </Table>
               </div>
 
-              <div className="xl:hidden space-y-3 p-4">
+              {/* Mobile / tablet cards */}
+              <div className="xl:hidden divide-y divide-gray-100">
                 {contracts.map((contract) => (
-                  <div key={contract.id} className="rounded-xl border border-amber-200 bg-white p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-mono text-xs font-bold text-gray-900">{contract.contractNumber}</p>
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          <Badge variant="outline" className={getPriorityBadge(contract.approvalSnapshot?.priority)}>
+                  <div key={contract.id} className="p-4 space-y-3">
+                    {/* Top row: contract number + badges + amount */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs font-bold text-gray-900 truncate">{contract.contractNumber}</p>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          <Badge variant="outline" className={`text-[10px] ${getPriorityBadge(contract.approvalSnapshot?.priority)}`}>
                             {contract.approvalSnapshot?.priority || "LOW"}
                           </Badge>
                           {contract.approvalSnapshot?.isBreached && (
-                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
+                            <Badge variant="outline" className="text-[10px] border-red-200 bg-red-50 text-red-700">
                               SLA Breached
                             </Badge>
                           )}
                         </div>
                       </div>
-                      <p className="text-base font-bold text-gray-900">{formatCurrency(contract.totalPrice)}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <User className="h-3.5 w-3.5 shrink-0" />
-                        <span>{contract.customer.firstName} {contract.customer.lastName}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <Package className="h-3.5 w-3.5 shrink-0" />
-                        <span>{contract.inventoryItem?.product?.name ?? "—"}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <Banknote className="h-3.5 w-3.5 shrink-0" />
-                        <span>{contract.totalInstallments}x {formatCurrency(contract.installmentAmount)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        <span>{formatDate(contract.createdAt)}</span>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(contract.totalPrice)}</p>
+                        <p className="text-xs text-gray-400">{formatCurrency(contract.depositAmount)} dep.</p>
                       </div>
                     </div>
 
-                    <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 space-y-1">
-                      <p>
-                        Submitted by <span className="font-semibold text-gray-900">{contract.createdBy.firstName} {contract.createdBy.lastName}</span>
-                      </p>
-                      <p>
-                        Queue age <span className="font-semibold text-gray-900">{formatAgeHours(contract.approvalSnapshot?.ageHours)}</span>
-                      </p>
-                      <p>
-                        Assignment{" "}
-                        <span className="font-semibold text-gray-900">
+                    {/* Details grid */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
+                        <User className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                        <span className="truncate font-medium">{contract.customer.firstName} {contract.customer.lastName}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-gray-700 min-w-0">
+                        <Package className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                        <span className="truncate">{contract.inventoryItem?.product?.name ?? "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-gray-600 min-w-0">
+                        <Banknote className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                        <span className="truncate">{contract.totalInstallments}× {formatCurrency(contract.installmentAmount)} / {freqLabel(contract.paymentFrequency)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-gray-600 min-w-0">
+                        <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                        <span className="truncate">{formatDate(contract.createdAt)}</span>
+                      </div>
+                    </div>
+
+                    {/* Meta strip */}
+                    <div className="rounded-lg bg-gray-50 px-3 py-2.5 text-xs text-gray-600 grid grid-cols-2 gap-x-4 gap-y-1">
+                      <div>
+                        <span className="text-gray-400">Submitted by</span>
+                        <p className="font-semibold text-gray-800 truncate">{contract.createdBy.firstName} {contract.createdBy.lastName}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Queue age</span>
+                        <p className="font-semibold text-gray-800">{formatAgeHours(contract.approvalSnapshot?.ageHours)}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-400">Assignment </span>
+                        <span className="font-semibold text-gray-800">
                           {contract.approvalSnapshot?.currentAssignment?.assignedApproverName || "Unassigned"}
                         </span>
-                      </p>
+                      </div>
                       {!!contract.approvalSnapshot?.warnings?.length && (
-                        <p className="text-amber-700">
-                          Warning: {contract.approvalSnapshot.warnings[0]}
+                        <p className="col-span-2 text-amber-700">
+                          ⚠ {contract.approvalSnapshot.warnings[0]}
                         </p>
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    {/* Action buttons — stacked layout on very small, row on sm+ */}
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
                       {!contract.approvalSnapshot?.currentAssignment?.assignedApproverName && (
                         <button
                           onClick={() => handleAssignToMe(contract)}
                           disabled={assigningId === contract.id || !currentUserId}
-                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          className="col-span-2 sm:col-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 transition-colors"
                         >
                           <UserCheck className="h-3.5 w-3.5" />
                           {assigningId === contract.id ? "Assigning..." : "Assign to Me"}
@@ -860,15 +863,15 @@ export default function ContractApprovalsPage() {
                       <button
                         onClick={() => setEditTarget(contract)}
                         disabled={approvingId === contract.id}
-                        className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-60 transition-colors"
                       >
-                        <Pencil className="h-3 w-3" />
+                        <Pencil className="h-3.5 w-3.5" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleApprove(contract)}
                         disabled={approvingId === contract.id}
-                        className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60 transition-colors"
                       >
                         <CheckCircle className="h-3.5 w-3.5" />
                         {approvingId === contract.id ? "Approving..." : "Approve"}
@@ -876,11 +879,11 @@ export default function ContractApprovalsPage() {
                       <button
                         onClick={() => setRejectTarget(contract)}
                         disabled={approvingId === contract.id}
-                        className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-200 disabled:opacity-60"
+                        className="col-span-2 sm:col-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-100 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-200 disabled:opacity-60 transition-colors"
                       >
                         <XCircle className="h-3.5 w-3.5" />
                         Request Revision
-                      </button>
+      </button>
                     </div>
                   </div>
                 ))}
@@ -912,34 +915,35 @@ export default function ContractApprovalsPage() {
         </CardContent>
       </Card>
 
+      {/* Info cards */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 p-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
               <div className="flex items-center gap-2 text-gray-700">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                 <p className="text-sm font-semibold">Queue policy</p>
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Pending contracts stay non-payable until approved. Revision requests keep the inventory reserved for the original submission.
+                Pending contracts stay non-payable until approved. Revision requests keep inventory reserved.
               </p>
             </div>
-            <div className="rounded-xl border border-gray-200 p-4">
+            <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
               <div className="flex items-center gap-2 text-gray-700">
-                <UserCheck className="h-4 w-4 text-blue-500" />
+                <UserCheck className="h-4 w-4 text-blue-500 shrink-0" />
                 <p className="text-sm font-semibold">Assignment</p>
               </div>
               <p className="mt-2 text-xs text-gray-500">
                 Assign high-touch contracts to yourself before editing so ownership and turnaround are easier to track.
               </p>
             </div>
-            <div className="rounded-xl border border-gray-200 p-4">
+            <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
               <div className="flex items-center gap-2 text-gray-700">
-                <Clock3 className="h-4 w-4 text-red-500" />
+                <Clock3 className="h-4 w-4 text-red-500 shrink-0" />
                 <p className="text-sm font-semibold">SLA risk</p>
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                High-priority contracts target a 6-hour review window. Medium is 12 hours, and low is 24 hours.
+                High-priority contracts target a 6-hour review window. Medium is 12 hours, low is 24 hours.
               </p>
             </div>
           </div>

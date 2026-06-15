@@ -4,6 +4,7 @@ import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, us
 import Link from 'next/link';
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   ShieldCheck,
   Loader2,
@@ -478,6 +479,39 @@ export default function KnoxDevicesPage() {
   };
 
   const [syncing, setSyncing] = useState(false);
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+  interface DeleteAllResult {
+    dryRun: boolean;
+    total: number;
+    deleted: number;
+    failed: number;
+    batches: Array<{ transactionId: string | null; count: number; status: string; failed: number }>;
+  }
+  const [deleteAllResult, setDeleteAllResult] = useState<DeleteAllResult | null>(null);
+
+  const handleDeleteAll = async () => {
+    setDeleteAllConfirm(false);
+    try {
+      setDeletingAll(true);
+      setDeleteAllResult(null);
+      const res = await api.post('/knox-guard/devices/delete-all', {});
+      const result: DeleteAllResult = res.data;
+      setDeleteAllResult(result);
+      toast({
+        title: result.dryRun ? 'Dry-run: delete-all simulated' : result.failed > 0 ? 'Partial deletion' : 'All devices removed',
+        description: result.dryRun
+          ? 'Dry-run mode — no devices were removed from Knox.'
+          : `${result.deleted} removed, ${result.failed} failed out of ${result.total} total`,
+        variant: result.failed > 0 ? 'destructive' : 'default',
+      });
+      await Promise.all([load(), fetchNoContractUploads()]);
+    } catch (err: any) {
+      toast({ title: 'Delete all failed', description: err.response?.data?.error || 'Failed to remove all devices from Knox', variant: 'destructive' });
+    } finally {
+      setDeletingAll(false);
+    }
+  };
 
   const handleSync = async () => {
     try {
@@ -1153,6 +1187,105 @@ export default function KnoxDevicesPage() {
           />
         )}
       </div>
+
+      {/* ── License Migration: Remove All Devices ──────────────────────── */}
+      {canManage && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-red-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-red-900">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                License Migration — Remove All Devices from Knox
+              </h2>
+              <p className="mt-1 text-sm text-red-700">
+                Samsung Knox requires all devices to be removed from the tenant before you can swap licenses.
+                Use this to clear the entire Knox tenant in one operation, then add the new license, then re-upload devices.
+              </p>
+            </div>
+            <button
+              onClick={() => setDeleteAllConfirm(true)}
+              disabled={deletingAll || loading}
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {deletingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deletingAll ? 'Removing all…' : 'Remove all devices from Knox'}
+            </button>
+          </div>
+
+          {deleteAllResult && (
+            <div className="p-4">
+              <div className={`rounded-xl border px-4 py-3 text-sm ${deleteAllResult.failed > 0 ? 'border-red-300 bg-white text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+                <p className="font-semibold">
+                  {deleteAllResult.dryRun
+                    ? 'Dry-run completed — no changes made'
+                    : deleteAllResult.failed > 0
+                      ? `Partial: ${deleteAllResult.deleted} removed, ${deleteAllResult.failed} failed (of ${deleteAllResult.total} total)`
+                      : `All ${deleteAllResult.deleted} device(s) removed from Knox tenant`}
+                </p>
+                {deleteAllResult.batches.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-xs">
+                    {deleteAllResult.batches.map((b, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <span className={`rounded-full border px-2 py-0.5 font-semibold ${b.status === 'DELETED' ? 'border-emerald-200 bg-emerald-100 text-emerald-700' : b.status === 'FAILED' ? 'border-red-200 bg-red-100 text-red-700' : 'border-amber-200 bg-amber-100 text-amber-700'}`}>
+                          {b.status}
+                        </span>
+                        Batch {i + 1}: {b.count} device(s){b.failed > 0 ? `, ${b.failed} failed` : ''}
+                        {b.transactionId && <span className="font-mono text-slate-500">· TxID: {b.transactionId}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="px-4 py-3 text-xs text-red-600">
+            <strong>Steps for license migration:</strong>{' '}
+            1. Click "Remove all devices from Knox" and wait for completion.{' '}
+            2. Go to the Samsung Knox portal and remove the trial license.{' '}
+            3. Add the purchased license.{' '}
+            4. Re-upload all devices using the Knox upload flow.
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation modal for delete-all */}
+      {deleteAllConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Remove all devices from Knox?</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  This will call the Samsung Knox Devices API to remove <strong>every device</strong> registered to this tenant.
+                  This is required before swapping licenses.
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Local records will be updated to <strong>DELETED</strong> so you know which devices need to be re-uploaded after the license is swapped.
+                </p>
+                <p className="mt-3 text-sm font-semibold text-red-600">This cannot be undone — devices must be re-uploaded individually.</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteAllConfirm(false)}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleDeleteAll()}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Yes, remove all devices
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Knox Portal Live Check ──────────────────────────────────────── */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">

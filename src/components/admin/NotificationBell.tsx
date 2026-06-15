@@ -17,11 +17,10 @@ function getPaymentMethodLabel(method: string) {
   }
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
   const { data, count } = useDailyPayments();
   const [open, setOpen] = useState(false);
 
-  // Close on Escape key
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
@@ -30,11 +29,15 @@ export default function NotificationBell() {
     return () => document.removeEventListener('keydown', handleKey);
   }, [open]);
 
+  const btnCls = variant === 'dark'
+    ? 'text-slate-400 hover:bg-white/10 hover:text-white'
+    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700';
+
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(prev => !prev)}
-        className="relative flex items-center justify-center rounded-lg p-2 text-cyan-50/85 transition-colors hover:bg-white/10 hover:text-white"
+        className={`relative flex items-center justify-center rounded-lg p-2 transition-colors ${btnCls}`}
         aria-label="Daily payments notifications"
       >
         <Bell className="h-5 w-5" />

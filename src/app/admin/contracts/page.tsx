@@ -188,6 +188,7 @@ export default function ContractsPage() {
   const canManageDeviceControl = adminHasAnyPermission(adminUser, [
     PERMISSIONS.MANAGE_DEVICE_CONTROL,
   ]);
+  const isAgent = adminUser?.role === 'AGENT';
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
@@ -630,6 +631,8 @@ function DesktopStepContent({
   isSubmitting,
   step1Valid, step2Valid, step3Valid,
   onClose, handleSubmit,
+  selectedPeriodMonths, setSelectedPeriodMonths, handlePeriodSelect, handleFrequencyChange,
+  isAgent,
 }: any) {
   return (
     <>
@@ -703,8 +706,9 @@ function DesktopStepContent({
                 key={item.id}
                 className={`p-4 border rounded-lg cursor-pointer transition-all ${formData.inventoryItemId === item.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}
                 onClick={() => {
-                  setFormData({ ...formData, inventoryItemId: item.id, totalPrice: item.product?.basePrice?.toString() || "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
+                  setFormData({ ...formData, inventoryItemId: item.id, totalPrice: "", depositAmount: "", totalInstallments: "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
                   setSelectedInventory(item);
+                  setSelectedPeriodMonths(null);
                   setUnlockOnContract(false);
                 }}
               >
@@ -721,6 +725,12 @@ function DesktopStepContent({
                       )}
                     </div>
                     {item.registeredUnder && <p className="text-xs text-gray-500 mt-1">Registered: {item.registeredUnder}</p>}
+                    {item.assignedAgent && (
+                      <p className="text-xs text-blue-600 mt-1">Assigned to: {item.assignedAgent.firstName} {item.assignedAgent.lastName}</p>
+                    )}
+                    {item.lockStatus === 'LOCKED' && isAgent && (
+                      <p className="text-xs text-amber-600 mt-1">Device is locked — will unlock after deposit remittance.</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-lg">{formatCurrency(item.product?.basePrice || 0)}</p>
@@ -734,20 +744,23 @@ function DesktopStepContent({
 
           {/* Unlock checkbox — only shown when locked device is selected */}
           {selectedInventory?.lockStatus === 'LOCKED' && (
-            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className={`flex items-start gap-3 rounded-lg border p-4 ${isAgent ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50'}`}>
               <input
                 type="checkbox"
                 id="unlockOnContract"
                 checked={unlockOnContract}
                 onChange={(e) => setUnlockOnContract(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600"
+                disabled={isAgent}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600 disabled:opacity-40"
               />
               <div>
-                <label htmlFor="unlockOnContract" className="text-sm font-medium text-amber-900 cursor-pointer">
+                <label htmlFor="unlockOnContract" className={`text-sm font-medium cursor-pointer ${isAgent ? 'text-gray-500' : 'text-amber-900'}`}>
                   Unlock device when contract is created
                 </label>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Device <span className="font-mono font-semibold">{selectedInventory?.serialNumber}</span> is currently locked. Check to automatically unlock it via Knox Guard when this contract is saved.
+                <p className={`text-xs mt-0.5 ${isAgent ? 'text-gray-400' : 'text-amber-700'}`}>
+                  {isAgent
+                    ? `Device ${selectedInventory?.serialNumber} is locked. It will remain locked until you have fully remitted the deposit amount to the company.`
+                    : `Device ${selectedInventory?.serialNumber} is currently locked. Check to automatically unlock it via Knox Guard when this contract is saved.`}
                 </p>
               </div>
             </div>
@@ -778,17 +791,22 @@ function DesktopStepContent({
 
           {/* Unlock checkbox in step 3 too */}
           {selectedInventory?.lockStatus === 'LOCKED' && (
-            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <div className={`flex items-start gap-3 rounded-lg border p-3 ${isAgent ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50'}`}>
               <input
                 type="checkbox"
                 id="unlockOnContractStep3"
                 checked={unlockOnContract}
                 onChange={(e) => setUnlockOnContract(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600"
+                disabled={isAgent}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600 disabled:opacity-40"
               />
-              <label htmlFor="unlockOnContractStep3" className="text-sm text-amber-900 cursor-pointer">
+              <label htmlFor="unlockOnContractStep3" className={`text-sm cursor-pointer ${isAgent ? 'text-gray-500' : 'text-amber-900'}`}>
                 <span className="font-medium">Unlock device on contract creation</span>
-                <span className="text-xs text-amber-700 block mt-0.5">Device is currently locked — will be unlocked via Knox Guard when contract is saved.</span>
+                <span className={`text-xs block mt-0.5 ${isAgent ? 'text-gray-400' : 'text-amber-700'}`}>
+                  {isAgent
+                    ? 'Device will remain locked until your deposit remittance is fully paid.'
+                    : 'Device is currently locked — will be unlocked via Knox Guard when contract is saved.'}
+                </span>
               </label>
             </div>
           )}
@@ -812,40 +830,108 @@ function DesktopStepContent({
             <p className="text-xs text-gray-500 mt-2">These details can be updated independently later if needed</p>
           </div>
 
+          {/* Installment Period Selector */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Installment Period *</label>
+            <div className="flex gap-3">
+              {([3, 4, 6] as const).map((months) => {
+                const pricings: any[] = selectedInventory?.product?.pricings || [];
+                const pricing = pricings.find((p: any) => p.installmentMonths === months);
+                const isSelected = selectedPeriodMonths === months;
+                const hasPricing = !!pricing;
+                return (
+                  <button
+                    key={months}
+                    type="button"
+                    onClick={() => hasPricing && handlePeriodSelect(months)}
+                    disabled={!hasPricing}
+                    className={`flex-1 rounded-lg border-2 py-3 px-2 text-center transition-colors ${
+                      isSelected
+                        ? "border-blue-600 bg-blue-50 text-blue-900"
+                        : hasPricing
+                        ? "border-gray-200 bg-white text-gray-700 hover:border-blue-300"
+                        : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="font-semibold text-sm">{months} Months</div>
+                    {hasPricing ? (
+                      <div className="text-xs mt-0.5 text-gray-500">{formatCurrency(pricing.basePrice)}</div>
+                    ) : (
+                      <div className="text-xs mt-0.5 text-gray-400">No pricing</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {!selectedInventory?.product?.pricings?.length && (
+              <p className="text-xs text-amber-600 mt-2">This product has no period pricing configured. Please set up pricing in Products first.</p>
+            )}
+          </div>
+
+          {/* Auto-filled read-only price fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Total Price (GHS) *</label>
-              <Input type="number" step="0.01" value={formData.totalPrice} onChange={(e: any) => setFormData({ ...formData, totalPrice: e.target.value })} />
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                Total Price (GHS)
+                <Lock className="h-3 w-3 text-gray-400" />
+              </label>
+              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                {formData.totalPrice ? formatCurrency(parseFloat(formData.totalPrice)) : <span className="text-gray-400">Select a period above</span>}
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Deposit Amount (GHS) *</label>
-              <Input type="number" step="0.01" value={formData.depositAmount} onChange={(e: any) => setFormData({ ...formData, depositAmount: e.target.value })} />
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                Deposit Amount (GHS)
+                <Lock className="h-3 w-3 text-gray-400" />
+              </label>
+              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                {formData.depositAmount ? formatCurrency(parseFloat(formData.depositAmount)) : <span className="text-gray-400">Select a period above</span>}
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Payment Frequency *</label>
-              <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm" value={formData.paymentFrequency} onChange={(e: any) => setFormData({ ...formData, paymentFrequency: e.target.value })}>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                value={formData.paymentFrequency}
+                onChange={(e: any) => handleFrequencyChange(e.target.value)}
+              >
                 <option value="DAILY">Daily</option>
                 <option value="WEEKLY">Weekly</option>
                 <option value="MONTHLY">Monthly</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Total Installments *</label>
-              <Input type="number" value={formData.totalInstallments} onChange={(e: any) => setFormData({ ...formData, totalInstallments: e.target.value })} />
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                Total Installments
+                <Lock className="h-3 w-3 text-gray-400" />
+              </label>
+              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                {formData.totalInstallments || <span className="text-gray-400">Auto</span>}
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Start Date *</label>
-              <Input type="date" value={formData.startDate} onChange={(e: any) => setFormData({ ...formData, startDate: e.target.value })} />
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                Start Date
+                <Lock className="h-3 w-3 text-gray-400" />
+              </label>
+              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                {formData.startDate}
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Grace Period (Days)</label>
-              <Input type="number" value={formData.gracePeriodDays} onChange={(e: any) => setFormData({ ...formData, gracePeriodDays: e.target.value })} />
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1">
+                Grace Period
+                <Lock className="h-3 w-3 text-gray-400" />
+              </label>
+              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                7 days
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Penalty (%)</label>
@@ -985,6 +1071,19 @@ function CreateHirePurchaseSale({
   const [selectedInventory, setSelectedInventory] = useState<any>(null);
   const [unlockOnContract, setUnlockOnContract] = useState(false);
   const [installmentSchedule, setInstallmentSchedule] = useState<any[]>([]);
+  const [selectedPeriodMonths, setSelectedPeriodMonths] = useState<3 | 4 | 6 | null>(null);
+
+  const getStartDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  };
+
+  const computeInstallments = (months: number, frequency: "DAILY" | "WEEKLY" | "MONTHLY") => {
+    if (frequency === "MONTHLY") return months;
+    if (frequency === "WEEKLY") return months * 4;
+    return months * 30;
+  };
 
   const [formData, setFormData] = useState({
     customerId: "",
@@ -993,9 +1092,9 @@ function CreateHirePurchaseSale({
     depositAmount: "",
     paymentFrequency: "MONTHLY" as "DAILY" | "WEEKLY" | "MONTHLY",
     totalInstallments: "",
-    gracePeriodDays: "0",
+    gracePeriodDays: "7",
     penaltyPercentage: "0",
-    startDate: new Date().toISOString().split("T")[0],
+    startDate: getStartDate(),
     paymentMethod: "" as "" | "HUBTEL_REGULAR" | "HUBTEL_DIRECT_DEBIT" | "MANUAL" | "CASH",
     mobileMoneyNetwork: "" as "" | "MTN" | "VODAFONE" | "TELECEL" | "AIRTELTIGO",
     mobileMoneyNumber: "",
@@ -1013,6 +1112,8 @@ function CreateHirePurchaseSale({
   const [guardrails, setGuardrails] = useState<ContractGuardrailAssessment | null>(null);
   const [isGuardrailLoading, setIsGuardrailLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isAgent = (user as AdminUser | null)?.role === 'AGENT';
 
   useEffect(() => {
     loadAvailableInventory();
@@ -1170,6 +1271,28 @@ function CreateHirePurchaseSale({
     }
   };
 
+  const handlePeriodSelect = (months: 3 | 4 | 6) => {
+    setSelectedPeriodMonths(months);
+    const pricings: any[] = selectedInventory?.product?.pricings || [];
+    const pricing = pricings.find((p: any) => p.installmentMonths === months);
+    const installments = computeInstallments(months, formData.paymentFrequency);
+    setFormData((prev) => ({
+      ...prev,
+      totalPrice: pricing ? pricing.basePrice.toString() : "",
+      depositAmount: pricing ? pricing.depositAmount.toString() : "",
+      totalInstallments: installments.toString(),
+    }));
+  };
+
+  const handleFrequencyChange = (frequency: "DAILY" | "WEEKLY" | "MONTHLY") => {
+    const installments = selectedPeriodMonths ? computeInstallments(selectedPeriodMonths, frequency) : "";
+    setFormData((prev) => ({
+      ...prev,
+      paymentFrequency: frequency,
+      totalInstallments: installments.toString(),
+    }));
+  };
+
   const calculateInstallments = () => {
     const totalPrice = parseFloat(formData.totalPrice) || 0;
     const deposit = parseFloat(formData.depositAmount) || 0;
@@ -1317,6 +1440,7 @@ function CreateHirePurchaseSale({
   const step3Valid =
     !isSubmitting &&
     !isGuardrailLoading &&
+    selectedPeriodMonths !== null &&
     !!formData.totalInstallments &&
     !!formData.totalPrice &&
     !(guardrails?.blockers?.length) &&
@@ -1369,6 +1493,7 @@ function CreateHirePurchaseSale({
     formData.startDate,
     formData.paymentMethod,
     formData.mobileMoneyNumber,
+    selectedPeriodMonths,
   ]);
 
   const filteredInventory = (Array.isArray(availableInventory) ? availableInventory : []).filter((item) => {
@@ -1421,6 +1546,11 @@ function CreateHirePurchaseSale({
               isSubmitting={isSubmitting}
               step1Valid={step1Valid} step2Valid={step2Valid} step3Valid={step3Valid}
               onClose={onClose} handleSubmit={handleSubmit}
+              selectedPeriodMonths={selectedPeriodMonths}
+              setSelectedPeriodMonths={setSelectedPeriodMonths}
+              handlePeriodSelect={handlePeriodSelect}
+              handleFrequencyChange={handleFrequencyChange}
+              isAgent={isAgent}
             />
           </CardContent>
         </Card>
@@ -1517,8 +1647,9 @@ function CreateHirePurchaseSale({
                         : "border-gray-200 bg-white"
                     }`}
                     onClick={() => {
-                      setFormData({ ...formData, inventoryItemId: item.id, totalPrice: item.product?.basePrice?.toString() || "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
+                      setFormData({ ...formData, inventoryItemId: item.id, totalPrice: "", depositAmount: "", totalInstallments: "", lockStatus: item.lockStatus || "UNLOCKED", registeredUnder: item.registeredUnder || "" });
                       setSelectedInventory(item);
+                      setSelectedPeriodMonths(null);
                       setUnlockOnContract(false);
                     }}
                   >
@@ -1527,6 +1658,12 @@ function CreateHirePurchaseSale({
                         <p className="text-sm font-semibold text-gray-900 truncate">{item.product?.name}</p>
                         <p className="text-xs text-gray-500 font-mono">{item.serialNumber}</p>
                         <p className="text-xs text-gray-400">{item.product?.category?.name}</p>
+                        {item.assignedAgent && (
+                          <p className="text-xs text-blue-600 mt-0.5">Assigned: {item.assignedAgent.firstName} {item.assignedAgent.lastName}</p>
+                        )}
+                        {item.lockStatus === 'LOCKED' && isAgent && (
+                          <p className="text-xs text-amber-600 mt-0.5">Locked — unlocks after deposit remittance</p>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-bold text-gray-900">{formatCurrency(item.product?.basePrice || 0)}</p>
@@ -1586,26 +1723,61 @@ function CreateHirePurchaseSale({
                 </div>
               </div>
 
-              {/* Price fields */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Total Price (GHS) *</label>
-                  <Input type="number" step="0.01" className="mt-1 h-9 text-sm" value={formData.totalPrice} onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Deposit (GHS) *</label>
-                  <Input type="number" step="0.01" className="mt-1 h-9 text-sm" value={formData.depositAmount} onChange={(e) => setFormData({ ...formData, depositAmount: e.target.value })} />
+              {/* Installment Period Selector (mobile) */}
+              <div>
+                <label className="text-xs font-semibold text-gray-700 mb-2 block">Installment Period *</label>
+                <div className="flex gap-2">
+                  {([3, 4, 6] as const).map((months) => {
+                    const pricings: any[] = selectedInventory?.product?.pricings || [];
+                    const pricing = pricings.find((p: any) => p.installmentMonths === months);
+                    const isSelected = selectedPeriodMonths === months;
+                    const hasPricing = !!pricing;
+                    return (
+                      <button
+                        key={months}
+                        type="button"
+                        onClick={() => hasPricing && handlePeriodSelect(months)}
+                        disabled={!hasPricing}
+                        className={`flex-1 rounded-lg border-2 py-2.5 px-1 text-center transition-colors ${
+                          isSelected
+                            ? "border-blue-600 bg-blue-50 text-blue-900"
+                            : hasPricing
+                            ? "border-gray-200 bg-white text-gray-700"
+                            : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
+                        }`}
+                      >
+                        <div className="font-semibold text-xs">{months}M</div>
+                        {hasPricing && <div className="text-[10px] text-gray-500 mt-0.5">{formatCurrency(pricing.basePrice)}</div>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Payment terms */}
+              {/* Read-only price fields (mobile) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Total Price <Lock className="h-3 w-3 text-gray-400" /></label>
+                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                    {formData.totalPrice ? formatCurrency(parseFloat(formData.totalPrice)) : <span className="text-gray-400 text-xs">Select period</span>}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Deposit <Lock className="h-3 w-3 text-gray-400" /></label>
+                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                    {formData.depositAmount ? formatCurrency(parseFloat(formData.depositAmount)) : <span className="text-gray-400 text-xs">Select period</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment terms (mobile) */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-xs font-medium text-gray-700">Frequency *</label>
                   <select
                     className="mt-1 flex h-9 w-full rounded-lg border border-gray-300 bg-white px-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={formData.paymentFrequency}
-                    onChange={(e) => setFormData({ ...formData, paymentFrequency: e.target.value as any })}
+                    onChange={(e) => handleFrequencyChange(e.target.value as any)}
                   >
                     <option value="DAILY">Daily</option>
                     <option value="WEEKLY">Weekly</option>
@@ -1613,19 +1785,23 @@ function CreateHirePurchaseSale({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700">Installments *</label>
-                  <Input type="number" className="mt-1 h-9 text-sm" value={formData.totalInstallments} onChange={(e) => setFormData({ ...formData, totalInstallments: e.target.value })} />
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Installments <Lock className="h-3 w-3 text-gray-400" /></label>
+                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-2 text-sm font-semibold text-gray-900">
+                    {formData.totalInstallments || <span className="text-gray-400 text-xs">Auto</span>}
+                  </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700">Start Date *</label>
-                  <Input type="date" className="mt-1 h-9 text-xs" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} />
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Start Date <Lock className="h-3 w-3 text-gray-400" /></label>
+                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-2 text-xs font-semibold text-gray-900">
+                    {formData.startDate}
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-700">Grace Period (Days)</label>
-                  <Input type="number" className="mt-1 h-9 text-sm" value={formData.gracePeriodDays} onChange={(e) => setFormData({ ...formData, gracePeriodDays: e.target.value })} />
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Grace Period <Lock className="h-3 w-3 text-gray-400" /></label>
+                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">7 days</div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-700">Penalty (%)</label>

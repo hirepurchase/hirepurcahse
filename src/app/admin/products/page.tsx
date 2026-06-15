@@ -256,11 +256,21 @@ export default function ProductsPage() {
                         <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
                         <p className="text-xs text-gray-500">{product.category?.name || '-'}</p>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs font-semibold text-cyan-600">{formatCurrency(product.basePrice)}</span>
                           <span className="text-xs text-gray-500">
                             Stock: <span className="font-semibold text-green-600">{product.availableInventory || 0}</span>/{product.totalInventory || 0}
                           </span>
                         </div>
+                        {product.pricings?.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {product.pricings.map((p: any) => (
+                              <span key={p.installmentMonths} className="text-[10px] rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-700 font-medium">
+                                {p.installmentMonths}m: {formatCurrency(p.basePrice)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-amber-600 mt-1">No period pricing set</p>
+                        )}
                         <div className="flex gap-1.5 mt-1.5">
                           <Badge variant={product.isActive ? 'default' : 'secondary'}>
                             {product.isActive ? 'Active' : 'Inactive'}
@@ -289,7 +299,9 @@ export default function ProductsPage() {
                     <TableRow>
                       <TableHead>Product Name</TableHead>
                       <TableHead>Category</TableHead>
-                      <TableHead>Base Price</TableHead>
+                      <TableHead>3-Month Price / Deposit</TableHead>
+                      <TableHead>4-Month Price / Deposit</TableHead>
+                      <TableHead>6-Month Price / Deposit</TableHead>
                       <TableHead>Inventory</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
@@ -302,7 +314,21 @@ export default function ProductsPage() {
                         <TableCell>
                           <Badge variant="outline">{product.category?.name || '-'}</Badge>
                         </TableCell>
-                        <TableCell>{formatCurrency(product.basePrice)}</TableCell>
+                        {[3, 4, 6].map((months) => {
+                          const pricing = product.pricings?.find((p: any) => p.installmentMonths === months);
+                          return (
+                            <TableCell key={months}>
+                              {pricing ? (
+                                <div className="text-xs">
+                                  <div className="font-semibold text-gray-900">{formatCurrency(pricing.basePrice)}</div>
+                                  <div className="text-gray-500">dep: {formatCurrency(pricing.depositAmount)}</div>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
+                            </TableCell>
+                          );
+                        })}
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-green-600">{product.availableInventory || 0}</span>
@@ -368,6 +394,19 @@ export default function ProductsPage() {
   );
 }
 
+const PERIOD_MONTHS = [3, 4, 6] as const;
+
+function buildDefaultPricings(existing: any[]) {
+  return PERIOD_MONTHS.map((months) => {
+    const found = existing?.find((p: any) => p.installmentMonths === months);
+    return {
+      installmentMonths: months,
+      basePrice: found ? found.basePrice.toString() : '',
+      depositAmount: found ? found.depositAmount.toString() : '',
+    };
+  });
+}
+
 function EditProductForm({
   product,
   categories,
@@ -386,6 +425,7 @@ function EditProductForm({
     categoryId: product.categoryId,
     isActive: product.isActive,
   });
+  const [pricings, setPricings] = useState(() => buildDefaultPricings(product.pricings || []));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -397,6 +437,11 @@ function EditProductForm({
       await api.put(`/products/${product.id}`, {
         ...formData,
         basePrice: parseFloat(formData.basePrice),
+        pricings: pricings.filter((p) => p.basePrice !== '' && p.depositAmount !== '').map((p) => ({
+          installmentMonths: p.installmentMonths,
+          basePrice: parseFloat(p.basePrice),
+          depositAmount: parseFloat(p.depositAmount),
+        })),
       });
       toast({
         title: 'Success',
@@ -413,6 +458,10 @@ function EditProductForm({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const updatePricing = (months: number, field: 'basePrice' | 'depositAmount', value: string) => {
+    setPricings((prev) => prev.map((p) => p.installmentMonths === months ? { ...p, [field]: value } : p));
   };
 
   return (
@@ -462,6 +511,40 @@ function EditProductForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <p className="text-sm font-semibold text-blue-900 mb-3">Pricing by Installment Period</p>
+        <div className="space-y-3">
+          {pricings.map((p) => (
+            <div key={p.installmentMonths} className="grid grid-cols-3 gap-3 items-center">
+              <div className="text-sm font-medium text-gray-700">{p.installmentMonths} months</div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Base Price (GHS)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={p.basePrice}
+                  onChange={(e) => updatePricing(p.installmentMonths, 'basePrice', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Deposit (GHS)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={p.depositAmount}
+                  onChange={(e) => updatePricing(p.installmentMonths, 'depositAmount', e.target.value)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-blue-700 mt-2">Leave blank to skip a period. These prices are auto-filled during contract creation.</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -568,6 +651,7 @@ function ProductForm({
     basePrice: '',
     categoryId: '',
   });
+  const [pricings, setPricings] = useState(() => buildDefaultPricings([]));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -579,6 +663,11 @@ function ProductForm({
       await api.post('/products', {
         ...formData,
         basePrice: parseFloat(formData.basePrice),
+        pricings: pricings.filter((p) => p.basePrice !== '' && p.depositAmount !== '').map((p) => ({
+          installmentMonths: p.installmentMonths,
+          basePrice: parseFloat(p.basePrice),
+          depositAmount: parseFloat(p.depositAmount),
+        })),
       });
       toast({ title: 'Success', description: 'Product created successfully' });
       onSuccess();
@@ -591,6 +680,10 @@ function ProductForm({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const updatePricing = (months: number, field: 'basePrice' | 'depositAmount', value: string) => {
+    setPricings((prev) => prev.map((p) => p.installmentMonths === months ? { ...p, [field]: value } : p));
   };
 
   return (
@@ -647,6 +740,41 @@ function ProductForm({
                 />
               </div>
             </div>
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm font-semibold text-blue-900 mb-3">Pricing by Installment Period</p>
+              <div className="space-y-3">
+                {pricings.map((p) => (
+                  <div key={p.installmentMonths} className="grid grid-cols-3 gap-3 items-center">
+                    <div className="text-sm font-medium text-gray-700">{p.installmentMonths} months</div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Base Price (GHS)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={p.basePrice}
+                        onChange={(e) => updatePricing(p.installmentMonths, 'basePrice', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Deposit (GHS)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={p.depositAmount}
+                        onChange={(e) => updatePricing(p.installmentMonths, 'depositAmount', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-blue-700 mt-2">Leave blank to skip a period. These prices are auto-filled during contract creation.</p>
+            </div>
+
             <div className="flex gap-4 pt-4">
               <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting ? 'Creating...' : 'Create Product'}

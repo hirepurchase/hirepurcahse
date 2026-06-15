@@ -488,6 +488,8 @@ function CustomerRegistrationForm({
     address: "",
     nationalId: "",
     dateOfBirth: "",
+    guarantorName: "",
+    guarantorPhone: "",
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
@@ -613,6 +615,12 @@ function CustomerRegistrationForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!photoFile) {
+      toast({ title: "Photo Required", description: "Please upload a customer photo before registering.", variant: "destructive" });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -620,9 +628,7 @@ function CustomerRegistrationForm({
       Object.keys(formData).forEach((key) => {
         submitData.append(key, formData[key as keyof typeof formData]);
       });
-      if (photoFile) {
-        submitData.append("photo", photoFile);
-      }
+      submitData.append("photo", photoFile);
 
       const response = await api.post("/customers", submitData);
       toast({
@@ -650,57 +656,109 @@ function CustomerRegistrationForm({
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">First Name *</label>
-                <Input
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                />
+            {/* Personal Info */}
+            <div className="rounded-lg border border-gray-200 p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Personal Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">First Name *</label>
+                  <Input
+                    required
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Last Name *</label>
+                  <Input
+                    required
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                  <Input
+                    required
+                    type="tel"
+                    placeholder="0200000000"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Last Name *</label>
+                <label className="block text-sm font-medium mb-2">Address</label>
                 <Input
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">National ID *</label>
+                  <Input
+                    required
+                    placeholder="GHA-000000000-0"
+                    value={formData.nationalId}
+                    onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Date of Birth</label>
+                  <Input
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Phone Number *</label>
-                <Input
-                  required
-                  type="tel"
-                  placeholder="0200000000"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <Input
-                  type="email"
-                  placeholder="customer@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
+
+            {/* Guarantor */}
+            <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-blue-800 uppercase tracking-wide">Guarantor Details</h3>
+              <p className="text-xs text-blue-600">Person who guarantees the customer&apos;s hire purchase agreement.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Guarantor Name</label>
+                  <Input
+                    placeholder="Full name"
+                    value={formData.guarantorName}
+                    onChange={(e) => setFormData({ ...formData, guarantorName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Guarantor Phone Number</label>
+                  <Input
+                    type="tel"
+                    placeholder="0200000000"
+                    value={formData.guarantorPhone}
+                    onChange={(e) => setFormData({ ...formData, guarantorPhone: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Address</label>
-              <Input
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Customer Photo
+
+            {/* Photo */}
+            <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Customer Photo <span className="text-red-500">*</span>
+              </h3>
+              <div>
+              <label className="block text-sm font-medium mb-2 sr-only">
+                Customer Photo *
               </label>
               <div
                 onDrop={handleDrop}
@@ -767,22 +825,6 @@ function CustomerRegistrationForm({
                   className="hidden"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">National ID</label>
-                <Input
-                  value={formData.nationalId}
-                  onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Date of Birth</label>
-                <Input
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                />
               </div>
             </div>
             <div className="flex gap-3 pt-4">
@@ -818,6 +860,8 @@ function CustomerEditForm({
     dateOfBirth: customer.dateOfBirth
       ? new Date(customer.dateOfBirth).toISOString().split("T")[0]
       : "",
+    guarantorName: customer.guarantorName || "",
+    guarantorPhone: customer.guarantorPhone || "",
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(customer.photoUrl || null);
@@ -847,6 +891,8 @@ function CustomerEditForm({
       submitData.append("phone", formData.phone);
       submitData.append("address", formData.address);
       submitData.append("nationalId", formData.nationalId);
+      submitData.append("guarantorName", formData.guarantorName);
+      submitData.append("guarantorPhone", formData.guarantorPhone);
       if (formData.dateOfBirth) {
         submitData.append("dateOfBirth", formData.dateOfBirth);
       }
@@ -920,6 +966,29 @@ function CustomerEditForm({
             <div>
               <label className="block text-sm font-medium mb-2">Date of Birth</label>
               <Input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} />
+            </div>
+            {/* Guarantor */}
+            <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-blue-800 uppercase tracking-wide">Guarantor Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Guarantor Name</label>
+                  <Input
+                    placeholder="Full name"
+                    value={formData.guarantorName}
+                    onChange={(e) => setFormData({ ...formData, guarantorName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Guarantor Phone Number</label>
+                  <Input
+                    type="tel"
+                    placeholder="0200000000"
+                    value={formData.guarantorPhone}
+                    onChange={(e) => setFormData({ ...formData, guarantorPhone: e.target.value })}
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting} className="flex-1">

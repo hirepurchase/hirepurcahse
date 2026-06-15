@@ -48,6 +48,8 @@ export default function InventoryPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterLockStatus, setFilterLockStatus] = useState<string>("");
+  const [filterKnoxStatus, setFilterKnoxStatus] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,6 +60,7 @@ export default function InventoryPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const canAdd = hasPermission(PERMISSIONS.MANAGE_INVENTORY);
   const canEdit = hasPermission(PERMISSIONS.EDIT_INVENTORY);
   const canDelete = hasPermission(PERMISSIONS.DELETE_INVENTORY);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -88,7 +91,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     loadInventory();
-  }, [currentPage, filterStatus, filterProductId]);
+  }, [currentPage, filterStatus, filterProductId, filterLockStatus, filterKnoxStatus]);
 
   const loadProducts = async () => {
     try {
@@ -118,6 +121,8 @@ export default function InventoryPage() {
           search: searchQuery || undefined,
           status: filterStatus || undefined,
           productId: filterProductId || undefined,
+          lockStatus: filterLockStatus || undefined,
+          knoxUploadStatus: filterKnoxStatus || undefined,
           page: currentPage,
           limit: itemsPerPage,
         },
@@ -158,6 +163,8 @@ export default function InventoryPage() {
 
   const handleStatusFilter = (status: string) => {
     setFilterStatus(status);
+    setFilterLockStatus("");
+    setFilterKnoxStatus("");
     setCurrentPage(1);
   };
 
@@ -380,10 +387,12 @@ export default function InventoryPage() {
               </Button>
             ) : null;
           })()}
-          <Button onClick={() => setShowForm(true)} size="sm">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Item</span>
-          </Button>
+          {canAdd && (
+            <Button onClick={() => setShowForm(true)} size="sm">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Item</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -418,8 +427,8 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="flex gap-2">
+      {/* Search + filters */}
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
@@ -430,7 +439,30 @@ export default function InventoryPage() {
             className="pl-10"
           />
         </div>
-        <Button onClick={handleSearch} variant="outline">Search</Button>
+        <select
+          value={filterLockStatus}
+          onChange={(e) => { setFilterLockStatus(e.target.value); setCurrentPage(1); }}
+          className="h-10 rounded-md border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-40"
+        >
+          <option value="">All Lock Status</option>
+          <option value="LOCKED">Locked</option>
+          <option value="UNLOCKED">Unlocked</option>
+        </select>
+        <select
+          value={filterKnoxStatus}
+          onChange={(e) => { setFilterKnoxStatus(e.target.value); setCurrentPage(1); }}
+          className="h-10 rounded-md border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-44"
+        >
+          <option value="">All Knox Status</option>
+          <option value="UPLOADED">Uploaded</option>
+          <option value="PENDING">Pending</option>
+          <option value="FAILED">Failed</option>
+          <option value="NOT_UPLOADED">Not Uploaded</option>
+          <option value="SKIPPED">Skipped</option>
+          <option value="DELETE_PENDING">Delete Pending</option>
+          <option value="DELETED">Deleted</option>
+        </select>
+        <Button onClick={handleSearch} variant="outline" className="shrink-0">Search</Button>
       </div>
 
       {/* Inventory List */}
@@ -450,9 +482,11 @@ export default function InventoryPage() {
             <div className="text-center py-12 text-gray-500">
               <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
               <p className="text-sm">No inventory items found</p>
-              <Button className="mt-4" size="sm" onClick={() => setShowForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />Add First Item
-              </Button>
+              {canAdd && (
+                <Button className="mt-4" size="sm" onClick={() => setShowForm(true)}>
+                  <Plus className="mr-2 h-4 w-4" />Add First Item
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -479,8 +513,10 @@ export default function InventoryPage() {
                         {item.contract?.contractNumber && (
                           <p className="text-xs font-mono text-gray-500">Contract: {item.contract.contractNumber}</p>
                         )}
-                        {item.contract?.createdBy && (
-                          <p className="text-xs text-gray-400">Agent: {item.contract.createdBy.firstName} {item.contract.createdBy.lastName}</p>
+                        {item.assignedAgent ? (
+                          <p className="text-xs font-medium text-blue-700">Assigned: {item.assignedAgent.firstName} {item.assignedAgent.lastName}</p>
+                        ) : (
+                          <p className="text-xs text-gray-400">Unassigned</p>
                         )}
                         <div className="flex gap-1.5 mt-1.5 flex-wrap">
                           <Badge className={getStatusColor(item.status)}>{item.status}</Badge>
@@ -562,7 +598,7 @@ export default function InventoryPage() {
                       {canManageKnox && <TableHead>Knox Upload</TableHead>}
                       <TableHead>Registered Under</TableHead>
                       <TableHead>Contract</TableHead>
-                      <TableHead>Agent</TableHead>
+                      <TableHead>Assigned Agent</TableHead>
                       {(canEdit || canDelete || canManageKnox) && <TableHead>Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -603,10 +639,10 @@ export default function InventoryPage() {
                         <TableCell className="max-w-[150px] truncate">{item.registeredUnder || "-"}</TableCell>
                         <TableCell className="font-mono text-sm">{item.contract?.contractNumber || "-"}</TableCell>
                         <TableCell>
-                          {item.contract?.createdBy ? (
-                            <span className="text-xs text-gray-700">{item.contract.createdBy.firstName} {item.contract.createdBy.lastName}</span>
+                          {item.assignedAgent ? (
+                            <span className="text-xs font-medium text-blue-700">{item.assignedAgent.firstName} {item.assignedAgent.lastName}</span>
                           ) : (
-                            <span className="text-xs text-gray-400">—</span>
+                            <span className="text-xs text-gray-400">Unassigned</span>
                           )}
                         </TableCell>
                         {(canEdit || canDelete || canManageKnox) && (
@@ -841,7 +877,16 @@ function InventoryForm({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registerWithKnox, setRegisterWithKnox] = useState(true);
+  const [lockOnUpload, setLockOnUpload] = useState(false);
+  const [assignedAgentId, setAssignedAgentId] = useState("");
+  const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string }[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    api.get("/admin-users", { params: { roleName: "AGENT", limit: 200, isActive: "true" } })
+      .then((res) => setAgents(res.data?.users || []))
+      .catch(() => {});
+  }, []);
 
   // Debug logging
   console.log("InventoryForm - Products prop:", products);
@@ -887,7 +932,7 @@ function InventoryForm({
     setIsSubmitting(true);
 
     try {
-      const res = await api.post("/products/inventory", formData);
+      const res = await api.post("/products/inventory", { ...formData, assignedAgentId: assignedAgentId || null });
       const newItemId: string | undefined = res.data?.id ?? res.data?.item?.id;
 
       if (canManageKnox && registerWithKnox && newItemId) {
@@ -897,7 +942,16 @@ function InventoryForm({
           if (dryRun) {
             toast({ title: "Item added", description: "Knox dry-run mode active — device not actually uploaded." });
           } else if (uploaded > 0) {
-            toast({ title: "Item added & uploaded to Knox Guard", description: `${formData.serialNumber} successfully registered.` });
+            if (lockOnUpload) {
+              try {
+                await api.patch(`/products/inventory/${newItemId}/lock-status`, { lockStatus: "LOCKED" });
+                toast({ title: "Item added, uploaded & locked", description: `${formData.serialNumber} registered and locked via Knox Guard.` });
+              } catch {
+                toast({ title: "Item added & uploaded", description: "Upload succeeded but lock failed — you can lock from the inventory table.", variant: "destructive" });
+              }
+            } else {
+              toast({ title: "Item added & uploaded to Knox Guard", description: `${formData.serialNumber} successfully registered.` });
+            }
           } else {
             toast({ title: "Item added", description: "Knox upload failed — retry from the inventory table.", variant: "destructive" });
           }
@@ -1072,20 +1126,62 @@ function InventoryForm({
               </>
             )}
 
+            {/* Agent Assignment */}
+            {selectedProduct && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Assign to Agent <span className="text-gray-400 font-normal">(Optional)</span>
+                </label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  value={assignedAgentId}
+                  onChange={(e) => setAssignedAgentId(e.target.value)}
+                >
+                  <option value="">— No assignment (any agent can use) —</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>{a.firstName} {a.lastName} ({a.email})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Only the assigned agent will be allowed to create a contract with this device.
+                </p>
+              </div>
+            )}
+
             {/* Knox Guard registration */}
             {canManageKnox && selectedProduct && (
-              <div className="flex items-start gap-3 border border-blue-100 bg-blue-50 px-4 py-3">
-                <input
-                  type="checkbox"
-                  id="registerWithKnox"
-                  checked={registerWithKnox}
-                  onChange={(e) => setRegisterWithKnox(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 accent-blue-600"
-                />
-                <label htmlFor="registerWithKnox" className="text-sm cursor-pointer">
-                  <span className="font-medium text-blue-800">Register with Knox Guard</span>
-                  <p className="text-xs text-blue-600 mt-0.5">Upload this device's IMEI/Serial to the Samsung Devices API immediately after saving.</p>
-                </label>
+              <div className="border border-blue-100 bg-blue-50 px-4 py-3 space-y-3">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="registerWithKnox"
+                    checked={registerWithKnox}
+                    onChange={(e) => {
+                      setRegisterWithKnox(e.target.checked);
+                      if (!e.target.checked) setLockOnUpload(false);
+                    }}
+                    className="mt-0.5 h-4 w-4 accent-blue-600"
+                  />
+                  <label htmlFor="registerWithKnox" className="text-sm cursor-pointer">
+                    <span className="font-medium text-blue-800">Register with Knox Guard</span>
+                    <p className="text-xs text-blue-600 mt-0.5">Upload this device's IMEI/Serial to the Samsung Devices API immediately after saving.</p>
+                  </label>
+                </div>
+                {registerWithKnox && (
+                  <div className="flex items-start gap-3 pl-1">
+                    <input
+                      type="checkbox"
+                      id="lockOnUpload"
+                      checked={lockOnUpload}
+                      onChange={(e) => setLockOnUpload(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-blue-600"
+                    />
+                    <label htmlFor="lockOnUpload" className="text-sm cursor-pointer">
+                      <span className="font-medium text-blue-700">Lock device after upload</span>
+                      <p className="text-xs text-blue-500 mt-0.5">Enroll and lock the device via Knox Guard immediately after a successful upload.</p>
+                    </label>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1126,8 +1222,10 @@ function EditInventoryForm({
     productId: item.productId || "",
     lockStatus: item.lockStatus || "UNLOCKED",
     registeredUnder: item.registeredUnder || "",
+    assignedAgentId: item.assignedAgent?.id || "",
   });
   const [products, setProducts] = useState<Product[]>([]);
+  const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(item.product || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1135,6 +1233,9 @@ function EditInventoryForm({
 
   useEffect(() => {
     loadProducts();
+    api.get("/admin-users", { params: { roleName: "AGENT", limit: 200, isActive: "true" } })
+      .then((res) => setAgents(res.data?.users || []))
+      .catch(() => {});
   }, []);
 
   const loadProducts = async () => {
@@ -1340,6 +1441,26 @@ function EditInventoryForm({
           />
           <p className="text-xs text-gray-500 mt-1">
             Name of person or entity the device is registered to
+          </p>
+        </div>
+
+        {/* Agent Assignment */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Assigned Agent <span className="text-gray-400 font-normal">(Optional)</span>
+          </label>
+          <select
+            className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm"
+            value={formData.assignedAgentId}
+            onChange={(e) => setFormData({ ...formData, assignedAgentId: e.target.value })}
+          >
+            <option value="">— No assignment (any agent can use) —</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>{a.firstName} {a.lastName} ({a.email})</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Only the assigned agent will be allowed to create a contract with this device.
           </p>
         </div>
       </div>
