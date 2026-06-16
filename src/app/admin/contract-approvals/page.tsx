@@ -16,6 +16,12 @@ import {
   Search,
   UserCheck,
   Clock3,
+  Eye,
+  Phone,
+  MapPin,
+  ShieldAlert,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +52,11 @@ interface PendingContract {
   gracePeriodDays: number;
   penaltyPercentage: number;
   startDate: string;
+  endDate: string;
+  signatureUrl?: string | null;
+  mobileMoneyNumber?: string | null;
+  mobileMoneyNetwork?: string | null;
+  paymentMethod?: string | null;
   createdAt: string;
   customer: {
     id: string;
@@ -53,10 +64,18 @@ interface PendingContract {
     lastName: string;
     membershipId: string;
     phone: string;
+    email?: string | null;
+    address?: string | null;
+    nationalId?: string | null;
+    dateOfBirth?: string | null;
+    photoUrl?: string | null;
+    guarantorName?: string | null;
+    guarantorPhone?: string | null;
   };
   inventoryItem: {
     serialNumber: string;
-    product: { name: string };
+    lockStatus?: string | null;
+    product: { name: string; category?: { name: string } | null };
   } | null;
   createdBy: {
     id: string;
@@ -106,6 +125,347 @@ function formatAgeHours(ageHours?: number) {
   if (ageHours < 1) return "<1h";
   if (ageHours < 24) return `${Math.round(ageHours)}h`;
   return `${Math.round(ageHours / 24)}d`;
+}
+
+// Contract Preview Modal
+function ContractPreviewModal({
+  contract,
+  onClose,
+  onApprove,
+  onRevision,
+  approvingId,
+}: {
+  contract: PendingContract;
+  onClose: () => void;
+  onApprove: (contract: PendingContract) => void;
+  onRevision: (contract: PendingContract) => void;
+  approvingId: string | null;
+}) {
+  const freqLabel = (f: string) =>
+    f === "DAILY" ? "Daily" : f === "WEEKLY" ? "Weekly" : "Monthly";
+
+  const snapshot = contract.approvalSnapshot;
+  const isApproving = approvingId === contract.id;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative z-10 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl sm:mx-4 max-h-[92vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-2 px-5 pt-5 pb-4 border-b shrink-0">
+          <FileText className="h-5 w-5 text-amber-500 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-gray-900">Contract Preview</h2>
+            <p className="text-xs text-gray-500 font-mono">{contract.contractNumber}</p>
+          </div>
+          <Badge
+            variant="outline"
+            className={`shrink-0 text-[10px] ${getPriorityBadge(snapshot?.priority)}`}
+          >
+            {snapshot?.priority || "LOW"} priority
+          </Badge>
+          {snapshot?.isBreached && (
+            <Badge variant="outline" className="shrink-0 text-[10px] border-red-200 bg-red-50 text-red-700">
+              SLA Breached
+            </Badge>
+          )}
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+          {/* Risk alerts */}
+          {(snapshot?.blockers?.length || snapshot?.warnings?.length || snapshot?.riskFlags?.length) ? (
+            <div className="space-y-2">
+              {snapshot?.blockers?.map((b, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-700">
+                  <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>{b}</span>
+                </div>
+              ))}
+              {snapshot?.warnings?.map((w, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-700">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>{w}</span>
+                </div>
+              ))}
+              {snapshot?.riskFlags?.map((f, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs text-slate-600">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {/* Customer */}
+          <section>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" /> Customer
+            </h3>
+            <div className="rounded-xl border border-gray-200 p-4 flex gap-4">
+              {contract.customer.photoUrl && (
+                <img
+                  src={contract.customer.photoUrl}
+                  alt="Customer photo"
+                  className="h-16 w-16 rounded-xl object-cover shrink-0 border border-gray-200"
+                />
+              )}
+              <div className="flex-1 min-w-0 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <div>
+                  <p className="text-gray-400">Full Name</p>
+                  <p className="font-semibold text-gray-900">{contract.customer.firstName} {contract.customer.lastName}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Membership ID</p>
+                  <p className="font-semibold text-gray-900">{contract.customer.membershipId}</p>
+                </div>
+                <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
+                  <Phone className="h-3 w-3 text-gray-400" />
+                  <p className="font-medium text-gray-700">{contract.customer.phone}</p>
+                </div>
+                {contract.customer.email && (
+                  <div className="col-span-2 sm:col-span-1">
+                    <p className="text-gray-400">Email</p>
+                    <p className="font-medium text-gray-700 truncate">{contract.customer.email}</p>
+                  </div>
+                )}
+                {contract.customer.nationalId && (
+                  <div>
+                    <p className="text-gray-400">National ID</p>
+                    <p className="font-medium text-gray-700">{contract.customer.nationalId}</p>
+                  </div>
+                )}
+                {contract.customer.dateOfBirth && (
+                  <div>
+                    <p className="text-gray-400">Date of Birth</p>
+                    <p className="font-medium text-gray-700">{formatDate(contract.customer.dateOfBirth)}</p>
+                  </div>
+                )}
+                {contract.customer.address && (
+                  <div className="col-span-2 flex items-start gap-1">
+                    <MapPin className="h-3 w-3 text-gray-400 mt-0.5 shrink-0" />
+                    <p className="text-gray-700">{contract.customer.address}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {(contract.customer.guarantorName || contract.customer.guarantorPhone) && (
+              <div className="mt-2 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <p className="col-span-2 text-gray-400 font-medium mb-1">Guarantor</p>
+                {contract.customer.guarantorName && (
+                  <div>
+                    <p className="text-gray-400">Name</p>
+                    <p className="font-semibold text-gray-800">{contract.customer.guarantorName}</p>
+                  </div>
+                )}
+                {contract.customer.guarantorPhone && (
+                  <div>
+                    <p className="text-gray-400">Phone</p>
+                    <p className="font-semibold text-gray-800">{contract.customer.guarantorPhone}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Product / Device */}
+          <section>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Package className="h-3.5 w-3.5" /> Product / Device
+            </h3>
+            <div className="rounded-xl border border-gray-200 p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <div>
+                <p className="text-gray-400">Product</p>
+                <p className="font-semibold text-gray-900">{contract.inventoryItem?.product?.name ?? "—"}</p>
+              </div>
+              {contract.inventoryItem?.product?.category?.name && (
+                <div>
+                  <p className="text-gray-400">Category</p>
+                  <p className="font-medium text-gray-700">{contract.inventoryItem.product.category.name}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-gray-400">Serial / IMEI</p>
+                <p className="font-mono font-medium text-gray-700">{contract.inventoryItem?.serialNumber ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Lock Status</p>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                  contract.inventoryItem?.lockStatus === "LOCKED"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                }`}>
+                  {contract.inventoryItem?.lockStatus ?? "—"}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {/* Financial Terms */}
+          <section>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <Banknote className="h-3.5 w-3.5" /> Financial Terms
+            </h3>
+            <div className="rounded-xl border border-gray-200 p-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 text-xs">
+              <div>
+                <p className="text-gray-400">Total Price</p>
+                <p className="font-bold text-gray-900 text-sm">{formatCurrency(contract.totalPrice)}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Deposit</p>
+                <p className="font-bold text-gray-900 text-sm">{formatCurrency(contract.depositAmount)}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Finance Amount</p>
+                <p className="font-semibold text-gray-700">{formatCurrency(contract.financeAmount)}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Installment</p>
+                <p className="font-semibold text-gray-700">{formatCurrency(contract.installmentAmount)} / {freqLabel(contract.paymentFrequency)}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Total Installments</p>
+                <p className="font-semibold text-gray-700">{contract.totalInstallments}×</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Grace Period</p>
+                <p className="font-semibold text-gray-700">{contract.gracePeriodDays} days</p>
+              </div>
+              {contract.penaltyPercentage > 0 && (
+                <div>
+                  <p className="text-gray-400">Penalty</p>
+                  <p className="font-semibold text-gray-700">{contract.penaltyPercentage}%</p>
+                </div>
+              )}
+              <div>
+                <p className="text-gray-400">Start Date</p>
+                <p className="font-semibold text-gray-700">{formatDate(contract.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">End Date</p>
+                <p className="font-semibold text-gray-700">{formatDate(contract.endDate)}</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Payment Method */}
+          {(contract.paymentMethod || contract.mobileMoneyNumber) && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <CreditCard className="h-3.5 w-3.5" /> Payment Method
+              </h3>
+              <div className="rounded-xl border border-gray-200 p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <div>
+                  <p className="text-gray-400">Method</p>
+                  <p className="font-semibold text-gray-900">{contract.paymentMethod ?? "—"}</p>
+                </div>
+                {contract.mobileMoneyNetwork && (
+                  <div>
+                    <p className="text-gray-400">Network</p>
+                    <p className="font-semibold text-gray-900">{contract.mobileMoneyNetwork}</p>
+                  </div>
+                )}
+                {contract.mobileMoneyNumber && (
+                  <div>
+                    <p className="text-gray-400">Mobile Money Number</p>
+                    <p className="font-semibold text-gray-900">{contract.mobileMoneyNumber}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Submitted By + Risk Score */}
+          <section>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <UserCheck className="h-3.5 w-3.5" /> Submission
+            </h3>
+            <div className="rounded-xl border border-gray-200 p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <div>
+                <p className="text-gray-400">Submitted By</p>
+                <p className="font-semibold text-gray-900">{contract.createdBy.firstName} {contract.createdBy.lastName}</p>
+                <p className="text-gray-400">{contract.createdBy.role.name}</p>
+              </div>
+              <div>
+                <p className="text-gray-400">Submitted</p>
+                <p className="font-semibold text-gray-900">{formatDate(snapshot?.lastSubmittedAt || contract.createdAt)}</p>
+                <p className="text-gray-400">Queue age: {formatAgeHours(snapshot?.ageHours)}</p>
+              </div>
+              {snapshot && (
+                <>
+                  <div>
+                    <p className="text-gray-400">Risk Score</p>
+                    <p className={`font-bold text-sm ${snapshot.riskScore >= 70 ? "text-red-600" : snapshot.riskScore >= 40 ? "text-amber-600" : "text-green-600"}`}>
+                      {snapshot.riskScore}
+                    </p>
+                  </div>
+                  {snapshot.resubmissionCount > 0 && (
+                    <div>
+                      <p className="text-gray-400">Resubmissions</p>
+                      <p className="font-semibold text-gray-700">{snapshot.resubmissionCount}×</p>
+                    </div>
+                  )}
+                  {snapshot.relatedOpenContracts > 0 && (
+                    <div>
+                      <p className="text-gray-400">Open Contracts</p>
+                      <p className="font-semibold text-gray-700">{snapshot.relatedOpenContracts}</p>
+                    </div>
+                  )}
+                  {snapshot.defaultedContracts > 0 && (
+                    <div>
+                      <p className="text-gray-400">Defaulted</p>
+                      <p className="font-semibold text-red-600">{snapshot.defaultedContracts}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Signature */}
+          {contract.signatureUrl && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Customer Signature</h3>
+              <div className="rounded-xl border border-gray-200 p-3 bg-gray-50">
+                <img
+                  src={contract.signatureUrl}
+                  alt="Customer signature"
+                  className="max-h-24 object-contain"
+                />
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex gap-2 px-5 pb-5 pt-4 border-t shrink-0">
+          <button
+            onClick={() => { onApprove(contract); onClose(); }}
+            disabled={isApproving}
+            className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+          >
+            <CheckCircle className="h-4 w-4" />
+            {isApproving ? "Approving..." : "Approve"}
+          </button>
+          <button
+            onClick={() => { onClose(); onRevision(contract); }}
+            disabled={isApproving}
+            className="flex-1 bg-red-100 hover:bg-red-200 disabled:opacity-50 text-red-700 text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+          >
+            <XCircle className="h-4 w-4" />
+            Request Revision
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Revision Request Modal
@@ -419,6 +779,7 @@ export default function ContractApprovalsPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [rejectTarget, setRejectTarget] = useState<PendingContract | null>(null);
   const [editTarget, setEditTarget] = useState<PendingContract | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<PendingContract | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const itemsPerPage = 20;
@@ -749,6 +1110,13 @@ export default function ContractApprovalsPage() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
+                              onClick={() => setPreviewTarget(contract)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+                            >
+                              <Eye className="h-3 w-3" />
+                              Preview
+                            </button>
+                            <button
                               onClick={() => setEditTarget(contract)}
                               disabled={approvingId === contract.id}
                               className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-60 transition-colors"
@@ -861,6 +1229,13 @@ export default function ContractApprovalsPage() {
                         </button>
                       )}
                       <button
+                        onClick={() => setPreviewTarget(contract)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Preview
+                      </button>
+                      <button
                         onClick={() => setEditTarget(contract)}
                         disabled={approvingId === contract.id}
                         className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-60 transition-colors"
@@ -949,6 +1324,16 @@ export default function ContractApprovalsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {previewTarget && (
+        <ContractPreviewModal
+          contract={previewTarget}
+          onClose={() => setPreviewTarget(null)}
+          onApprove={handleApprove}
+          onRevision={(c) => { setPreviewTarget(null); setRejectTarget(c); }}
+          approvingId={approvingId}
+        />
+      )}
 
       {rejectTarget && (
         <RejectModal
