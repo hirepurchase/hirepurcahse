@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock } from "lucide-react";
+import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +69,7 @@ export default function InventoryPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [lockingId, setLockingId] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [knoxConfirm, setKnoxConfirm] = useState<{
     item: any;
     newStatus: 'LOCKED' | 'UNLOCKED';
@@ -340,6 +341,41 @@ export default function InventoryPage() {
     }
   };
 
+  const handleVerifyKnox = async (item: any) => {
+    setVerifyingId(item.id);
+    try {
+      const res = await api.post(`/knox-guard/devices/verify-status/${encodeURIComponent(item.serialNumber)}`);
+      const { found, portalStatus, inventoryLockStatus, managedActualState, model, androidVersion } = res.data;
+      if (!found) {
+        toast({
+          title: "Not on Knox portal",
+          description: `${item.serialNumber} was not found on the Knox portal. Upload status has been flagged.`,
+          variant: "destructive",
+        });
+      } else {
+        const parts: string[] = [];
+        if (portalStatus) parts.push(`Status: ${portalStatus}`);
+        if (inventoryLockStatus) parts.push(`Lock: ${inventoryLockStatus}`);
+        if (managedActualState) parts.push(`Knox state: ${managedActualState}`);
+        if (model) parts.push(model);
+        if (androidVersion) parts.push(`Android ${androidVersion}`);
+        toast({
+          title: "Knox status synced",
+          description: parts.join(" · ") || `${item.serialNumber} verified and updated.`,
+        });
+      }
+      loadInventory();
+    } catch (err: any) {
+      toast({
+        title: "Verify failed",
+        description: err.response?.data?.error || "Could not reach Knox portal",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
   const statusCounts = {
     all: totalItems,
     AVAILABLE: inventory.filter((i) => i.status === "AVAILABLE").length,
@@ -569,6 +605,21 @@ export default function InventoryPage() {
                             }
                           </Button>
                         )}
+                        {canManageKnox && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleVerifyKnox(item)}
+                            disabled={verifyingId === item.id}
+                            title="Verify Knox status and sync to DB"
+                            className="text-violet-600 hover:bg-violet-50"
+                          >
+                            {verifyingId === item.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <ShieldCheck className="h-4 w-4" />
+                            }
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -683,6 +734,19 @@ export default function InventoryPage() {
                                       : item.lockStatus === "LOCKED"
                                         ? <Lock className="h-4 w-4" />
                                         : <Unlock className="h-4 w-4" />
+                                    }
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleVerifyKnox(item)}
+                                    disabled={verifyingId === item.id}
+                                    title="Verify Knox status and sync to DB"
+                                    className="text-violet-600 hover:bg-violet-50"
+                                  >
+                                    {verifyingId === item.id
+                                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                                      : <ShieldCheck className="h-4 w-4" />
                                     }
                                   </Button>
                                 </>
