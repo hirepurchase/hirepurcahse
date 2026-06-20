@@ -82,84 +82,71 @@ export default function PriceChartPage() {
       const contentW = pageW - margin * 2;
       let page = 1;
 
+      // App primary blue: hsl(222 84% 35%) ≈ rgb(14, 56, 148)
+      const NAVY  = [10, 22, 66] as const;   // sidebar dark
+      const BLUE  = [14, 56, 148] as const;  // primary
+      const LBLUE = [239, 246, 255] as const; // blue-50
+
       function decoratePage() {
-        // Header
-        doc.setFillColor(10, 10, 10);
-        doc.rect(0, 0, pageW, 40, 'F');
-        // Orange left stripe
-        doc.setFillColor(234, 88, 12);
-        doc.rect(0, 0, 4, 40, 'F');
-        // Bottom border of header
-        doc.setFillColor(234, 88, 12);
-        doc.rect(0, 40, pageW, 1.2, 'F');
-        // Footer
-        doc.setFillColor(10, 10, 10);
+        doc.setFillColor(...NAVY);
+        doc.rect(0, 0, pageW, 38, 'F');
+        doc.setFillColor(...BLUE);
+        doc.rect(0, 37.5, pageW, 1.5, 'F');
+        doc.setFillColor(...NAVY);
         doc.rect(0, pageH - 10, pageW, 10, 'F');
       }
 
       function drawHeader(isFirst: boolean) {
         decoratePage();
-
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(20);
-        doc.text('AIDOO TECH', margin + 6, 15);
+        doc.setFontSize(18);
+        doc.text('AIDOO TECH', margin, 14);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        doc.setTextColor(234, 88, 12);
+        doc.setTextColor(147, 197, 253); // blue-300
         doc.text(
           isFirst ? 'HIRE PURCHASE · PRICE CHART' : 'PRICE CHART (continued)',
-          margin + 6,
-          23
+          margin, 22
         );
 
-        doc.setFontSize(8);
-        doc.setTextColor(160, 160, 160);
-        doc.text(`Prices as at ${dateLabel}`, margin + 6, 31);
-
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Page ${page}`, pageW - margin, 31, { align: 'right' });
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Prices as at ${dateLabel}`, margin, 30);
+        doc.text(`Page ${page}`, pageW - margin, 30, { align: 'right' });
       }
 
       function drawFooter() {
-        doc.setFontSize(7.5);
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(130, 130, 130);
+        doc.setTextColor(100, 116, 139);
         doc.text(
           `AIDOO TECH  ·  Prices valid as at ${dateLabel}  ·  Subject to change without notice`,
-          pageW / 2,
-          pageH - 3.5,
-          { align: 'center' }
+          pageW / 2, pageH - 3.5, { align: 'center' }
         );
       }
 
       drawHeader(true);
       drawFooter();
 
-      let y = 48;
+      let y = 45;
       const lineH = 8;
-      const catH = 9;
-      const thH = 7.5;
+      const catH  = 8.5;
+      const thH   = 7;
 
-      // Column layout: Product | 3mo | 4mo | 6mo | Deposit
-      const colX  = [margin, margin + 72, margin + 105, margin + 133, margin + 161];
+      const colX   = [margin, margin + 74, margin + 104, margin + 134, margin + 160];
+      const endX   = [colX[1] - 2, colX[2] - 2, colX[3] - 2, margin + contentW - 1];
 
       function drawColHeaders(curY: number): number {
-        doc.setFillColor(28, 28, 28);
+        doc.setFillColor(30, 41, 82);
         doc.rect(margin, curY, contentW, thH, 'F');
-        const labels = ['PRODUCT', '3 MONTHS', '4 MONTHS', '6 MONTHS', 'DEPOSIT'];
-        const aligns: ('left' | 'right')[] = ['left', 'right', 'right', 'right', 'right'];
-        const endX = [colX[1] - 3, colX[2] - 3, colX[3] - 3, colX[4] - 3, margin + contentW - 2];
-        doc.setTextColor(150, 150, 150);
+        doc.setTextColor(148, 163, 184);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
-        labels.forEach((lbl, i) => {
-          if (i === 0) {
-            doc.text(lbl, colX[0] + 2, curY + 5, { align: 'left' });
-          } else {
-            doc.text(lbl, endX[i - 1], curY + 5, { align: 'right' });
-          }
+        doc.setFontSize(6.5);
+        doc.text('PRODUCT', colX[0] + 2, curY + 4.8);
+        ['3 MONTHS', '4 MONTHS', '6 MONTHS', 'DEPOSIT'].forEach((h, i) => {
+          doc.text(h, endX[i], curY + 4.8, { align: 'right' });
         });
         return curY + thH;
       }
@@ -171,16 +158,16 @@ export default function PriceChartPage() {
           page++;
           drawHeader(false);
           drawFooter();
-          y = 48;
+          y = 45;
         }
 
-        // Category bar
-        doc.setFillColor(234, 88, 12);
+        // Category bar — primary blue
+        doc.setFillColor(...BLUE);
         doc.rect(margin, y, contentW, catH, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.text(group.name.toUpperCase(), margin + 3, y + 6.2);
+        doc.setFontSize(8);
+        doc.text(group.name.toUpperCase(), margin + 3, y + 5.8);
         y += catH + 1;
 
         y = drawColHeaders(y);
@@ -192,55 +179,43 @@ export default function PriceChartPage() {
             page++;
             drawHeader(false);
             drawFooter();
-            y = 48;
+            y = 45;
             y = drawColHeaders(y);
           }
 
           const product = group.products[i];
 
-          // Row bg
           if (i % 2 === 1) {
-            doc.setFillColor(245, 245, 245);
+            doc.setFillColor(...LBLUE);
             doc.rect(margin, y, contentW, lineH, 'F');
           }
 
-          // Product name
-          doc.setTextColor(15, 15, 15);
+          doc.setTextColor(15, 23, 42);
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
-          doc.text(product.name, colX[0] + 2, y + 5.2, { maxWidth: 68 });
+          doc.text(product.name, colX[0] + 2, y + 5.2, { maxWidth: 70 });
 
-          // Plan prices
           doc.setFont('helvetica', 'normal');
-          const months = [3, 4, 6];
-          const endXPrices = [colX[2] - 3, colX[3] - 3, colX[4] - 3];
-          months.forEach((m, idx) => {
+          [3, 4, 6].forEach((m, idx) => {
             const p = product.pricings.find((pr) => pr.installmentMonths === m);
             if (p) {
-              doc.setTextColor(15, 15, 15);
-              doc.text(`GHS ${p.basePrice.toLocaleString()}`, endXPrices[idx], y + 5.2, { align: 'right' });
+              doc.setTextColor(15, 23, 42);
+              doc.text(`GHS ${p.basePrice.toLocaleString()}`, endX[idx], y + 5.2, { align: 'right' });
             } else {
-              doc.setTextColor(200, 200, 200);
-              doc.text('—', endXPrices[idx], y + 5.2, { align: 'right' });
+              doc.setTextColor(200, 210, 230);
+              doc.text('—', endX[idx], y + 5.2, { align: 'right' });
             }
           });
 
-          // Deposit
-          const firstP = product.pricings[0];
-          if (firstP) {
-            doc.setTextColor(234, 88, 12);
+          const dep = product.pricings[0];
+          if (dep) {
+            doc.setTextColor(...BLUE);
             doc.setFont('helvetica', 'bold');
-            doc.text(
-              `GHS ${firstP.depositAmount.toLocaleString()}`,
-              margin + contentW - 2,
-              y + 5.2,
-              { align: 'right' }
-            );
+            doc.text(`GHS ${dep.depositAmount.toLocaleString()}`, endX[3], y + 5.2, { align: 'right' });
           }
 
-          // Divider
-          doc.setDrawColor(230, 230, 230);
-          doc.setLineWidth(0.15);
+          doc.setDrawColor(220, 228, 240);
+          doc.setLineWidth(0.12);
           doc.line(margin, y + lineH, margin + contentW, y + lineH);
 
           y += lineH;
@@ -255,124 +230,130 @@ export default function PriceChartPage() {
     }
   }
 
-  const PLAN_MONTHS = [3, 4, 6];
-
   return (
-    <div className="min-h-screen bg-white">
-      {/* Sticky top bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between gap-2">
+    <div className="min-h-screen bg-[hsl(210,20%,97%)]">
+
+      {/* ── Top action bar ── */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2 shadow-sm">
         <div>
-          <h1 className="text-base font-bold text-slate-900 leading-none">Price Chart</h1>
-          <p className="text-[11px] text-slate-400 mt-0.5">{dateLabel}</p>
+          <h1 className="text-[15px] font-bold text-slate-900 leading-tight">Price Chart</h1>
+          <p className="text-[11px] text-slate-400 leading-none mt-0.5">{dateLabel}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={load}
             disabled={loading}
-            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40"
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors disabled:opacity-40"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-[18px] h-[18px] ${loading ? 'animate-spin' : ''}`} />
           </button>
           <Button
             size="sm"
             onClick={exportPDF}
             disabled={exporting || loading || categories.length === 0}
-            className="bg-orange-600 hover:bg-orange-700 text-white text-xs px-3 h-8"
+            className="h-8 px-3 text-xs font-semibold"
           >
-            <Download className="w-3.5 h-3.5 mr-1" />
-            {exporting ? 'Exporting…' : 'PDF'}
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            {exporting ? 'Exporting…' : 'Export PDF'}
           </Button>
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <RefreshCw className="w-6 h-6 animate-spin text-orange-500" />
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
         </div>
       ) : categories.length === 0 ? (
-        <div className="text-center py-32 text-slate-400 text-sm">
-          No products with prices and available inventory.
+        <div className="text-center py-32 text-slate-400 text-sm px-4">
+          No products with prices and available inventory found.
         </div>
       ) : (
-        <div ref={posterRef}>
-          {/* Poster header */}
-          <div className="bg-[#0a0a0a] px-4 pt-5 pb-4 relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500" />
-            <div className="pl-3">
-              <p className="text-orange-500 text-[10px] font-bold tracking-widest uppercase">
-                Aidoo Tech
-              </p>
-              <h2 className="text-2xl font-black text-white tracking-tight leading-tight mt-0.5">
-                Hire Purchase
-              </h2>
-              <h3 className="text-2xl font-black text-orange-500 tracking-tight leading-tight">
-                Price Chart
-              </h3>
-              <p className="text-slate-500 text-[11px] mt-2">Prices as at {dateLabel}</p>
+        <div ref={posterRef} className="pb-8">
+
+          {/* ── Poster header ── */}
+          <div className="bg-[hsl(222,47%,11%)] px-4 pt-6 pb-5">
+            <p className="text-[11px] font-semibold text-blue-400 tracking-widest uppercase mb-1">
+              Aidoo Tech
+            </p>
+            <h2 className="text-[26px] font-black text-white leading-none tracking-tight">
+              Hire Purchase
+            </h2>
+            <h3 className="text-[26px] font-black text-blue-400 leading-tight tracking-tight">
+              Price Chart
+            </h3>
+            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+              <p className="text-slate-400 text-[11px]">Prices as at {dateLabel}</p>
+              <span className="text-[10px] font-semibold text-blue-400 tracking-wider uppercase">
+                All prices in GHS
+              </span>
             </div>
-            {/* decorative ring */}
-            <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full border-[16px] border-orange-500/10 pointer-events-none" />
           </div>
 
-          {/* Tagline strip */}
-          <div className="bg-orange-600 px-4 py-2 flex gap-3 overflow-x-auto text-[10px] text-white font-semibold tracking-wide whitespace-nowrap">
-            <span>3 · 4 · 6 Month Plans</span>
-            <span className="opacity-50">|</span>
-            <span>Low Deposits</span>
-            <span className="opacity-50">|</span>
-            <span>Fast Approval</span>
-            <span className="opacity-50">|</span>
-            <span>All prices in GHS</span>
+          {/* Blue accent rule */}
+          <div className="h-1 bg-blue-600" />
+
+          {/* Plan pills */}
+          <div className="bg-white px-4 py-3 flex gap-2 overflow-x-auto border-b border-slate-100">
+            {['3-Month Plan', '4-Month Plan', '6-Month Plan'].map((label) => (
+              <span
+                key={label}
+                className="shrink-0 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1"
+              >
+                {label}
+              </span>
+            ))}
+            <span className="shrink-0 text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+              Low Deposit
+            </span>
           </div>
 
-          {/* Categories */}
-          <div className="divide-y divide-slate-100">
+          {/* ── Categories ── */}
+          <div className="px-3 pt-4 space-y-5">
             {categories.map((group) => (
-              <div key={group.id}>
+              <div key={group.id} className="rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm">
+
                 {/* Category header */}
-                <div className="flex items-center gap-2 bg-slate-900 px-4 py-2.5">
-                  <div className="w-1 h-4 rounded-full bg-orange-500 shrink-0" />
-                  <span className="text-[11px] font-bold text-white uppercase tracking-widest">
+                <div className="bg-blue-700 px-4 py-2.5 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-300" />
+                  <span className="text-[12px] font-bold text-white tracking-wider uppercase">
                     {group.name}
                   </span>
                 </div>
 
                 {/* Column headers */}
-                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 bg-slate-800 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>Product</span>
-                  <span className="w-[68px] text-right">3 mo</span>
-                  <span className="w-[68px] text-right">4 mo</span>
-                  <span className="w-[68px] text-right">Deposit</span>
+                <div className="grid grid-cols-[1fr_auto_auto_auto] bg-slate-800 px-4 py-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Product</span>
+                  <span className="w-[60px] text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">3 mo</span>
+                  <span className="w-[60px] text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">4 mo</span>
+                  <span className="w-[60px] text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Deposit</span>
                 </div>
 
-                {/* Product rows */}
+                {/* Rows */}
                 <div className="divide-y divide-slate-50">
                   {group.products.map((product, idx) => {
-                    const p3 = product.pricings.find((p) => p.installmentMonths === 3);
-                    const p4 = product.pricings.find((p) => p.installmentMonths === 4);
-                    const deposit = product.pricings[0]?.depositAmount;
+                    const p3  = product.pricings.find((p) => p.installmentMonths === 3);
+                    const p4  = product.pricings.find((p) => p.installmentMonths === 4);
+                    const dep = product.pricings[0]?.depositAmount;
 
                     return (
                       <div
                         key={product.id}
-                        className={`grid grid-cols-[1fr_auto_auto_auto] gap-0 items-center px-4 py-3 ${
-                          idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                        className={`grid grid-cols-[1fr_auto_auto_auto] items-center gap-0 px-4 py-3 ${
+                          idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/40'
                         }`}
                       >
-                        {/* Name */}
-                        <div>
-                          <p className="text-[13px] font-bold text-slate-900 leading-tight">
+                        <div className="pr-2 min-w-0">
+                          <p className="text-[13px] font-semibold text-slate-900 leading-tight truncate">
                             {product.name}
                           </p>
                           {product.description && (
-                            <p className="text-[10px] text-slate-400 mt-0.5">
+                            <p className="text-[10px] text-slate-400 mt-0.5 truncate">
                               {product.description}
                             </p>
                           )}
                         </div>
 
-                        {/* 3 months */}
-                        <div className="w-[68px] text-right">
+                        <div className="w-[60px] text-right">
                           {p3 ? (
                             <span className="text-[12px] font-semibold text-slate-700">
                               {formatCurrency(p3.basePrice)}
@@ -382,8 +363,7 @@ export default function PriceChartPage() {
                           )}
                         </div>
 
-                        {/* 4 months */}
-                        <div className="w-[68px] text-right">
+                        <div className="w-[60px] text-right">
                           {p4 ? (
                             <span className="text-[12px] font-semibold text-slate-700">
                               {formatCurrency(p4.basePrice)}
@@ -393,11 +373,10 @@ export default function PriceChartPage() {
                           )}
                         </div>
 
-                        {/* Deposit */}
-                        <div className="w-[68px] text-right">
-                          {deposit != null ? (
-                            <span className="text-[12px] font-bold text-orange-600">
-                              {formatCurrency(deposit)}
+                        <div className="w-[60px] text-right">
+                          {dep != null ? (
+                            <span className="text-[12px] font-bold text-blue-700">
+                              {formatCurrency(dep)}
                             </span>
                           ) : (
                             <span className="text-slate-300 text-sm">—</span>
@@ -408,27 +387,30 @@ export default function PriceChartPage() {
                   })}
                 </div>
 
-                {/* 6-month column — shown below on mobile to avoid cramping */}
+                {/* 6-month sub-section (only if any product has it) */}
                 {group.products.some((p) => p.pricings.find((pr) => pr.installmentMonths === 6)) && (
-                  <div className="bg-slate-50 border-t border-slate-100">
-                    <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      6-Month Instalment
+                  <div className="border-t border-slate-100">
+                    <div className="bg-slate-50 px-4 py-2 flex items-center gap-2 border-b border-slate-100">
+                      <div className="w-1 h-3 rounded-full bg-blue-400" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        6-Month Instalment
+                      </span>
                     </div>
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-slate-50">
                       {group.products.map((product, idx) => {
                         const p6 = product.pricings.find((p) => p.installmentMonths === 6);
                         if (!p6) return null;
                         return (
                           <div
                             key={product.id}
-                            className={`flex items-center justify-between px-4 py-2 ${
-                              idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                            className={`flex items-center justify-between px-4 py-2.5 ${
+                              idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/40'
                             }`}
                           >
-                            <span className="text-[12px] font-semibold text-slate-700">
+                            <span className="text-[12px] font-semibold text-slate-700 truncate pr-4">
                               {product.name}
                             </span>
-                            <span className="text-[12px] font-semibold text-slate-700">
+                            <span className="text-[12px] font-semibold text-slate-700 shrink-0">
                               {formatCurrency(p6.basePrice)}
                             </span>
                           </div>
@@ -441,15 +423,20 @@ export default function PriceChartPage() {
             ))}
           </div>
 
-          {/* Poster footer */}
-          <div className="bg-[#0a0a0a] px-4 py-4 mt-1">
-            <p className="text-slate-500 text-[10px] text-center">
-              Prices valid as at {dateLabel} · Subject to change without notice
-            </p>
-            <p className="text-orange-500 text-xs font-black text-center tracking-widest mt-1">
+          {/* ── Poster footer ── */}
+          <div className="mt-6 mx-3 rounded-xl bg-[hsl(222,47%,11%)] px-4 py-4">
+            <p className="text-white font-black text-[13px] tracking-wider text-center">
               AIDOO TECH
             </p>
+            <p className="text-slate-500 text-[10px] text-center mt-1">
+              Prices valid as at {dateLabel} · Subject to change without notice
+            </p>
           </div>
+
+          {/* Note */}
+          <p className="text-center text-[10px] text-slate-400 mt-3 px-4">
+            3 &amp; 4 month columns show monthly instalment · Deposit is for shortest available plan
+          </p>
         </div>
       )}
     </div>
