@@ -128,17 +128,23 @@ export default function PriceChartPage() {
       const lineH = 8;
       const catH  = 8.5;
       const thH   = 7;
-      const colX  = [margin, margin + 74, margin + 104, margin + 134, margin + 160];
-      const endX  = [colX[1] - 2, colX[2] - 2, colX[3] - 2, margin + contentW - 1];
+      // weekly repayment helper: (totalPrice - deposit) / (months * 4)
+      function weeklyAmt(p: { basePrice: number; depositAmount: number; installmentMonths: number }): number {
+        return Math.ceil(((p.basePrice - p.depositAmount) / (p.installmentMonths * 4)) * 100) / 100;
+      }
+
+      const colX  = [margin, margin + 60, margin + 90, margin + 120, margin + 152, margin + contentW];
+      // endX for right-aligned text in each column
+      const endX  = [colX[1] - 2, colX[2] - 2, colX[3] - 2, colX[4] - 2, colX[5] - 1];
 
       function drawColHeaders(curY: number): number {
         doc.setFillColor(30, 41, 82);
         doc.rect(margin, curY, contentW, thH, 'F');
         doc.setTextColor(148, 163, 184);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
+        doc.setFontSize(6);
         doc.text('PRODUCT', colX[0] + 2, curY + 4.8);
-        ['3 MONTHS', '4 MONTHS', '6 MONTHS', 'DEPOSIT'].forEach((h, i) => {
+        ['3 MO TOTAL', '4 MO TOTAL', '6 MO TOTAL', 'WEEKLY', 'DEPOSIT'].forEach((h, i) => {
           doc.text(h, endX[i], curY + 4.8, { align: 'right' });
         });
         return curY + thH;
@@ -199,11 +205,27 @@ export default function PriceChartPage() {
             }
           });
 
+          // weekly amount: cheapest available plan's (total - deposit) / (months × 4)
+          const cheapestPlan = ([3, 4, 6] as const)
+            .map((m) => product.pricings.find((pr) => pr.installmentMonths === m))
+            .find(Boolean);
+          if (cheapestPlan) {
+            const wk = Math.ceil(((cheapestPlan.basePrice - cheapestPlan.depositAmount) / (cheapestPlan.installmentMonths * 4)) * 100) / 100;
+            doc.setTextColor(5, 122, 85);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.text(`GHS ${wk.toLocaleString()}`, endX[3], y + 5.2, { align: 'right' });
+            doc.setFontSize(8);
+          } else {
+            doc.setTextColor(200, 210, 230);
+            doc.text('—', endX[3], y + 5.2, { align: 'right' });
+          }
+
           const dep = product.pricings[0];
           if (dep) {
             doc.setTextColor(...BLUE);
             doc.setFont('helvetica', 'bold');
-            doc.text(`GHS ${dep.depositAmount.toLocaleString()}`, endX[3], y + 5.2, { align: 'right' });
+            doc.text(`GHS ${dep.depositAmount.toLocaleString()}`, endX[4], y + 5.2, { align: 'right' });
           }
 
           doc.setDrawColor(220, 228, 240);
@@ -277,10 +299,14 @@ export default function PriceChartPage() {
 
           {/* Plan pills */}
           <div className="bg-white px-4 py-3 flex gap-2 overflow-x-auto border-b border-slate-100">
-            {['3-Month Plan', '4-Month Plan', '6-Month Plan', 'Low Deposit'].map((label) => (
+            {['3-Month Plan', '4-Month Plan', '6-Month Plan', 'Weekly Repayment', 'Low Deposit'].map((label) => (
               <span
                 key={label}
-                className="shrink-0 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1"
+                className={`shrink-0 text-[11px] font-semibold rounded-full px-3 py-1 border ${
+                  label === 'Weekly Repayment'
+                    ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+                    : 'text-blue-700 bg-blue-50 border-blue-100'
+                }`}
               >
                 {label}
               </span>
@@ -329,19 +355,28 @@ export default function PriceChartPage() {
                         </div>
 
                         {/* Instalment plans */}
-                        <div className="divide-y divide-slate-50">
+                        <div className="divide-y divide-slate-100">
                           {PLAN_MONTHS.map((m) => {
                             const p = product.pricings.find((pr) => pr.installmentMonths === m);
                             if (!p) return null;
+                            const weekly = Math.ceil(((p.basePrice - p.depositAmount) / (m * 4)) * 100) / 100;
                             return (
-                              <div key={m} className="flex items-center justify-between px-4 py-2.5">
-                                <span className="text-[11px] font-semibold text-slate-500">
-                                  {m}-Month Plan
-                                </span>
-                                <span className="text-[13px] font-bold text-slate-800">
-                                  {formatCurrency(p.basePrice)}
-                                  <span className="text-[10px] font-normal text-slate-400 ml-1">/mo</span>
-                                </span>
+                              <div key={m} className="px-4 py-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-semibold text-slate-500">
+                                    {m}-Month Plan
+                                  </span>
+                                  <span className="text-[13px] font-bold text-slate-800">
+                                    {formatCurrency(p.basePrice)}
+                                    <span className="text-[10px] font-normal text-slate-400 ml-1">total</span>
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className="text-[10px] text-slate-400">Weekly repayment</span>
+                                  <span className="text-[11px] font-semibold text-emerald-600">
+                                    {formatCurrency(weekly)}<span className="text-[9px] font-normal text-emerald-400 ml-0.5">/wk</span>
+                                  </span>
+                                </div>
                               </div>
                             );
                           })}
