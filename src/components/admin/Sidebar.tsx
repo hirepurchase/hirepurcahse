@@ -31,6 +31,7 @@ import {
   BookOpen,
   DollarSign,
   Menu,
+  Tags,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -79,6 +80,7 @@ const navGroups: NavGroup[] = [
       { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
     ],
   },
   {
@@ -118,6 +120,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Products", href: "/admin/products", icon: Package, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
       { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
+      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
     ],
   },
   {
@@ -174,14 +177,16 @@ const MORE_GROUPS: Array<{
       { name: "Dashboard",     href: "/admin/agent/dashboard", emoji: "🏠", permissions: [] as PermissionName[] },
       { name: "My Contracts",  href: "/admin/agent/contracts", emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",  emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "Price Chart",   href: "/admin/price-chart",     emoji: "🏷️", permissions: [] as PermissionName[] },
     ],
   },
   {
     label: "Inventory",
     permissions: [PERMISSIONS.MANAGE_PRODUCTS, PERMISSIONS.MANAGE_INVENTORY],
     links: [
-      { name: "Products",  href: "/admin/products",  emoji: "📦", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
-      { name: "Inventory", href: "/admin/inventory", emoji: "🏭", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
+      { name: "Products",    href: "/admin/products",    emoji: "📦", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
+      { name: "Inventory",   href: "/admin/inventory",   emoji: "🏭", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
+      { name: "Price Chart", href: "/admin/price-chart", emoji: "🏷️", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
     ],
   },
   {
