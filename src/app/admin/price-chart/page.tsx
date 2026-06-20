@@ -124,117 +124,263 @@ export default function PriceChartPage() {
       drawHeader(true);
       drawFooter();
 
-      let y = 45;
-      const lineH = 8;
-      const catH  = 8.5;
-      const thH   = 7;
-      // weekly repayment helper: (totalPrice - deposit) / (months * 4)
+      // ── helpers ──────────────────────────────────────────────
       function weeklyAmt(p: { basePrice: number; depositAmount: number; installmentMonths: number }): number {
         return Math.ceil(((p.basePrice - p.depositAmount) / (p.installmentMonths * 4)) * 100) / 100;
       }
 
-      const colX  = [margin, margin + 60, margin + 90, margin + 120, margin + 152, margin + contentW];
-      // endX for right-aligned text in each column
-      const endX  = [colX[1] - 2, colX[2] - 2, colX[3] - 2, colX[4] - 2, colX[5] - 1];
-
-      function drawColHeaders(curY: number): number {
-        doc.setFillColor(30, 41, 82);
-        doc.rect(margin, curY, contentW, thH, 'F');
-        doc.setTextColor(148, 163, 184);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6);
-        doc.text('PRODUCT', colX[0] + 2, curY + 4.8);
-        ['3 MO TOTAL', '4 MO TOTAL', '6 MO TOTAL', 'WEEKLY', 'DEPOSIT'].forEach((h, i) => {
-          doc.text(h, endX[i], curY + 4.8, { align: 'right' });
-        });
-        return curY + thH;
+      function fmt(n: number) {
+        return `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
 
-      for (const group of categories) {
-        if (y + catH + thH + lineH > pageH - 14) {
-          drawFooter();
-          doc.addPage();
-          page++;
-          drawHeader(false);
-          drawFooter();
-          y = 45;
-        }
+      // ── card layout constants ─────────────────────────────────
+      // Two-column card grid, matching the screen layout
+      const cols       = 2;
+      const gapX       = 4;                                  // gap between columns
+      const cardW      = (contentW - gapX) / cols;           // ≈ 91 mm each
+      const cardR      = 3;                                   // corner radius
+      const hdrH       = 11;                                  // blue card header height
+      const planRowH   = 10;                                  // height per plan row (total + weekly lines)
+      const depH       = 8;                                   // deposit footer height
+      const catLabelH  = 8;
+      const cardGapY   = 4;                                   // vertical gap between cards
+      const catGapY    = 6;                                   // gap after last card in category
 
+      let y = 45;
+      let col = 0;   // 0 = left, 1 = right
+      let rowTopY = y;
+
+      function cardHeight(product: Product): number {
+        const planCount = ([3, 4, 6] as const).filter(
+          m => product.pricings.some(pr => pr.installmentMonths === m)
+        ).length;
+        return hdrH + planCount * planRowH + depH;
+      }
+
+      function cardX(): number {
+        return margin + col * (cardW + gapX);
+      }
+
+      // Flush any open left card (fill right with nothing, advance y)
+      function flushRow() {
+        if (col === 1) {
+          y = rowTopY + 0; // rowTopY is updated when card is drawn
+        }
+        col = 0;
+      }
+
+      function newPage() {
+        drawFooter();
+        doc.addPage();
+        page++;
+        drawHeader(false);
+        drawFooter();
+        y = 45;
+        col = 0;
+        rowTopY = y;
+      }
+
+      // Draw one product card at (cx, cy), returns card bottom y
+      function drawCard(product: Product, cx: number, cy: number): number {
+        const plans = ([3, 4, 6] as const).filter(
+          m => product.pricings.some(pr => pr.installmentMonths === m)
+        );
+        const ch = hdrH + plans.length * planRowH + depH;
+
+        // Card shadow / border
+        doc.setFillColor(226, 232, 240);
+        doc.roundedRect(cx + 0.5, cy + 0.5, cardW, ch, cardR, cardR, 'F');
+
+        // White card background
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(cx, cy, cardW, ch, cardR, cardR, 'F');
+
+        // ── Blue header ──
         doc.setFillColor(...BLUE);
-        doc.rect(margin, y, contentW, catH, 'F');
+        // Top rounded corners only: draw rect + two bottom-corner fills
+        doc.roundedRect(cx, cy, cardW, hdrH, cardR, cardR, 'F');
+        doc.setFillColor(...BLUE);
+        doc.rect(cx, cy + hdrH - cardR, cardW, cardR, 'F'); // square bottom of header
+
+        // Phone icon circle
+        const iconCx = cx + 5.5;
+        const iconCy = cy + hdrH / 2;
+        doc.setFillColor(29, 78, 216); // slightly darker blue
+        doc.circle(iconCx, iconCy, 3.2, 'F');
+        doc.setTextColor(191, 219, 254); // blue-200
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.text('📱', iconCx, iconCy + 1.8, { align: 'center' });
+
+        // Product name
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.text(group.name.toUpperCase(), margin + 3, y + 5.8);
-        y += catH + 1;
-
-        y = drawColHeaders(y);
-
-        for (let i = 0; i < group.products.length; i++) {
-          if (y + lineH > pageH - 14) {
-            drawFooter();
-            doc.addPage();
-            page++;
-            drawHeader(false);
-            drawFooter();
-            y = 45;
-            y = drawColHeaders(y);
-          }
-
-          const product = group.products[i];
-
-          if (i % 2 === 1) {
-            doc.setFillColor(...LBLUE);
-            doc.rect(margin, y, contentW, lineH, 'F');
-          }
-
-          doc.setTextColor(15, 23, 42);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
-          doc.text(product.name, colX[0] + 2, y + 5.2, { maxWidth: 70 });
-
+        doc.setFontSize(7.5);
+        const nameX = cx + 11.5;
+        const nameMaxW = cardW - 13;
+        doc.text(product.name, nameX, cy + 5, { maxWidth: nameMaxW });
+        if (product.description) {
           doc.setFont('helvetica', 'normal');
-          [3, 4, 6].forEach((m, idx) => {
-            const p = product.pricings.find((pr) => pr.installmentMonths === m);
-            if (p) {
-              doc.setTextColor(15, 23, 42);
-              doc.text(`GHS ${p.basePrice.toLocaleString()}`, endX[idx], y + 5.2, { align: 'right' });
-            } else {
-              doc.setTextColor(200, 210, 230);
-              doc.text('—', endX[idx], y + 5.2, { align: 'right' });
-            }
-          });
-
-          // weekly amount: cheapest available plan's (total - deposit) / (months × 4)
-          const cheapestPlan = ([3, 4, 6] as const)
-            .map((m) => product.pricings.find((pr) => pr.installmentMonths === m))
-            .find(Boolean);
-          if (cheapestPlan) {
-            const wk = Math.ceil(((cheapestPlan.basePrice - cheapestPlan.depositAmount) / (cheapestPlan.installmentMonths * 4)) * 100) / 100;
-            doc.setTextColor(5, 122, 85);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
-            doc.text(`GHS ${wk.toLocaleString()}`, endX[3], y + 5.2, { align: 'right' });
-            doc.setFontSize(8);
-          } else {
-            doc.setTextColor(200, 210, 230);
-            doc.text('—', endX[3], y + 5.2, { align: 'right' });
-          }
-
-          const dep = product.pricings[0];
-          if (dep) {
-            doc.setTextColor(...BLUE);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`GHS ${dep.depositAmount.toLocaleString()}`, endX[4], y + 5.2, { align: 'right' });
-          }
-
-          doc.setDrawColor(220, 228, 240);
-          doc.setLineWidth(0.12);
-          doc.line(margin, y + lineH, margin + contentW, y + lineH);
-          y += lineH;
+          doc.setFontSize(6);
+          doc.setTextColor(147, 197, 253); // blue-300
+          doc.text(product.description, nameX, cy + 9, { maxWidth: nameMaxW });
         }
 
-        y += 5;
+        // ── Plan rows ──
+        plans.forEach((m, idx) => {
+          const pr = product.pricings.find(p => p.installmentMonths === m)!;
+          const wk = weeklyAmt(pr);
+          const ry = cy + hdrH + idx * planRowH;
+
+          // Alternate stripe for readability
+          if (idx % 2 === 1) {
+            doc.setFillColor(248, 250, 252); // slate-50
+            doc.rect(cx, ry, cardW, planRowH, 'F');
+          }
+
+          // Plan label  (left)
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.5);
+          doc.setTextColor(100, 116, 139); // slate-500
+          doc.text(`${m}-Month Plan`, cx + 3, ry + 4);
+
+          // Total price (right, top line)
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text(fmt(pr.basePrice), cx + cardW - 3, ry + 4, { align: 'right' });
+
+          // "total" label suffix  (right, top line — dimmed)
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.5);
+          doc.setTextColor(148, 163, 184);
+          const totalW = doc.getTextWidth(fmt(pr.basePrice));
+          doc.text('total', cx + cardW - 3 - totalW - 1, ry + 4);
+
+          // Weekly repayment (right, bottom line — green)
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.5);
+          doc.setTextColor(5, 150, 105); // emerald-600
+          doc.text(`${fmt(wk)} /wk`, cx + cardW - 3, ry + 8.5, { align: 'right' });
+
+          // "Weekly repayment" label (left, bottom line)
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.5);
+          doc.setTextColor(148, 163, 184);
+          doc.text('Weekly repayment', cx + 3, ry + 8.5);
+
+          // Divider line between plan rows
+          if (idx < plans.length - 1) {
+            doc.setDrawColor(241, 245, 249);
+            doc.setLineWidth(0.2);
+            doc.line(cx, ry + planRowH, cx + cardW, ry + planRowH);
+          }
+        });
+
+        // ── Deposit footer ──
+        const depY = cy + hdrH + plans.length * planRowH;
+
+        // Blue-50 tinted background for footer
+        doc.setFillColor(239, 246, 255); // blue-50
+        // Bottom rounded corners only
+        doc.roundedRect(cx, depY, cardW, depH, cardR, cardR, 'F');
+        doc.rect(cx, depY, cardW, cardR, 'F'); // square top of footer
+
+        // Top border line
+        doc.setDrawColor(191, 219, 254); // blue-200
+        doc.setLineWidth(0.3);
+        doc.line(cx, depY, cx + cardW, depY);
+
+        // "DEPOSIT" label
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.setTextColor(37, 99, 235); // blue-600
+        doc.text('DEPOSIT', cx + 3, depY + 5.2);
+
+        // Deposit amount
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(29, 78, 216); // blue-700
+        const dep = product.pricings[0]?.depositAmount ?? 0;
+        doc.text(fmt(dep), cx + cardW - 3, depY + 5.8, { align: 'right' });
+
+        // Outer card border
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.25);
+        doc.roundedRect(cx, cy, cardW, ch, cardR, cardR, 'S');
+
+        return cy + ch;
+      }
+
+      // ── Main render loop ──────────────────────────────────────
+      for (const group of categories) {
+        // Finish any open left column before starting a category header
+        if (col === 1) {
+          // Just move to next row — the left card was already drawn
+          y = rowTopY; // rowTopY was set when left card started; need max of both
+        }
+        col = 0;
+
+        // Category label — needs space for label + at least one card
+        const firstCardH = group.products[0] ? cardHeight(group.products[0]) : 0;
+        if (y + catLabelH + firstCardH > pageH - 14) {
+          newPage();
+        }
+
+        // Category label row
+        doc.setFillColor(...BLUE);
+        doc.rect(margin, y, contentW, catLabelH, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text(group.name.toUpperCase(), margin + 3, y + 5.5);
+        y += catLabelH + 3;
+
+        rowTopY = y;
+        let leftCardBottom = y;
+        let rightCardBottom = y;
+
+        for (let i = 0; i < group.products.length; i++) {
+          const product = group.products[i];
+          const ch = cardHeight(product);
+
+          if (col === 0) {
+            // Starting a new row
+            rowTopY = y;
+            // Check if this card fits on the page
+            if (y + ch > pageH - 14) {
+              newPage();
+              rowTopY = y;
+            }
+            leftCardBottom = drawCard(product, cardX(), y);
+            col = 1;
+          } else {
+            // Right column — must fit in the same row height
+            // If it doesn't fit, newPage and start fresh
+            if (rowTopY + ch > pageH - 14) {
+              // advance y past left card first
+              y = leftCardBottom + cardGapY;
+              newPage();
+              rowTopY = y;
+              leftCardBottom = drawCard(product, cardX(), y);
+              col = 1;
+            } else {
+              rightCardBottom = drawCard(product, cardX(), rowTopY);
+              // Row is complete — advance y past the taller of the two cards
+              y = Math.max(leftCardBottom, rightCardBottom) + cardGapY;
+              col = 0;
+              rowTopY = y;
+            }
+          }
+        }
+
+        // If last product landed in left column, advance y past it
+        if (col === 1) {
+          y = leftCardBottom + cardGapY;
+          col = 0;
+        }
+
+        y += catGapY;
       }
 
       doc.save(`Aidoo-Tech-Price-Chart-${today.toISOString().slice(0, 10)}.pdf`);
