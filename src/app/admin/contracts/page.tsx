@@ -744,22 +744,22 @@ function DesktopStepContent({
 
           {/* Unlock checkbox — only shown when locked device is selected */}
           {selectedInventory?.lockStatus === 'LOCKED' && (
-            <div className={`flex items-start gap-3 rounded-lg border p-4 ${isAgent ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50'}`}>
+            <div className={`flex items-start gap-3 rounded-lg border p-4 ${isAgent ? 'border-gray-100 bg-gray-50 opacity-60' : 'border-amber-200 bg-amber-50'}`}>
               <input
                 type="checkbox"
                 id="unlockOnContract"
-                checked={unlockOnContract}
-                onChange={(e) => setUnlockOnContract(e.target.checked)}
+                checked={isAgent ? false : unlockOnContract}
+                onChange={(e) => { if (!isAgent) setUnlockOnContract(e.target.checked); }}
                 disabled={isAgent}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600 disabled:opacity-40"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600 disabled:cursor-not-allowed disabled:opacity-40"
               />
               <div>
-                <label htmlFor="unlockOnContract" className={`text-sm font-medium cursor-pointer ${isAgent ? 'text-gray-500' : 'text-amber-900'}`}>
+                <label htmlFor="unlockOnContract" className={`text-sm font-medium ${isAgent ? 'text-gray-400 cursor-not-allowed' : 'text-amber-900 cursor-pointer'}`}>
                   Unlock device when contract is created
                 </label>
                 <p className={`text-xs mt-0.5 ${isAgent ? 'text-gray-400' : 'text-amber-700'}`}>
                   {isAgent
-                    ? `Device ${selectedInventory?.serialNumber} is locked. It will remain locked until you have fully remitted the deposit amount to the company.`
+                    ? 'Not available to agents — device unlock is managed by admin only.'
                     : `Device ${selectedInventory?.serialNumber} is currently locked. Check to automatically unlock it via Knox Guard when this contract is saved.`}
                 </p>
               </div>
@@ -791,20 +791,20 @@ function DesktopStepContent({
 
           {/* Unlock checkbox in step 3 too */}
           {selectedInventory?.lockStatus === 'LOCKED' && (
-            <div className={`flex items-start gap-3 rounded-lg border p-3 ${isAgent ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50'}`}>
+            <div className={`flex items-start gap-3 rounded-lg border p-3 ${isAgent ? 'border-gray-100 bg-gray-50 opacity-60' : 'border-amber-200 bg-amber-50'}`}>
               <input
                 type="checkbox"
                 id="unlockOnContractStep3"
-                checked={unlockOnContract}
-                onChange={(e) => setUnlockOnContract(e.target.checked)}
+                checked={isAgent ? false : unlockOnContract}
+                onChange={(e) => { if (!isAgent) setUnlockOnContract(e.target.checked); }}
                 disabled={isAgent}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600 disabled:opacity-40"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-cyan-600 disabled:cursor-not-allowed disabled:opacity-40"
               />
-              <label htmlFor="unlockOnContractStep3" className={`text-sm cursor-pointer ${isAgent ? 'text-gray-500' : 'text-amber-900'}`}>
+              <label htmlFor="unlockOnContractStep3" className={`text-sm ${isAgent ? 'text-gray-400 cursor-not-allowed' : 'text-amber-900 cursor-pointer'}`}>
                 <span className="font-medium">Unlock device on contract creation</span>
                 <span className={`text-xs block mt-0.5 ${isAgent ? 'text-gray-400' : 'text-amber-700'}`}>
                   {isAgent
-                    ? 'Device will remain locked until your deposit remittance is fully paid.'
+                    ? 'Not available to agents — device unlock is managed by admin only.'
                     : 'Device is currently locked — will be unlocked via Knox Guard when contract is saved.'}
                 </span>
               </label>

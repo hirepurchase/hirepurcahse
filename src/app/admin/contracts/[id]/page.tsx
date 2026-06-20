@@ -82,6 +82,7 @@ export default function ContractDetailsPage() {
   const canViewDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL]);
   const canManageDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.MANAGE_DEVICE_CONTROL]);
   const canWriteOff = adminHasAnyPermission(adminUser, [PERMISSIONS.WRITE_OFF_CONTRACT]);
+  const canEditContractValues = adminHasAnyPermission(adminUser, [PERMISSIONS.EDIT_CONTRACT_VALUES]);
   const [contract, setContract] = useState<any>(null);
   const [knoxContract, setKnoxContract] = useState<any>(null);
   const [knoxDefaults, setKnoxDefaults] = useState<KnoxEnrollmentDefaults | null>(null);
@@ -574,14 +575,16 @@ export default function ContractDetailsPage() {
               <CalendarRange className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Reschedule</span>
             </Button>
-            <Button
-              variant="outline" size="sm"
-              className="border-orange-400 text-orange-600 hover:bg-orange-50"
-              onClick={openFinancialAmendDialog}
-            >
-              <AlertTriangle className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Correct Terms</span>
-            </Button>
+            {canEditContractValues && (
+              <Button
+                variant="outline" size="sm"
+                className="border-orange-400 text-orange-600 hover:bg-orange-50"
+                onClick={openFinancialAmendDialog}
+              >
+                <AlertTriangle className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Correct Terms</span>
+              </Button>
+            )}
             <Button size="sm" onClick={() => setIsEditing(true)}>
               <Edit className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Amend</span>
