@@ -32,7 +32,6 @@ import {
   DollarSign,
   Menu,
   Tags,
-  BookOpenCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -82,7 +81,6 @@ const navGroups: NavGroup[] = [
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
-      { name: "How It Works", href: "/admin/agent/overview", icon: BookOpenCheck, permissions: [] as PermissionName[] },
     ],
   },
   {
@@ -180,7 +178,6 @@ const MORE_GROUPS: Array<{
       { name: "My Contracts",  href: "/admin/agent/contracts",  emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",   emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart",   href: "/admin/price-chart",      emoji: "🏷️", permissions: [] as PermissionName[] },
-      { name: "How It Works",  href: "/admin/agent/overview",   emoji: "📖", permissions: [] as PermissionName[] },
     ],
   },
   {
