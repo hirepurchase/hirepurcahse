@@ -189,6 +189,7 @@ export default function ContractsPage() {
     PERMISSIONS.MANAGE_DEVICE_CONTROL,
   ]);
   const isAgent = adminUser?.role === 'AGENT';
+  const canEditContractValues = adminHasAnyPermission(adminUser, [PERMISSIONS.EDIT_CONTRACT_VALUES]);
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
@@ -632,7 +633,7 @@ function DesktopStepContent({
   step1Valid, step2Valid, step3Valid,
   onClose, handleSubmit,
   selectedPeriodMonths, setSelectedPeriodMonths, handlePeriodSelect, handleFrequencyChange,
-  isAgent,
+  isAgent, canEditContractValues,
 }: any) {
   return (
     <>
@@ -883,25 +884,45 @@ function DesktopStepContent({
             )}
           </div>
 
-          {/* Auto-filled read-only price fields */}
+          {/* Price fields — editable for users with EDIT_CONTRACT_VALUES */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
                 Total Price (GHS)
-                <Lock className="h-3 w-3 text-gray-400" />
+                {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}
               </label>
-              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
-                {formData.totalPrice ? formatCurrency(parseFloat(formData.totalPrice)) : <span className="text-gray-400">Select a period above</span>}
-              </div>
+              {canEditContractValues ? (
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.totalPrice}
+                  onChange={(e: any) => setFormData({ ...formData, totalPrice: e.target.value })}
+                />
+              ) : (
+                <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                  {formData.totalPrice ? formatCurrency(parseFloat(formData.totalPrice)) : <span className="text-gray-400">Select a period above</span>}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
                 Deposit Amount (GHS)
-                <Lock className="h-3 w-3 text-gray-400" />
+                {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}
               </label>
-              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
-                {formData.depositAmount ? formatCurrency(parseFloat(formData.depositAmount)) : <span className="text-gray-400">Select a period above</span>}
-              </div>
+              {canEditContractValues ? (
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.depositAmount}
+                  onChange={(e: any) => setFormData({ ...formData, depositAmount: e.target.value })}
+                />
+              ) : (
+                <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                  {formData.depositAmount ? formatCurrency(parseFloat(formData.depositAmount)) : <span className="text-gray-400">Select a period above</span>}
+                </div>
+              )}
             </div>
           </div>
 
@@ -921,20 +942,38 @@ function DesktopStepContent({
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
                 Total Installments
-                <Lock className="h-3 w-3 text-gray-400" />
+                {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}
               </label>
-              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
-                {formData.totalInstallments || <span className="text-gray-400">Auto</span>}
-              </div>
+              {canEditContractValues ? (
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Auto"
+                  value={formData.totalInstallments}
+                  onChange={(e: any) => setFormData({ ...formData, totalInstallments: e.target.value })}
+                />
+              ) : (
+                <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                  {formData.totalInstallments || <span className="text-gray-400">Auto</span>}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
                 Start Date
-                <Lock className="h-3 w-3 text-gray-400" />
+                {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}
               </label>
-              <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
-                {formData.startDate}
-              </div>
+              {canEditContractValues ? (
+                <Input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e: any) => setFormData({ ...formData, startDate: e.target.value })}
+                />
+              ) : (
+                <div className="flex h-9 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                  {formData.startDate}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1103,6 +1142,7 @@ function CreateHirePurchaseSale({
   const { toast } = useToast();
   const { user } = useAuth();
   const isAgent = (user as AdminUser | null)?.role === 'AGENT';
+  const canEditContractValues = adminHasAnyPermission(user as AdminUser | null, [PERMISSIONS.EDIT_CONTRACT_VALUES]);
 
   const [formData, setFormData] = useState({
     customerId: "",
@@ -1575,6 +1615,7 @@ function CreateHirePurchaseSale({
               handlePeriodSelect={handlePeriodSelect}
               handleFrequencyChange={handleFrequencyChange}
               isAgent={isAgent}
+              canEditContractValues={canEditContractValues}
             />
           </CardContent>
         </Card>
@@ -1786,19 +1827,27 @@ function CreateHirePurchaseSale({
                 </div>
               </div>
 
-              {/* Read-only price fields (mobile) */}
+              {/* Price fields (mobile) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Total Price <Lock className="h-3 w-3 text-gray-400" /></label>
-                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
-                    {formData.totalPrice ? formatCurrency(parseFloat(formData.totalPrice)) : <span className="text-gray-400 text-xs">Select period</span>}
-                  </div>
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Total Price {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}</label>
+                  {canEditContractValues ? (
+                    <Input type="number" step="0.01" placeholder="0.00" className="mt-1 h-9 text-sm" value={formData.totalPrice} onChange={(e: any) => setFormData({ ...formData, totalPrice: e.target.value })} />
+                  ) : (
+                    <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                      {formData.totalPrice ? formatCurrency(parseFloat(formData.totalPrice)) : <span className="text-gray-400 text-xs">Select period</span>}
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Deposit <Lock className="h-3 w-3 text-gray-400" /></label>
-                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
-                    {formData.depositAmount ? formatCurrency(parseFloat(formData.depositAmount)) : <span className="text-gray-400 text-xs">Select period</span>}
-                  </div>
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Deposit {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}</label>
+                  {canEditContractValues ? (
+                    <Input type="number" step="0.01" placeholder="0.00" className="mt-1 h-9 text-sm" value={formData.depositAmount} onChange={(e: any) => setFormData({ ...formData, depositAmount: e.target.value })} />
+                  ) : (
+                    <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-semibold text-gray-900">
+                      {formData.depositAmount ? formatCurrency(parseFloat(formData.depositAmount)) : <span className="text-gray-400 text-xs">Select period</span>}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1817,16 +1866,24 @@ function CreateHirePurchaseSale({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Installments <Lock className="h-3 w-3 text-gray-400" /></label>
-                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-2 text-sm font-semibold text-gray-900">
-                    {formData.totalInstallments || <span className="text-gray-400 text-xs">Auto</span>}
-                  </div>
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Installments {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}</label>
+                  {canEditContractValues ? (
+                    <Input type="number" min="1" placeholder="Auto" className="mt-1 h-9 text-sm" value={formData.totalInstallments} onChange={(e: any) => setFormData({ ...formData, totalInstallments: e.target.value })} />
+                  ) : (
+                    <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-2 text-sm font-semibold text-gray-900">
+                      {formData.totalInstallments || <span className="text-gray-400 text-xs">Auto</span>}
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Start Date <Lock className="h-3 w-3 text-gray-400" /></label>
-                  <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-2 text-xs font-semibold text-gray-900">
-                    {formData.startDate}
-                  </div>
+                  <label className="text-xs font-medium text-gray-700 flex items-center gap-1">Start Date {!canEditContractValues && <Lock className="h-3 w-3 text-gray-400" />}</label>
+                  {canEditContractValues ? (
+                    <Input type="date" className="mt-1 h-9 text-xs" value={formData.startDate} onChange={(e: any) => setFormData({ ...formData, startDate: e.target.value })} />
+                  ) : (
+                    <div className="mt-1 flex h-9 w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-2 text-xs font-semibold text-gray-900">
+                      {formData.startDate}
+                    </div>
+                  )}
                 </div>
               </div>
 
