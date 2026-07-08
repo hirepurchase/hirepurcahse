@@ -83,6 +83,7 @@ export default function ContractDetailsPage() {
   const canManageDeviceControl = adminHasAnyPermission(adminUser, [PERMISSIONS.MANAGE_DEVICE_CONTROL]);
   const canWriteOff = adminHasAnyPermission(adminUser, [PERMISSIONS.WRITE_OFF_CONTRACT]);
   const canEditContractValues = adminHasAnyPermission(adminUser, [PERMISSIONS.EDIT_CONTRACT_VALUES]);
+  const canNullify = adminHasAnyPermission(adminUser, [PERMISSIONS.NULLIFY_CONTRACT]);
   const [contract, setContract] = useState<any>(null);
   const [knoxContract, setKnoxContract] = useState<any>(null);
   const [knoxDefaults, setKnoxDefaults] = useState<KnoxEnrollmentDefaults | null>(null);
@@ -109,6 +110,9 @@ export default function ContractDetailsPage() {
   const [showWriteOffDialog, setShowWriteOffDialog] = useState(false);
   const [writeOffReason, setWriteOffReason] = useState('');
   const [isWritingOff, setIsWritingOff] = useState(false);
+  const [showNullifyDialog, setShowNullifyDialog] = useState(false);
+  const [nullifyConfirmText, setNullifyConfirmText] = useState('');
+  const [isNullifying, setIsNullifying] = useState(false);
   const [amendSummary, setAmendSummary] = useState<any>(null);
   const [amendFormData, setAmendFormData] = useState({
     totalPrice: '',
@@ -516,6 +520,24 @@ export default function ContractDetailsPage() {
     }
   };
 
+  const handleNullify = async () => {
+    if (nullifyConfirmText !== contract.contractNumber) return;
+    setIsNullifying(true);
+    try {
+      const res = await api.post(`/contracts/${params.id}/nullify`);
+      toast({
+        title: 'Contract nullified',
+        description: res.data.message + ` — device returned to available stock.`,
+      });
+      setShowNullifyDialog(false);
+      router.push('/admin/contracts');
+    } catch (error: any) {
+      toast({ title: 'Nullify failed', description: error.response?.data?.error || 'Failed to nullify contract', variant: 'destructive' });
+    } finally {
+      setIsNullifying(false);
+    }
+  };
+
   const handleWriteOff = async () => {
     if (!writeOffReason.trim()) return;
     setIsWritingOff(true);
@@ -597,6 +619,16 @@ export default function ContractDetailsPage() {
               >
                 <AlertTriangle className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Write Off</span>
+              </Button>
+            )}
+            {canNullify && contract.status !== 'COMPLETED' && (
+              <Button
+                variant="outline" size="sm"
+                className="border-red-700 text-red-700 hover:bg-red-50 font-semibold"
+                onClick={() => { setNullifyConfirmText(''); setShowNullifyDialog(true); }}
+              >
+                <Trash2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nullify</span>
               </Button>
             )}
           </div>
@@ -1680,6 +1712,58 @@ export default function ContractDetailsPage() {
       </Dialog>
 
       {/* Write-Off Dialog */}
+      {/* Nullify Dialog */}
+      <Dialog open={showNullifyDialog} onOpenChange={(open) => { if (!isNullifying) { setShowNullifyDialog(open); setNullifyConfirmText(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-700 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Nullify Contract
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-300 rounded-lg p-4 text-sm text-red-900 space-y-2">
+              <p className="font-bold text-base">⚠ This is permanent and cannot be undone.</p>
+              <p>Nullifying will delete the following from the database:</p>
+              <ul className="list-disc pl-5 space-y-1 text-xs mt-1">
+                <li>All <strong>payment transactions</strong> on this contract</li>
+                <li>All <strong>installment schedules</strong></li>
+                <li>All <strong>penalties</strong></li>
+                <li>The <strong>Knox Guard device record</strong> (if enrolled)</li>
+                <li>The <strong>agent ledger entry</strong> for this contract</li>
+                <li>The <strong>contract itself</strong></li>
+              </ul>
+              <p className="mt-2">The device will be returned to <strong>AVAILABLE</strong> stock and can be used for a new contract.</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">
+                Type the contract number <span className="font-mono font-bold text-gray-900">{contract?.contractNumber}</span> to confirm:
+              </p>
+              <input
+                type="text"
+                className="flex h-9 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder={contract?.contractNumber}
+                value={nullifyConfirmText}
+                onChange={(e) => setNullifyConfirmText(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <Button variant="outline" onClick={() => { setShowNullifyDialog(false); setNullifyConfirmText(''); }} disabled={isNullifying}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleNullify}
+                disabled={isNullifying || nullifyConfirmText !== contract?.contractNumber}
+                className="bg-red-700 hover:bg-red-800"
+              >
+                {isNullifying ? 'Nullifying…' : 'Nullify Contract'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showWriteOffDialog} onOpenChange={(open) => { if (!isWritingOff) setShowWriteOffDialog(open); }}>
         <DialogContent>
           <DialogHeader>
