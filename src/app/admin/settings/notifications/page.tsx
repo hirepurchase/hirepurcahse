@@ -290,6 +290,12 @@ export default function NotificationSettingsPage() {
                 />
                 <span className="ml-2 text-sm text-gray-700">Send SMS Notifications</span>
               </label>
+              <p className="ml-6 text-xs text-gray-500">
+                Master switch for all outgoing SMS: payment reminders, overdue notices,
+                contract confirmations, welcome messages, payment-failure alerts, and
+                manually sent SMS. Password reset codes still send even when this is off,
+                so customers are never locked out of their accounts.
+              </p>
               <label className="flex items-center">
                 <input
                   type="checkbox"
