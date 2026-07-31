@@ -21,6 +21,61 @@ import { Customer } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 
+const PHOTO_MAX_DIMENSION = 800;
+const PHOTO_JPEG_QUALITY = 0.7;
+
+/** Resize/compress an image file client-side to save upload bandwidth and storage. */
+function compressImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      const scale = Math.min(
+        1,
+        PHOTO_MAX_DIMENSION / Math.max(img.width, img.height)
+      );
+      const width = Math.round(img.width * scale);
+      const height = Math.round(img.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          resolve(
+            new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+              type: "image/jpeg",
+            })
+          );
+        },
+        "image/jpeg",
+        PHOTO_JPEG_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image for compression"));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -520,19 +575,27 @@ function CustomerRegistrationForm({
     return true;
   };
 
-  const handlePhotoChange = (file: File | null) => {
+  const handlePhotoChange = async (file: File | null) => {
     if (!file) return;
 
     if (!validateImageFile(file)) {
       return;
     }
 
-    setPhotoFile(file);
+    let finalFile = file;
+    try {
+      finalFile = await compressImage(file);
+    } catch (error) {
+      // Fall back to the original file if compression fails for any reason
+      finalFile = file;
+    }
+
+    setPhotoFile(finalFile);
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoPreview(reader.result as string);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(finalFile);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -616,11 +679,6 @@ function CustomerRegistrationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!photoFile) {
-      toast({ title: "Photo Required", description: "Please upload a customer photo before registering.", variant: "destructive" });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -628,7 +686,9 @@ function CustomerRegistrationForm({
       Object.keys(formData).forEach((key) => {
         submitData.append(key, formData[key as keyof typeof formData]);
       });
-      submitData.append("photo", photoFile);
+      if (photoFile) {
+        submitData.append("photo", photoFile);
+      }
 
       const response = await api.post("/customers", submitData);
       toast({
@@ -754,11 +814,11 @@ function CustomerRegistrationForm({
             {/* Photo */}
             <div className="rounded-lg border border-gray-200 p-4 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Customer Photo <span className="text-red-500">*</span>
+                Customer Photo <span className="text-gray-400 font-normal normal-case">(optional)</span>
               </h3>
               <div>
               <label className="block text-sm font-medium mb-2 sr-only">
-                Customer Photo *
+                Customer Photo (optional)
               </label>
               <div
                 onDrop={handleDrop}
@@ -773,7 +833,7 @@ function CustomerRegistrationForm({
                     <img
                       src={photoPreview}
                       alt="Customer preview"
-                      className="max-w-xs mx-auto rounded"
+                      className="max-w-full sm:max-w-xs max-h-64 w-auto mx-auto rounded object-contain"
                     />
                     <Button
                       type="button"
@@ -868,15 +928,21 @@ function CustomerEditForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setPhotoFile(file);
+      let finalFile = file;
+      try {
+        finalFile = await compressImage(file);
+      } catch (error) {
+        finalFile = file;
+      }
+      setPhotoFile(finalFile);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(finalFile);
     }
   };
 
