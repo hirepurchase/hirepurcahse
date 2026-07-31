@@ -265,7 +265,7 @@ function StatCard({
     <Link
       href={href}
       className={cn(
-        'group flex flex-col gap-3 rounded-xl border bg-white p-4 transition-all hover:shadow-md hover:-translate-y-0.5',
+        'group flex min-w-0 flex-col gap-3 rounded-xl border bg-white p-4 transition-all hover:shadow-md hover:-translate-y-0.5',
         highlight ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-100'
       )}
     >
@@ -275,8 +275,14 @@ function StatCard({
           <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconClass)} />
         </div>
       </div>
-      <div>
-        <div className={cn('text-xl sm:text-2xl font-bold', highlight ? 'text-red-600' : 'text-gray-900')}>
+      <div className="min-w-0">
+        <div
+          className={cn(
+            'truncate text-lg sm:text-2xl font-bold',
+            highlight ? 'text-red-600' : 'text-gray-900'
+          )}
+          title={typeof value === 'string' ? value : undefined}
+        >
           {value}
         </div>
         {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}

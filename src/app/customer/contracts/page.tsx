@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
-import { formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import type { HirePurchaseContract } from '@/types';
 
@@ -113,14 +113,14 @@ export default function CustomerContractsPage() {
                 onClick={() => router.push(`/customer/contracts/${contract.id}`)}
               >
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{contract.contractNumber}</CardTitle>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="text-lg wrap-break-word">{contract.contractNumber}</CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
                         {contract.inventoryItem?.product?.name}
                       </p>
                     </div>
-                    <Badge className={getStatusColor(contract.status)}>
+                    <Badge className={cn(getStatusColor(contract.status), 'shrink-0')}>
                       {contract.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>

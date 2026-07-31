@@ -95,20 +95,20 @@ function StatCard({
     orange: 'from-orange-500 to-orange-700',
   };
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center shadow`}>
+    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex min-w-0 flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center shadow`}>
           <Icon className="w-5 h-5 text-white" />
         </div>
         {trend !== undefined && (
-          <span className={`flex items-center gap-1 text-xs font-semibold ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+          <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
             {trend >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {Math.abs(trend)}% vs last month
           </span>
         )}
       </div>
-      <div>
-        <div className="text-2xl font-bold text-slate-800 leading-tight">{value}</div>
+      <div className="min-w-0">
+        <div className="truncate text-xl sm:text-2xl font-bold text-slate-800 leading-tight" title={typeof value === 'string' ? value : undefined}>{value}</div>
         <div className="text-sm text-slate-500 mt-0.5">{label}</div>
         {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
       </div>
@@ -479,12 +479,12 @@ export default function AgentDashboardPage() {
             const s = STATUS_STYLES[c.status] ?? STATUS_STYLES.CANCELLED;
             return (
               <Link key={c.id} href={`/admin/agent/contracts/${c.id}`} className="block px-5 py-4 hover:bg-slate-50 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <div className="font-semibold text-slate-800 text-sm">{c.contractNumber}</div>
-                    <div className="text-xs text-slate-400">{c.customer.firstName} {c.customer.lastName}</div>
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-800 text-sm truncate">{c.contractNumber}</div>
+                    <div className="text-xs text-slate-400 truncate">{c.customer.firstName} {c.customer.lastName}</div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
+                  <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>{c.product ?? '—'}</span>

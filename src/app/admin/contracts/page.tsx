@@ -375,8 +375,8 @@ export default function ContractsPage() {
                           <p className="text-sm font-semibold text-gray-900 truncate">
                             {contract.customer?.firstName} {contract.customer?.lastName}
                           </p>
-                          <Badge className={`${getStatusColor(contract.status)} text-[10px] shrink-0`}>
-                            {contract.status}
+                          <Badge className={`${getStatusColor(contract.status)} text-[10px] shrink-0 max-w-[45%]`}>
+                            {contract.status.replace(/_/g, ' ')}
                           </Badge>
                         </div>
                         <p className="text-xs text-gray-500 font-mono truncate">{contract.contractNumber}</p>
@@ -480,7 +480,7 @@ export default function ContractsPage() {
                           <TableCell className="text-green-600 font-medium">{formatCurrency(contract.totalPaid)}</TableCell>
                           <TableCell className="text-red-600 font-medium">{formatCurrency(contract.outstandingBalance)}</TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(contract.status)}>{contract.status}</Badge>
+                            <Badge className={getStatusColor(contract.status)}>{contract.status.replace(/_/g, ' ')}</Badge>
                           </TableCell>
                           {canViewDeviceControl && (
                             <TableCell className="min-w-[280px]">

@@ -157,12 +157,12 @@ export default function DashboardStatsPage() {
             <CardTitle className="text-base">This Month&apos;s Collections</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-xs text-gray-500">Total Collected</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(stats?.payments?.monthlyTotal || 0)}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600 truncate">{formatCurrency(stats?.payments?.monthlyTotal || 0)}</p>
               </div>
-              <Banknote className="h-8 w-8 text-green-600" />
+              <Banknote className="h-8 w-8 text-green-600 shrink-0" />
             </div>
             <div className="flex justify-between text-sm pt-3 mt-3 border-t">
               <span className="text-gray-500">Transactions</span>
@@ -175,12 +175,12 @@ export default function DashboardStatsPage() {
             <CardTitle className="text-base">This Week&apos;s Collections</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-xs text-gray-500">Total Collected</p>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats?.payments?.weeklyTotal || 0)}</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600 truncate">{formatCurrency(stats?.payments?.weeklyTotal || 0)}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-600" />
+              <TrendingUp className="h-8 w-8 text-blue-600 shrink-0" />
             </div>
             <div className="flex justify-between text-sm pt-3 mt-3 border-t">
               <span className="text-gray-500">Transactions</span>
@@ -207,9 +207,9 @@ export default function DashboardStatsPage() {
               <div className="sm:hidden divide-y divide-gray-100">
                 {stats?.recentContracts?.map((contract: any) => (
                   <div key={contract.id} className="px-4 py-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-mono font-medium">{contract.contractNumber}</p>
-                      <Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">{contract.status}</Badge>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-mono font-medium truncate min-w-0">{contract.contractNumber}</p>
+                      <Badge variant={contract.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs shrink-0">{contract.status.replace(/_/g, ' ')}</Badge>
                     </div>
                     <p className="text-xs text-gray-500">{contract.customer?.firstName} {contract.customer?.lastName}</p>
                     <p className="text-xs text-gray-400">{contract.inventoryItem?.product?.name || '-'} · {formatDate(contract.createdAt)}</p>

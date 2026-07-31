@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
-import { formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import type { HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
 
@@ -109,18 +109,18 @@ export default function CustomerContractDetailPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => router.back()}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.back()} className="shrink-0">
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Back</span>
           </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Contract {contract.contractNumber}</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold wrap-break-word">Contract {contract.contractNumber}</h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Hire purchase agreement details</p>
           </div>
         </div>
-        <Badge className={getStatusColor(contract.status)}>{contract.status.replace(/_/g, ' ')}</Badge>
+        <Badge className={cn(getStatusColor(contract.status), 'shrink-0')}>{contract.status.replace(/_/g, ' ')}</Badge>
       </div>
 
       {/* Summary Cards */}

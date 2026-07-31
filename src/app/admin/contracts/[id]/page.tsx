@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
-import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 import { adminHasAnyPermission, PERMISSIONS } from '@/lib/permissions';
@@ -637,15 +637,15 @@ export default function ContractDetailsPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Contract {contract.contractNumber}</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="text-xl sm:text-2xl wrap-break-word">Contract {contract.contractNumber}</CardTitle>
               <p className="text-sm text-gray-500 mt-1">
                 Created on {formatDate(contract.createdAt)}
               </p>
             </div>
-            <Badge className={getStatusColor(contract.status)} style={{ fontSize: '16px', padding: '8px 16px' }}>
-              {contract.status}
+            <Badge className={cn(getStatusColor(contract.status), 'shrink-0 text-xs sm:text-[16px] px-2 py-1 sm:px-4 sm:py-2')}>
+              {contract.status.replace(/_/g, ' ')}
             </Badge>
           </div>
         </CardHeader>

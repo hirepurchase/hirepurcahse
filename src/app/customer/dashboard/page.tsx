@@ -273,17 +273,20 @@ function StatCard({
 }) {
   return (
     <div className={cn(
-      'flex flex-col gap-3 rounded-xl border bg-white p-4',
+      'flex min-w-0 flex-col gap-3 rounded-xl border bg-white p-4',
       highlight ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-100'
     )}>
       <div className="flex items-center justify-between">
         <span className="text-xs sm:text-sm font-medium text-gray-500">{title}</span>
-        <div className={cn('p-1.5 sm:p-2 rounded-lg', iconBg)}>
+        <div className={cn('p-1.5 sm:p-2 rounded-lg shrink-0', iconBg)}>
           <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconClass)} />
         </div>
       </div>
-      <div>
-        <div className={cn('text-xl sm:text-2xl font-bold', highlight ? 'text-red-600' : 'text-gray-900')}>
+      <div className="min-w-0">
+        <div
+          className={cn('truncate text-lg sm:text-2xl font-bold', highlight ? 'text-red-600' : 'text-gray-900')}
+          title={typeof value === 'string' ? value : undefined}
+        >
           {value}
         </div>
         {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}

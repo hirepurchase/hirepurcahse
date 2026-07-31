@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import api from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 
 export default function CustomerStatementPage() {
@@ -278,15 +278,15 @@ export default function CustomerStatementPage() {
             contracts.map((contract: any) => (
               <Card key={contract.id} className="mb-4">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">Contract #{contract.contractNumber}</CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="text-lg wrap-break-word">Contract #{contract.contractNumber}</CardTitle>
                       <p className="text-sm text-gray-600">
                         {contract.inventoryItem?.product?.name || 'N/A'}
                       </p>
                     </div>
-                    <Badge className={getContractStatusColor(contract.status)}>
-                      {contract.status}
+                    <Badge className={cn(getContractStatusColor(contract.status), 'shrink-0')}>
+                      {contract.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
                 </CardHeader>
