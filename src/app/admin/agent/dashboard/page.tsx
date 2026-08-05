@@ -200,7 +200,10 @@ export default function AgentDashboardPage() {
       {hasAlerts && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {alerts.overdueInstallments > 0 && (
-            <div className="flex items-center gap-4 bg-red-50 border border-red-200 rounded-2xl px-5 py-4">
+            <Link
+              href="/admin/agent/overdue"
+              className="flex items-center gap-4 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 hover:bg-red-100 transition-colors"
+            >
               <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-red-600" />
               </div>
@@ -208,10 +211,8 @@ export default function AgentDashboardPage() {
                 <p className="font-semibold text-red-700 text-sm">{alerts.overdueInstallments} Overdue Installment{alerts.overdueInstallments > 1 ? 's' : ''}</p>
                 <p className="text-red-500 text-xs mt-0.5">Customers on your contracts have missed payments</p>
               </div>
-              <Link href="/admin/agent/contracts" className="text-red-600 flex-shrink-0">
-                <ChevronRight className="w-5 h-5" />
-              </Link>
-            </div>
+              <ChevronRight className="w-5 h-5 text-red-600 shrink-0" />
+            </Link>
           )}
           {alerts.revisionsPending > 0 && (
             <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4">
@@ -394,15 +395,16 @@ export default function AgentDashboardPage() {
               </div>
             )}
             {alerts.overdueInstallments > 0 && (
-              <div className="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
-                <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+              <Link href="/admin/agent/overdue" className="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
                   <XCircle className="w-4 h-4 text-red-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-red-800">{alerts.overdueInstallments} Overdue Installment{alerts.overdueInstallments > 1 ? 's' : ''}</p>
                   <p className="text-xs text-red-600">Customers have missed payments</p>
                 </div>
-              </div>
+                <ChevronRight className="w-4 h-4 text-red-600 shrink-0" />
+              </Link>
             )}
             {!nextDue && alerts.pendingApproval === 0 && alerts.revisionsPending === 0 && alerts.overdueInstallments === 0 && (
               <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
