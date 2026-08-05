@@ -5,6 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Round a money value to 2 decimal places, avoiding float drift
+ * (e.g. 111.66999999999998 -> 111.67) when pre-filling or submitting
+ * payment amounts.
+ */
+export function roundMoney(amount: number): number {
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-GH', {
     style: 'currency',

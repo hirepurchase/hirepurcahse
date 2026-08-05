@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import api from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, roundMoney } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 
 interface Installment {
@@ -143,7 +143,7 @@ export default function CustomerContractPaymentPage() {
     const newSelected = new Map(selectedInstallments);
 
     if (checked) {
-      const remainingAmount = installment.amount - installment.paidAmount;
+      const remainingAmount = roundMoney(installment.amount - installment.paidAmount);
       newSelected.set(installment.id, {
         id: installment.id,
         installmentNo: installment.installmentNo,
@@ -169,12 +169,13 @@ export default function CustomerContractPaymentPage() {
     const selected = newSelected.get(installmentId);
 
     if (selected) {
-      const remainingAmount = selected.amount - selected.paidAmount;
-      const isPartial = amount < remainingAmount;
+      const remainingAmount = roundMoney(selected.amount - selected.paidAmount);
+      const roundedAmount = roundMoney(amount);
+      const isPartial = roundedAmount < remainingAmount;
 
       newSelected.set(installmentId, {
         ...selected,
-        paymentAmount: Math.min(amount, remainingAmount),
+        paymentAmount: Math.min(roundedAmount, remainingAmount),
         isPartial,
       });
 
@@ -183,9 +184,11 @@ export default function CustomerContractPaymentPage() {
   };
 
   const getTotalPaymentAmount = () => {
-    return Array.from(selectedInstallments.values()).reduce(
-      (sum, item) => sum + item.paymentAmount,
-      0
+    return roundMoney(
+      Array.from(selectedInstallments.values()).reduce(
+        (sum, item) => sum + item.paymentAmount,
+        0
+      )
     );
   };
 
@@ -430,7 +433,7 @@ export default function CustomerContractPaymentPage() {
                     {pendingInstallments.map((installment) => {
                       const isSelected = selectedInstallments.has(installment.id);
                       const selected = selectedInstallments.get(installment.id);
-                      const remainingAmount = installment.amount - installment.paidAmount;
+                      const remainingAmount = roundMoney(installment.amount - installment.paidAmount);
                       return (
                         <div key={installment.id} className={`px-4 py-3 ${isSelected ? 'bg-blue-50' : ''}`}>
                           <div className="flex items-start gap-3">
@@ -476,7 +479,7 @@ export default function CustomerContractPaymentPage() {
                         {pendingInstallments.map((installment) => {
                           const isSelected = selectedInstallments.has(installment.id);
                           const selected = selectedInstallments.get(installment.id);
-                          const remainingAmount = installment.amount - installment.paidAmount;
+                          const remainingAmount = roundMoney(installment.amount - installment.paidAmount);
                           return (
                             <TableRow key={installment.id} className={isSelected ? 'bg-blue-50' : ''}>
                               <TableCell>
