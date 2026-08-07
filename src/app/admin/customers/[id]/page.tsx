@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, CreditCard, FileText, User, Download, Printer, RotateCcw, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, CreditCard, FileText, User, UserCheck, Download, Printer, RotateCcw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -221,6 +221,29 @@ export default function CustomerStatementPage() {
                 <div>
                   <p className="text-sm text-gray-600">Address</p>
                   <p className="font-semibold">{customer.address}</p>
+                </div>
+              </div>
+            )}
+            {customer.guarantorName && (
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-gray-600" />
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-600">Guarantor</p>
+                  <p className="font-semibold break-words">{customer.guarantorName}</p>
+                </div>
+              </div>
+            )}
+            {customer.guarantorPhone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-600" />
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-600">Guarantor Phone</p>
+                  <a
+                    href={`tel:${customer.guarantorPhone}`}
+                    className="font-semibold text-green-700 hover:underline break-words"
+                  >
+                    {customer.guarantorPhone}
+                  </a>
                 </div>
               </div>
             )}
