@@ -1159,9 +1159,10 @@ function CreateHirePurchaseSale({
     gracePeriodDays: "7",
     penaltyPercentage: "0",
     startDate: getStartDate(),
-    // Locked to Hubtel Regular so a mobile money number is always captured
+    // Locked to Hubtel Regular so a mobile money number is always captured.
+    // Network is deliberately blank — the user must pick it explicitly.
     paymentMethod: "HUBTEL_REGULAR" as "" | "HUBTEL_REGULAR" | "HUBTEL_DIRECT_DEBIT" | "MANUAL" | "CASH",
-    mobileMoneyNetwork: "MTN" as "" | "MTN" | "VODAFONE" | "TELECEL" | "AIRTELTIGO",
+    mobileMoneyNetwork: "" as "" | "MTN" | "VODAFONE" | "TELECEL" | "AIRTELTIGO",
     mobileMoneyNumber: "",
     lockStatus: "" as "" | "LOCKED" | "UNLOCKED",
     registeredUnder: "",
@@ -1922,7 +1923,7 @@ function CreateHirePurchaseSale({
                         value={formData.mobileMoneyNetwork}
                         onChange={(e) => setFormData({ ...formData, mobileMoneyNetwork: e.target.value as any })}
                       >
-                        <option value="">Select</option>
+                        <option value="">Select Network</option>
                         <option value="MTN">MTN</option>
                         <option value="VODAFONE">Telecel</option>
                         {formData.paymentMethod === "HUBTEL_REGULAR" && <option value="AIRTELTIGO">AirtelTigo</option>}
