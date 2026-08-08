@@ -49,6 +49,12 @@ interface ContractGuardrailAssessment {
   sameProductContracts: number;
 }
 
+// Ghana mobile money number: 10 digits starting 02x, 03x or 05x.
+// Spaces are tolerated on input and stripped before validating.
+function isValidMomoNumber(value: string): boolean {
+  return /^0[235][0-9]{8}$/.test((value || "").replace(/\s/g, ""));
+}
+
 function getKnoxStatusClasses(status?: string | null) {
   const normalized = (status || "UNKNOWN").toUpperCase();
 
@@ -995,21 +1001,16 @@ function DesktopStepContent({
 
           <div className="border-t pt-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-4 text-blue-900">Payment Method (Optional)</h3>
+              <h3 className="text-lg font-semibold mb-4 text-blue-900">Payment Method</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Select Payment Method</label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm" value={formData.paymentMethod} onChange={(e: any) => setFormData({ ...formData, paymentMethod: e.target.value, mobileMoneyNetwork: "", mobileMoneyNumber: "" })}>
-                    <option value="">None (Manual Payment)</option>
-                    <option value="HUBTEL_REGULAR">Hubtel - Regular Payment (PIN each time)</option>
-                    <option value="HUBTEL_DIRECT_DEBIT">Hubtel - Direct Debit (Auto-debit)</option>
-                    <option value="CASH">Cash Payment</option>
-                  </select>
+                  <label className="block text-sm font-medium mb-2">Payment Method</label>
+                  <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-gray-50 px-3 text-sm text-gray-700">
+                    <Lock className="h-3.5 w-3.5 text-gray-400" />
+                    <span>Hubtel - Regular Payment (PIN each time)</span>
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {formData.paymentMethod === "HUBTEL_REGULAR" && "Customer will enter PIN for each payment"}
-                    {formData.paymentMethod === "HUBTEL_DIRECT_DEBIT" && "One-time approval, then automatic deduction for installments"}
-                    {formData.paymentMethod === "CASH" && "Customer will pay in cash"}
-                    {!formData.paymentMethod && "Payments will be recorded manually by admin"}
+                    Customer will enter PIN for each payment. A mobile money number is required.
                   </p>
                 </div>
                 {(formData.paymentMethod === "HUBTEL_REGULAR" || formData.paymentMethod === "HUBTEL_DIRECT_DEBIT") && (
@@ -1027,7 +1028,11 @@ function DesktopStepContent({
                     <div>
                       <label className="block text-sm font-medium mb-2">Mobile Money Number *</label>
                       <Input type="tel" placeholder="e.g., 0241234567" value={formData.mobileMoneyNumber} onChange={(e: any) => setFormData({ ...formData, mobileMoneyNumber: e.target.value })} />
-                      <p className="text-xs text-gray-500 mt-1">Customer&apos;s mobile money number for payments</p>
+                      {formData.mobileMoneyNumber && !isValidMomoNumber(formData.mobileMoneyNumber) ? (
+                        <p className="text-xs text-red-600 mt-1">Enter a valid 10-digit number, e.g. 0241234567</p>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-1">Customer&apos;s mobile money number for payments</p>
+                      )}
                     </div>
                     {formData.paymentMethod === "HUBTEL_DIRECT_DEBIT" && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -1154,8 +1159,9 @@ function CreateHirePurchaseSale({
     gracePeriodDays: "7",
     penaltyPercentage: "0",
     startDate: getStartDate(),
-    paymentMethod: "" as "" | "HUBTEL_REGULAR" | "HUBTEL_DIRECT_DEBIT" | "MANUAL" | "CASH",
-    mobileMoneyNetwork: "" as "" | "MTN" | "VODAFONE" | "TELECEL" | "AIRTELTIGO",
+    // Locked to Hubtel Regular so a mobile money number is always captured
+    paymentMethod: "HUBTEL_REGULAR" as "" | "HUBTEL_REGULAR" | "HUBTEL_DIRECT_DEBIT" | "MANUAL" | "CASH",
+    mobileMoneyNetwork: "MTN" as "" | "MTN" | "VODAFONE" | "TELECEL" | "AIRTELTIGO",
     mobileMoneyNumber: "",
     lockStatus: "" as "" | "LOCKED" | "UNLOCKED",
     registeredUnder: "",
@@ -1508,9 +1514,9 @@ function CreateHirePurchaseSale({
     !!formData.totalInstallments &&
     !!formData.totalPrice &&
     !(guardrails?.blockers?.length) &&
-    !((formData.paymentMethod === "HUBTEL_REGULAR" ||
-       formData.paymentMethod === "HUBTEL_DIRECT_DEBIT") &&
-      (!formData.mobileMoneyNetwork || !formData.mobileMoneyNumber));
+    !!formData.paymentMethod &&
+    !!formData.mobileMoneyNetwork &&
+    isValidMomoNumber(formData.mobileMoneyNumber);
 
   useEffect(() => {
     if (
@@ -1900,18 +1906,12 @@ function CreateHirePurchaseSale({
 
               {/* Payment method */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3">
-                <p className="text-xs font-semibold text-blue-800">Payment Method (Optional)</p>
+                <p className="text-xs font-semibold text-blue-800">Payment Method</p>
                 <div>
-                  <select
-                    className="flex h-9 w-full rounded-lg border border-blue-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.paymentMethod}
-                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any, mobileMoneyNetwork: "", mobileMoneyNumber: "" })}
-                  >
-                    <option value="">None (Manual)</option>
-                    <option value="HUBTEL_REGULAR">Hubtel Regular (PIN)</option>
-                    <option value="HUBTEL_DIRECT_DEBIT">Hubtel Direct Debit</option>
-                    <option value="CASH">Cash</option>
-                  </select>
+                  <div className="flex h-9 w-full items-center gap-2 rounded-lg border border-blue-200 bg-gray-50 px-2 text-xs text-gray-700">
+                    <Lock className="h-3.5 w-3.5 text-gray-400" />
+                    <span>Hubtel Regular (PIN each time)</span>
+                  </div>
                 </div>
                 {(formData.paymentMethod === "HUBTEL_REGULAR" || formData.paymentMethod === "HUBTEL_DIRECT_DEBIT") && (
                   <div className="grid grid-cols-2 gap-3">
@@ -1931,6 +1931,9 @@ function CreateHirePurchaseSale({
                     <div>
                       <label className="text-xs font-medium text-gray-700">MoMo Number *</label>
                       <Input type="tel" placeholder="0241234567" className="mt-1 h-9 text-sm" value={formData.mobileMoneyNumber} onChange={(e) => setFormData({ ...formData, mobileMoneyNumber: e.target.value })} />
+                      {formData.mobileMoneyNumber && !isValidMomoNumber(formData.mobileMoneyNumber) && (
+                        <p className="text-xs text-red-600 mt-1">Enter a valid 10-digit number</p>
+                      )}
                     </div>
                   </div>
                 )}
