@@ -32,6 +32,9 @@ import {
   DollarSign,
   Menu,
   Tags,
+  UserCheck,
+  PhoneCall,
+  CalendarClock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -81,6 +84,18 @@ const navGroups: NavGroup[] = [
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
+    ],
+  },
+  {
+    label: "Customer Service",
+    roles: ["CUSTOMER_SERVICE"],
+    items: [
+      { name: "Dashboard", href: "/admin/customer-service/dashboard", icon: LayoutDashboard },
+      { name: "Verification", href: "/admin/customer-service/verification", icon: UserCheck, permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
+      { name: "Call Queue", href: "/admin/customer-service/call-queue", icon: PhoneCall, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
+      { name: "Follow-ups", href: "/admin/customer-service/follow-ups", icon: CalendarClock, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
+      { name: "Customers", href: "/admin/customers", icon: Users, permissions: [PERMISSIONS.VIEW_ASSIGNED_CUSTOMERS] },
+      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: [PERMISSIONS.SEND_SMS] },
     ],
   },
   {
@@ -178,6 +193,18 @@ const MORE_GROUPS: Array<{
       { name: "My Contracts",  href: "/admin/agent/contracts",  emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",   emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart",   href: "/admin/price-chart",      emoji: "🏷️", permissions: [] as PermissionName[] },
+    ],
+  },
+  {
+    label: "Customer Service",
+    roles: ["CUSTOMER_SERVICE"],
+    links: [
+      { name: "Dashboard",    href: "/admin/customer-service/dashboard",    emoji: "🏠", permissions: [] as PermissionName[] },
+      { name: "Verification", href: "/admin/customer-service/verification", emoji: "✅", permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
+      { name: "Call Queue",   href: "/admin/customer-service/call-queue",   emoji: "📞", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
+      { name: "Follow-ups",   href: "/admin/customer-service/follow-ups",   emoji: "📅", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
+      { name: "Customers",    href: "/admin/customers",                    emoji: "👥", permissions: [PERMISSIONS.VIEW_ASSIGNED_CUSTOMERS] },
+      { name: "Send SMS",     href: "/admin/sms",                          emoji: "💬", permissions: [PERMISSIONS.SEND_SMS] },
     ],
   },
   {
@@ -390,12 +417,21 @@ function MobileTabBar({
       if (t.href === "/admin/dashboard") return { ...t, href: "/admin/agent/dashboard" };
       if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
     }
+    if (userRole === "CUSTOMER_SERVICE") {
+      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/customer-service/dashboard" };
+      if (t.href === "/admin/contracts") return { ...t, name: "Verify", href: "/admin/customer-service/verification", icon: UserCheck };
+      if (t.href === "/admin/payments") return { ...t, name: "Call Queue", href: "/admin/customer-service/call-queue", icon: PhoneCall };
+    }
     return t;
   });
   const tabs = effectiveTabs.filter((t) => !t.permissions.length || hasAnyPermission(t.permissions));
 
   const isActive = (href: string) =>
-    pathname === href || (href !== "/admin/dashboard" && href !== "/admin/agent/dashboard" && pathname?.startsWith(href + "/"));
+    pathname === href ||
+    (href !== "/admin/dashboard" &&
+      href !== "/admin/agent/dashboard" &&
+      href !== "/admin/customer-service/dashboard" &&
+      pathname?.startsWith(href + "/"));
 
   const moreActive = moreOpen || !tabs.some((t) => isActive(t.href));
 
