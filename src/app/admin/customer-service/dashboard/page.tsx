@@ -162,18 +162,23 @@ export default function CustomerServiceDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-center gap-2 text-gray-500 text-sm">
-              <Users className="h-4 w-4" />
-              My portfolio
-            </div>
-            <p className="text-3xl font-bold mt-2">{data.customers}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              across {data.assignedAgents} agent{data.assignedAgents === 1 ? "" : "s"}
-            </p>
-          </CardContent>
-        </Card>
+        <button
+          onClick={() => router.push("/admin/customer-service/my-agents")}
+          className="text-left"
+        >
+          <Card className="hover:border-blue-300 transition-colors h-full">
+            <CardContent className="pt-5">
+              <div className="flex items-center gap-2 text-gray-500 text-sm">
+                <Users className="h-4 w-4" />
+                My portfolio
+              </div>
+              <p className="text-3xl font-bold mt-2">{data.customers}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                across {data.assignedAgents} agent{data.assignedAgents === 1 ? "" : "s"} — view list
+              </p>
+            </CardContent>
+          </Card>
+        </button>
       </div>
     </div>
   );

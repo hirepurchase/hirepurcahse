@@ -124,12 +124,20 @@ export default function AgentDashboardPage() {
   const [data, setData] = useState<AgentDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [officers, setOfficers] = useState<
+    { id: string; name: string; email: string; phone: string | null }[]
+  >([]);
 
   useEffect(() => {
     api.get('/reports/agent-dashboard')
       .then(r => setData(r.data))
       .catch(() => setError('Failed to load dashboard'))
       .finally(() => setLoading(false));
+
+    // Supplementary — a failure here must not blank the dashboard.
+    api.get('/admin-users/me/customer-service')
+      .then(r => setOfficers(r.data.officers || []))
+      .catch(() => setOfficers([]));
   }, []);
 
   if (loading) {
@@ -178,6 +186,34 @@ export default function AgentDashboardPage() {
               <FileText className="w-4 h-4" /> My Contracts
             </Link>
           </div>
+
+          {officers.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-white/10">
+              <p className="text-cyan-300 text-xs font-medium mb-2">
+                Your customer service {officers.length === 1 ? 'officer' : 'officers'}
+              </p>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {officers.map((o) => (
+                  <div key={o.id} className="text-sm">
+                    <p className="font-semibold">{o.name}</p>
+                    <div className="flex flex-wrap gap-x-3 text-slate-300 text-xs">
+                      {o.phone && (
+                        <a href={`tel:${o.phone}`} className="hover:text-cyan-300">
+                          {o.phone}
+                        </a>
+                      )}
+                      <a href={`mailto:${o.email}`} className="hover:text-cyan-300">
+                        {o.email}
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-slate-400 text-xs mt-2">
+                They verify your customers before contracts are approved
+              </p>
+            </div>
+          )}
 
           {/* Quick stats ribbon */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
