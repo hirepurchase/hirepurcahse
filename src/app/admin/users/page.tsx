@@ -69,6 +69,14 @@ export default function UsersPage() {
     isActive: true,
   });
 
+  // Agent assignments — only meaningful when the edited user is a CSO
+  const [assignableAgents, setAssignableAgents] = useState<
+    { id: string; firstName: string; lastName: string; email: string; role: string }[]
+  >([]);
+  const [assignedAgentIds, setAssignedAgentIds] = useState<Set<string>>(new Set());
+  const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
+  const [isSavingAssignments, setIsSavingAssignments] = useState(false);
+
   const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState<AdminUser | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -240,6 +248,47 @@ export default function UsersPage() {
     }
   };
 
+  const loadAssignedAgents = async (userId: string) => {
+    try {
+      setIsLoadingAssignments(true);
+      const res = await api.get(`/admin-users/${userId}/assigned-agents`);
+      setAssignableAgents(res.data.availableAgents || []);
+      setAssignedAgentIds(new Set<string>(res.data.assignedAgentIds || []));
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to load assigned agents',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingAssignments(false);
+    }
+  };
+
+  const saveAssignedAgents = async () => {
+    if (!selectedUser) return;
+    try {
+      setIsSavingAssignments(true);
+      const res = await api.put(`/admin-users/${selectedUser.id}/assigned-agents`, {
+        agentIds: Array.from(assignedAgentIds),
+      });
+      toast({
+        title: 'Success',
+        description: res.data.count === 0
+          ? 'All agents unassigned — this officer will not see any customers or contracts'
+          : `${res.data.count} agent${res.data.count === 1 ? '' : 's'} assigned`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to update assigned agents',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingAssignments(false);
+    }
+  };
+
   const openEditDialog = (user: AdminUser) => {
     setSelectedUser(user);
     setEditFormData({
@@ -249,6 +298,11 @@ export default function UsersPage() {
       roleId: user.role.id,
       isActive: user.isActive,
     });
+    setAssignableAgents([]);
+    setAssignedAgentIds(new Set());
+    if (user.role.name === 'CUSTOMER_SERVICE') {
+      loadAssignedAgents(user.id);
+    }
     setShowEditDialog(true);
   };
 
@@ -623,6 +677,66 @@ export default function UsersPage() {
               />
               <Label htmlFor="editIsActive">Active</Label>
             </div>
+
+            {selectedUser?.role.name === 'CUSTOMER_SERVICE' && (
+              <div className="border-t pt-4">
+                <Label>Assigned Agents</Label>
+                <p className="text-xs text-gray-500 mt-1 mb-2">
+                  This officer sees only the customers and contracts created by the agents
+                  selected here. With none selected they see nothing.
+                </p>
+
+                {isLoadingAssignments ? (
+                  <div className="flex justify-center py-6">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                  </div>
+                ) : assignableAgents.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-3">No active agents available.</p>
+                ) : (
+                  <>
+                    <div className="max-h-48 overflow-y-auto rounded-md border divide-y">
+                      {assignableAgents.map((agent) => (
+                        <label
+                          key={agent.id}
+                          className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={assignedAgentIds.has(agent.id)}
+                            onChange={(e) => {
+                              const next = new Set(assignedAgentIds);
+                              if (e.target.checked) next.add(agent.id);
+                              else next.delete(agent.id);
+                              setAssignedAgentIds(next);
+                            }}
+                          />
+                          <span className="flex-1">
+                            {agent.firstName} {agent.lastName}
+                            <span className="text-gray-400"> · {agent.email}</span>
+                          </span>
+                          <span className="text-xs text-gray-400">{agent.role}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-gray-500">
+                        {assignedAgentIds.size} selected
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={saveAssignedAgents}
+                        disabled={isSavingAssignments}
+                      >
+                        {isSavingAssignments ? 'Saving...' : 'Save Assignments'}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button
