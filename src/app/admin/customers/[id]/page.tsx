@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import api from '@/lib/api';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import LogCallModal from '@/components/admin/LogCallModal';
 
 export default function CustomerStatementPage() {
   const params = useParams();
@@ -21,10 +22,23 @@ export default function CustomerStatementPage() {
   const [resetPhone, setResetPhone] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+  const [contactAttempts, setContactAttempts] = useState<any[]>([]);
+  const [showLogCall, setShowLogCall] = useState(false);
 
   useEffect(() => {
     loadStatement();
+    loadContactHistory();
   }, [params.id]);
+
+  const loadContactHistory = async () => {
+    try {
+      const response = await api.get(`/contact-attempts/customer/${params.id}`);
+      setContactAttempts(response.data.attempts || []);
+    } catch {
+      // Contact history is supplementary — a failure here should not blank the page
+      setContactAttempts([]);
+    }
+  };
 
   const loadStatement = async () => {
     try {
@@ -449,6 +463,83 @@ export default function CustomerStatementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Contact History */}
+      <Card className="mt-6 print:hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Contact History
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={() => setShowLogCall(true)}>
+            <Phone className="h-4 w-4 mr-2" />
+            Log Call
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {contactAttempts.length === 0 ? (
+            <p className="text-center text-gray-500 py-6 text-sm">
+              No calls logged for this customer yet.
+            </p>
+          ) : (
+            <div className="divide-y">
+              {contactAttempts.map((attempt: any) => (
+                <div key={attempt.id} className="py-3 flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{attempt.purpose.replace(/_/g, ' ')}</Badge>
+                      <span className="text-sm font-medium text-gray-900">
+                        {attempt.outcome.replace(/_/g, ' ')}
+                      </span>
+                      {attempt.verificationResult && (
+                        <Badge
+                          className={cn(
+                            attempt.verificationResult === 'VERIFIED'
+                              ? 'bg-green-100 text-green-800'
+                              : attempt.verificationResult === 'FAILED'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          )}
+                        >
+                          {attempt.verificationResult}
+                        </Badge>
+                      )}
+                    </div>
+                    {attempt.notes && <p className="text-sm text-gray-600 mt-1">{attempt.notes}</p>}
+                    {attempt.promiseToPayDate && (
+                      <p className="text-xs text-amber-700 mt-1">
+                        Promised {attempt.promiseToPayAmount ? formatCurrency(attempt.promiseToPayAmount) : 'payment'} by{' '}
+                        {formatDate(attempt.promiseToPayDate)}
+                      </p>
+                    )}
+                    {attempt.contract?.contractNumber && (
+                      <p className="text-xs text-gray-400 mt-1">{attempt.contract.contractNumber}</p>
+                    )}
+                  </div>
+                  <div className="text-right text-xs text-gray-500 shrink-0">
+                    <p>{formatDate(attempt.contactedAt)}</p>
+                    {attempt.officer && (
+                      <p className="text-gray-400">
+                        {attempt.officer.firstName} {attempt.officer.lastName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {showLogCall && statement && (
+        <LogCallModal
+          customerId={String(params.id)}
+          customerName={`${statement.customer.firstName} ${statement.customer.lastName}`}
+          customerPhone={statement.customer.phone}
+          onClose={() => setShowLogCall(false)}
+          onLogged={loadContactHistory}
+        />
+      )}
 
       {/* Reset Account Confirm Dialog */}
       {showResetConfirm && statement && (
