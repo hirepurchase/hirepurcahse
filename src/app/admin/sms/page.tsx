@@ -26,16 +26,23 @@ export default function SMSPage() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    loadCustomers('');
-  }, []);
+    loadCustomers(search, overdueOnly);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overdueOnly]);
 
-  const loadCustomers = async (q: string) => {
+  const loadCustomers = async (q: string, onlyOverdue = overdueOnly) => {
     setLoading(true);
     try {
-      const res = await api.get('/sms/customers', { params: q ? { search: q } : {} });
+      const res = await api.get('/sms/customers', {
+        params: {
+          ...(q ? { search: q } : {}),
+          ...(onlyOverdue ? { overdueOnly: true } : {}),
+        },
+      });
       setCustomers(res.data.customers);
       setFiltered(res.data.customers);
       setTotalAll(res.data.totalAll ?? res.data.customers.length);
@@ -145,6 +152,19 @@ export default function SMSPage() {
               )}
               <span>Send to all customers ({totalAll})</span>
             </button>
+
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer px-1">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={overdueOnly}
+                onChange={(e) => {
+                  setOverdueOnly(e.target.checked);
+                  setSelected(new Set());
+                }}
+              />
+              Only customers with overdue payments
+            </label>
 
             {!sendToAll && (
               <>
