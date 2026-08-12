@@ -35,6 +35,7 @@ import {
   UserCheck,
   PhoneCall,
   CalendarClock,
+  Headset,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -74,6 +75,8 @@ const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+      // Ungated: every staff member should be able to find their officer.
+      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: [] as PermissionName[] },
     ],
   },
   {
@@ -84,6 +87,7 @@ const navGroups: NavGroup[] = [
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
+      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: [] as PermissionName[] },
     ],
   },
   {
@@ -189,6 +193,12 @@ const MORE_GROUPS: Array<{
   links: { name: string; href: string; emoji: string; permissions: readonly PermissionName[] }[];
 }> = [
   {
+    label: "Directory",
+    links: [
+      { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: [] as PermissionName[] },
+    ],
+  },
+  {
     label: "Agent Menu",
     roles: ["AGENT"],
     links: [
@@ -196,6 +206,7 @@ const MORE_GROUPS: Array<{
       { name: "My Contracts",  href: "/admin/agent/contracts",  emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",   emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart",   href: "/admin/price-chart",      emoji: "🏷️", permissions: [] as PermissionName[] },
+      { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: [] as PermissionName[] },
     ],
   },
   {
