@@ -54,6 +54,15 @@ import ContractApprovalBell from "./ContractApprovalBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
 import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
 
+// The customer service directory is for supervisors and officers. Agents are
+// shown only their own officer, on their dashboard.
+const CUSTOMER_SERVICE_CHART_PERMISSIONS = [
+  PERMISSIONS.MANAGE_USERS,
+  PERMISSIONS.MANAGE_CSO_ASSIGNMENTS,
+  PERMISSIONS.VIEW_CONTRACTS,
+  PERMISSIONS.MANAGE_CONTACT_ATTEMPTS,
+] as const;
+
 interface NavItem {
   name: string;
   href: string;
@@ -75,8 +84,9 @@ const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-      // Ungated: every staff member should be able to find their officer.
-      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: [] as PermissionName[] },
+      // Deliberately not shown to agents — they see their own officer on their
+      // dashboard instead of the whole directory.
+      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
     ],
   },
   {
@@ -87,7 +97,6 @@ const navGroups: NavGroup[] = [
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
-      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: [] as PermissionName[] },
     ],
   },
   {
@@ -194,8 +203,9 @@ const MORE_GROUPS: Array<{
 }> = [
   {
     label: "Directory",
+    permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS,
     links: [
-      { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: [] as PermissionName[] },
+      { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
     ],
   },
   {
@@ -206,7 +216,6 @@ const MORE_GROUPS: Array<{
       { name: "My Contracts",  href: "/admin/agent/contracts",  emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",   emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart",   href: "/admin/price-chart",      emoji: "🏷️", permissions: [] as PermissionName[] },
-      { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: [] as PermissionName[] },
     ],
   },
   {
