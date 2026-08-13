@@ -942,8 +942,11 @@ function DesktopStepContent({
               >
                 <option value="DAILY">Daily</option>
                 <option value="WEEKLY">Weekly</option>
-                <option value="MONTHLY">Monthly</option>
+                {!isAgent && <option value="MONTHLY">Monthly</option>}
               </select>
+              {isAgent && (
+                <p className="text-xs text-gray-500 mt-1">Daily or weekly collections only</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
@@ -1154,7 +1157,8 @@ function CreateHirePurchaseSale({
     inventoryItemId: "",
     totalPrice: "",
     depositAmount: "",
-    paymentFrequency: "MONTHLY" as "DAILY" | "WEEKLY" | "MONTHLY",
+    // Agents may not sell monthly, so their form must not start on it.
+    paymentFrequency: (isAgent ? "WEEKLY" : "MONTHLY") as "DAILY" | "WEEKLY" | "MONTHLY",
     totalInstallments: "",
     gracePeriodDays: "7",
     penaltyPercentage: "0",
@@ -1869,7 +1873,7 @@ function CreateHirePurchaseSale({
                   >
                     <option value="DAILY">Daily</option>
                     <option value="WEEKLY">Weekly</option>
-                    <option value="MONTHLY">Monthly</option>
+                    {!isAgent && <option value="MONTHLY">Monthly</option>}
                   </select>
                 </div>
                 <div>
