@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  Bell,
   CheckCircle2,
   Loader2,
   Lock,
@@ -210,6 +211,9 @@ export default function DeviceControlPage() {
   const [loading, setLoading] = useState(true);
   const [processingCommands, setProcessingCommands] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [notifyTarget, setNotifyTarget] = useState<{ contractId: string; preview: any } | null>(null);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [enrollForm, setEnrollForm] = useState(emptyEnrollForm);
 
   useEffect(() => {
@@ -324,6 +328,52 @@ export default function DeviceControlPage() {
       });
     } finally {
       setBusyKey(null);
+    }
+  };
+
+  // Show the exact text before it reaches a customer's phone — the whole point
+  // of this feature is that customers were being told the wrong thing.
+  const openNotifyPreview = async (contractId: string) => {
+    try {
+      setBusyKey(`notify:${contractId}`);
+      const res = await api.get(`/knox-guard/contracts/${contractId}/notification-preview`);
+      setNotifyTarget({ contractId, preview: res.data });
+      setNotifyMessage(res.data.message || "");
+    } catch (error: any) {
+      toast({
+        title: "Could not build preview",
+        description: error.response?.data?.error || "Failed to load notification preview",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const sendNotification = async () => {
+    if (!notifyTarget) return;
+    try {
+      setIsSendingNotification(true);
+      const res = await api.post(`/knox-guard/contracts/${notifyTarget.contractId}/notify`, {
+        // Only send an override when the operator actually edited the text.
+        message:
+          notifyMessage.trim() && notifyMessage.trim() !== notifyTarget.preview.message?.trim()
+            ? notifyMessage.trim()
+            : undefined,
+      });
+      toast({
+        title: res.data.dryRun ? "Simulated (dry run)" : "Notification sent",
+        description: res.data.sentMessage,
+      });
+      setNotifyTarget(null);
+    } catch (error: any) {
+      toast({
+        title: "Notification failed",
+        description: error.response?.data?.error || "Failed to send notification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingNotification(false);
     }
   };
 
@@ -691,6 +741,14 @@ export default function DeviceControlPage() {
                             Evaluate
                           </button>
                           <button
+                            onClick={() => device.contract?.id && openNotifyPreview(device.contract.id)}
+                            disabled={!device.contract?.id || busyKey === `notify:${device.contract?.id}`}
+                            className="inline-flex items-center gap-2 rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+                          >
+                            {busyKey === `notify:${device.contract?.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+                            Notify
+                          </button>
+                          <button
                             onClick={() => device.contract?.id && handleContractAction(device.contract.id, "lock")}
                             disabled={!device.contract?.id || busyKey === `lock:${device.contract?.id}`}
                             className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
@@ -794,6 +852,87 @@ export default function DeviceControlPage() {
           </div>
         </div>
       </div>
+
+      {notifyTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                <Bell className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-slate-900">Send device notification</h2>
+                <p className="truncate text-sm text-slate-500">
+                  {notifyTarget.preview.customerName || "Customer"}
+                  {notifyTarget.preview.contractNumber ? ` · ${notifyTarget.preview.contractNumber}` : ""}
+                </p>
+              </div>
+            </div>
+
+            {/* State is shown explicitly so an operator can see the message
+                matches reality before it lands on the customer's phone. */}
+            <div
+              className={`mb-4 rounded-lg border p-3 text-sm ${
+                notifyTarget.preview.isOverdue
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-800"
+              }`}
+            >
+              {notifyTarget.preview.isOverdue ? (
+                <>Overdue — GHS {Number(notifyTarget.preview.overdueAmount ?? 0).toFixed(2)} outstanding</>
+              ) : notifyTarget.preview.nextPayment ? (
+                <>
+                  Up to date — next payment GHS{" "}
+                  {Number(notifyTarget.preview.nextPayment.amount).toFixed(2)} due{" "}
+                  {new Date(notifyTarget.preview.nextPayment.dueDate).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </>
+              ) : (
+                <>Up to date — nothing outstanding</>
+              )}
+            </div>
+
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Message to the device
+            </label>
+            <textarea
+              rows={4}
+              value={notifyMessage}
+              onChange={(e) => setNotifyMessage(e.target.value.slice(0, 200))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className="text-slate-400">
+                Written from the contract&apos;s current state. Edit only if needed.
+              </span>
+              <span className={notifyMessage.length >= 200 ? "text-red-600" : "text-slate-400"}>
+                {notifyMessage.length}/200
+              </span>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setNotifyTarget(null)}
+                disabled={isSendingNotification}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendNotification}
+                disabled={isSendingNotification || !notifyMessage.trim()}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {isSendingNotification ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+                {isSendingNotification ? "Sending..." : "Send notification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }
