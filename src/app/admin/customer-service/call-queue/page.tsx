@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Phone, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileText, Phone, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,7 @@ function daysOverdueClass(days: number): string {
 }
 
 export default function CallQueuePage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [rows, setRows] = useState<OverdueRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -154,9 +156,25 @@ export default function CallQueuePage() {
                       Agent: {r.agent ?? "—"}
                       {r.lastCallAt ? ` · last called ${formatDate(r.lastCallAt)}` : " · never called"}
                     </p>
-                    <Button size="sm" variant="outline" onClick={() => setCallTarget(r)}>
-                      <Phone className="h-4 w-4 mr-1" /> Log Call
-                    </Button>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button size="sm" variant="outline" onClick={() => setCallTarget(r)}>
+                        <Phone className="h-4 w-4 mr-1" /> Log Call
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/admin/customers/${r.customer.id}`)}
+                      >
+                        <User className="h-4 w-4 mr-1" /> Customer
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/admin/contracts/${r.contractId}`)}
+                      >
+                        <FileText className="h-4 w-4 mr-1" /> Contract
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -222,9 +240,27 @@ export default function CallQueuePage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => setCallTarget(r)}>
-                            <Phone className="h-4 w-4 mr-1" /> Log
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => router.push(`/admin/customers/${r.customer.id}`)}
+                              title="View customer"
+                            >
+                              <User className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => router.push(`/admin/contracts/${r.contractId}`)}
+                              title="View contract"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setCallTarget(r)}>
+                              <Phone className="h-4 w-4 mr-1" /> Log
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
