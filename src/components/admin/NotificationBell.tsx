@@ -69,17 +69,25 @@ export default function NotificationBell({ variant = 'light' }: { variant?: 'lig
             </div>
 
             {/* Summary */}
-            <div className="grid grid-cols-2 gap-px border-b border-white/10 bg-white/5 shrink-0">
+            {/* Total Collected is administrators only — the API omits totalAmount
+                for other roles, so the summary collapses to a single tile. */}
+            <div
+              className={`grid gap-px border-b border-white/10 bg-white/5 shrink-0 ${
+                data?.totalAmount !== undefined ? 'grid-cols-2' : 'grid-cols-1'
+              }`}
+            >
               <div className="bg-slate-900 px-5 py-4">
                 <p className="text-xs text-cyan-100/60 uppercase tracking-wide">Payments</p>
                 <p className="text-3xl font-bold text-green-400 mt-1">{count}</p>
               </div>
-              <div className="bg-slate-900 px-5 py-4">
-                <p className="text-xs text-cyan-100/60 uppercase tracking-wide">Total Collected</p>
-                <p className="text-xl font-bold text-green-400 mt-1">
-                  {data ? formatCurrency(data.totalAmount) : '—'}
-                </p>
-              </div>
+              {data?.totalAmount !== undefined && (
+                <div className="bg-slate-900 px-5 py-4">
+                  <p className="text-xs text-cyan-100/60 uppercase tracking-wide">Total Collected</p>
+                  <p className="text-xl font-bold text-green-400 mt-1">
+                    {formatCurrency(data.totalAmount)}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Section label */}

@@ -57,7 +57,8 @@ export default function DailyPaymentsBanner() {
                 ? 'No successful payments yet today'
                 : `${data.count} payment${data.count !== 1 ? 's' : ''} received today`}
             </p>
-            {data.count > 0 && (
+            {/* totalAmount is absent for non-administrators, who see the count only. */}
+            {data.count > 0 && data.totalAmount !== undefined && (
               <p className="text-xs text-green-700 mt-0.5">
                 Total collected today: <span className="font-bold">{formatCurrency(data.totalAmount)}</span>
               </p>

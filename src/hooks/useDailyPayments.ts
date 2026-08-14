@@ -18,7 +18,8 @@ export interface DailyPayment {
 export interface DailyPaymentsData {
   date: string;
   count: number;
-  totalAmount: number;
+  /** Administrators only — the API omits this for other roles. */
+  totalAmount?: number;
   recentPayments: DailyPayment[];
 }
 
