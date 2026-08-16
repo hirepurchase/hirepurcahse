@@ -62,28 +62,26 @@ export default function PaymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalOutstanding, setTotalOutstanding] = useState(0);
   const [reconciling, setReconciling] = useState(false);
   const [reconcileResult, setReconcileResult] = useState<{ summary: ReconcileSummary; results: ReconcileResult[] } | null>(null);
   const itemsPerPage = 10;
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => { loadContracts(); }, []);
+  useEffect(() => { loadContracts(currentPage, searchQuery); }, [currentPage]);
 
+  // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
-    const q = searchQuery.toLowerCase();
-    const filtered = q
-      ? contracts.filter((c) =>
-          c.contractNumber.toLowerCase().includes(q) ||
-          c.customer.firstName.toLowerCase().includes(q) ||
-          c.customer.lastName.toLowerCase().includes(q) ||
-          c.customer.phone.includes(q) ||
-          c.customer.membershipId.toLowerCase().includes(q)
-        )
-      : contracts;
-    setFilteredContracts(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, contracts]);
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      loadContracts(1, searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const runReconcile = async (dryRun: boolean) => {
     try {
@@ -105,15 +103,28 @@ export default function PaymentsPage() {
     }
   };
 
-  const loadContracts = async () => {
+  // Filtering and searching happen server-side. Fetching a fixed slice and
+  // filtering it in the browser silently hid every payable contract beyond the
+  // limit — with 1793 contracts that was 580 of them, and search could not find
+  // what had never been loaded.
+  const loadContracts = async (page = currentPage, search = searchQuery) => {
     try {
       setIsLoading(true);
-      const response = await api.get('/contracts?limit=1000');
-      const active = (response.data.contracts || []).filter(
-        (c: Contract) => c.status === 'ACTIVE' && c.outstandingBalance > 0
-      );
-      setContracts(active);
-      setFilteredContracts(active);
+      const response = await api.get('/contracts', {
+        params: {
+          status: 'ACTIVE',
+          hasBalance: true,
+          page,
+          limit: itemsPerPage,
+          search: search.trim() || undefined,
+        },
+      });
+      const rows = response.data.contracts || [];
+      setContracts(rows);
+      setFilteredContracts(rows);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalItems(response.data.pagination?.total || 0);
+      setTotalOutstanding(response.data.summary?.totalOutstanding ?? 0);
     } catch (error: any) {
       toast({ title: 'Error', description: error.response?.data?.error || 'Failed to load contracts', variant: 'destructive' });
     } finally {
@@ -121,13 +132,13 @@ export default function PaymentsPage() {
     }
   };
 
-  const totalOutstanding = contracts.reduce((s, c) => s + c.outstandingBalance, 0);
+  // Overdue and partial counts describe the current page — the API returns one
+  // page of contracts, and counting installment states across the whole
+  // portfolio would need its own aggregate.
   const withOverdue = contracts.filter((c) => c.installments?.some((i) => i.status === 'OVERDUE')).length;
   const withPartial = contracts.filter((c) => c.installments?.some((i) => i.status === 'PARTIAL')).length;
 
-  const totalPages = Math.ceil(filteredContracts.length / itemsPerPage);
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const paginated = filteredContracts.slice(startIdx, startIdx + itemsPerPage);
+  const paginated = filteredContracts;
 
   if (isLoading) {
     return (
@@ -159,9 +170,9 @@ export default function PaymentsPage() {
 
       {/* Stats — 2 cols mobile, 4 desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard title="Active" value={contracts.length} icon={FileText} iconClass="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Overdue" value={withOverdue} icon={AlertCircle} iconClass="text-red-600" iconBg="bg-red-50" highlight={withOverdue > 0} />
-        <StatCard title="Partial" value={withPartial} icon={Banknote} iconClass="text-orange-600" iconBg="bg-orange-50" />
+        <StatCard title="Active" value={totalItems} icon={FileText} iconClass="text-blue-600" iconBg="bg-blue-50" />
+        <StatCard title="Overdue (page)" value={withOverdue} icon={AlertCircle} iconClass="text-red-600" iconBg="bg-red-50" highlight={withOverdue > 0} />
+        <StatCard title="Partial (page)" value={withPartial} icon={Banknote} iconClass="text-orange-600" iconBg="bg-orange-50" />
         <StatCard title="Outstanding" value={formatCurrency(totalOutstanding)} icon={Banknote} iconClass="text-emerald-600" iconBg="bg-emerald-50" />
       </div>
 
@@ -360,7 +371,8 @@ export default function PaymentsPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
-                    {startIdx + 1}–{Math.min(startIdx + itemsPerPage, filteredContracts.length)} of {filteredContracts.length}
+                    {(currentPage - 1) * itemsPerPage + 1}–
+                    {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
