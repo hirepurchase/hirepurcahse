@@ -171,8 +171,8 @@ export default function PaymentsPage() {
       {/* Stats — 2 cols mobile, 4 desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard title="Active" value={totalItems} icon={FileText} iconClass="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Overdue (page)" value={withOverdue} icon={AlertCircle} iconClass="text-red-600" iconBg="bg-red-50" highlight={withOverdue > 0} />
-        <StatCard title="Partial (page)" value={withPartial} icon={Banknote} iconClass="text-orange-600" iconBg="bg-orange-50" />
+        <StatCard title="Overdue" value={withOverdue} subtitle="this page" icon={AlertCircle} iconClass="text-red-600" iconBg="bg-red-50" highlight={withOverdue > 0} />
+        <StatCard title="Partial" value={withPartial} subtitle="this page" icon={Banknote} iconClass="text-orange-600" iconBg="bg-orange-50" />
         <StatCard title="Outstanding" value={formatCurrency(totalOutstanding)} icon={Banknote} iconClass="text-emerald-600" iconBg="bg-emerald-50" />
       </div>
 
@@ -395,9 +395,10 @@ export default function PaymentsPage() {
   );
 }
 
-function StatCard({ title, value, icon: Icon, iconClass, iconBg, highlight }: {
+function StatCard({ title, value, subtitle, icon: Icon, iconClass, iconBg, highlight }: {
   title: string;
   value: string | number;
+  subtitle?: string;
   icon: React.ElementType;
   iconClass: string;
   iconBg: string;
@@ -408,14 +409,25 @@ function StatCard({ title, value, icon: Icon, iconClass, iconBg, highlight }: {
       'flex flex-col gap-3 rounded-xl border bg-white p-4',
       highlight ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-100'
     )}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs sm:text-sm font-medium text-gray-500">{title}</span>
-        <div className={cn('p-1.5 sm:p-2 rounded-lg', iconBg)}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs sm:text-sm font-medium text-gray-500">{title}</span>
+        <div className={cn('shrink-0 p-1.5 sm:p-2 rounded-lg', iconBg)}>
           <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconClass)} />
         </div>
       </div>
-      <div className={cn('text-xl sm:text-2xl font-bold', highlight ? 'text-red-600' : 'text-gray-900')}>
+      {/* Currency figures run long — GHS 2,109,415.18 overflows a half-width
+          card on a phone, so the value shrinks on small screens and is allowed
+          to break rather than spill outside the card. */}
+      <div
+        className={cn(
+          'text-base sm:text-2xl font-bold leading-tight wrap-break-word',
+          highlight ? 'text-red-600' : 'text-gray-900'
+        )}
+      >
         {value}
+        {subtitle && (
+          <span className="block text-[10px] font-normal text-gray-400">{subtitle}</span>
+        )}
       </div>
     </div>
   );
