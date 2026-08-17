@@ -34,7 +34,9 @@ interface LogCallModalProps {
   installmentId?: string | null;
   defaultPurpose?: CallPurpose;
   onClose: () => void;
-  onLogged?: () => void;
+  /** Receives the logged outcome so a caller can react to it — for example,
+   *  prompting to contact the agent when the customer was unreachable. */
+  onLogged?: (outcome: string) => void;
 }
 
 export default function LogCallModal({
@@ -85,7 +87,7 @@ export default function LogCallModal({
             ? "Customer verified — this contract can now be approved"
             : `Recorded for ${customerName}`,
       });
-      onLogged?.();
+      onLogged?.(outcome);
       onClose();
     } catch (error: any) {
       toast({
