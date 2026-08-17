@@ -104,7 +104,16 @@ const navGroups: NavGroup[] = [
     roles: ["CUSTOMER_SERVICE"],
     items: [
       { name: "Dashboard", href: "/admin/customer-service/dashboard", icon: LayoutDashboard },
-      { name: "Verification", href: "/admin/customer-service/verification", icon: UserCheck, permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
+      {
+        name: "Verification",
+        href: "/admin/customer-service/verification",
+        icon: UserCheck,
+        // A contract cannot go live until it is verified, so a waiting one is
+        // visible without opening the page.
+        badge: (_pc, ac) => (ac > 0 ? ac : null),
+        badgeColor: "amber",
+        permissions: [PERMISSIONS.VERIFY_CUSTOMER],
+      },
       { name: "Call Queue", href: "/admin/customer-service/call-queue", icon: PhoneCall, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Follow-ups", href: "/admin/customer-service/follow-ups", icon: CalendarClock, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "My Agents", href: "/admin/customer-service/my-agents", icon: Briefcase, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },

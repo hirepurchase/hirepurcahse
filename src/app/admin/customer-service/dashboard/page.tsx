@@ -11,7 +11,13 @@ import { useToast } from "@/hooks/useToast";
 interface CsoDashboard {
   assignedAgents: number;
   customers: number;
-  verification: { pending: number; awaitingCall: number; readyToApprove: number };
+  verification: {
+    pending: number;
+    awaitingCall: number;
+    readyToApprove: number;
+    overdueForCall: number;
+    oldestWaitingHours: number;
+  };
   collections: { contractsOverdue: number; totalOverdueAmount: number };
   activity: { callsLoggedToday: number; promisesDueToday: number };
 }
@@ -62,6 +68,49 @@ export default function CustomerServiceDashboardPage() {
           Verify new registrations and follow up on overdue payments
         </p>
       </div>
+
+      {/* Verification blocks a contract from going live, so it leads the page
+          rather than sitting among the collections figures. */}
+      {data.verification.awaitingCall > 0 && (
+        <button
+          onClick={() => router.push("/admin/customer-service/verification")}
+          className="w-full text-left"
+        >
+          <div
+            className={`flex gap-3 rounded-lg border p-4 ${
+              data.verification.overdueForCall > 0
+                ? "border-red-200 bg-red-50"
+                : "border-amber-200 bg-amber-50"
+            }`}
+          >
+            <Clock
+              className={`h-5 w-5 shrink-0 mt-0.5 ${
+                data.verification.overdueForCall > 0 ? "text-red-600" : "text-amber-600"
+              }`}
+            />
+            <div>
+              <p
+                className={`text-sm font-medium ${
+                  data.verification.overdueForCall > 0 ? "text-red-900" : "text-amber-900"
+                }`}
+              >
+                {data.verification.awaitingCall} customer
+                {data.verification.awaitingCall === 1 ? "" : "s"} waiting for your verification call
+              </p>
+              <p
+                className={`text-sm ${
+                  data.verification.overdueForCall > 0 ? "text-red-700" : "text-amber-700"
+                }`}
+              >
+                {data.verification.oldestWaitingHours > 0
+                  ? `Longest waiting ${data.verification.oldestWaitingHours}h. `
+                  : ""}
+                These contracts cannot go live until the customer is called.
+              </p>
+            </div>
+          </div>
+        </button>
+      )}
 
       {hasNoAgents && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex gap-3">

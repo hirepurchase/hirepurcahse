@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import LogCallModal from "@/components/admin/LogCallModal";
 import api from "@/lib/api";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 
 interface QueueRow {
@@ -27,10 +27,33 @@ interface QueueRow {
   verification: { result: string; outcome: string; contactedAt: string; notes: string | null } | null;
 }
 
+/**
+ * How long a contract has been waiting for its verification call. A customer is
+ * most reachable shortly after signing, and the contract cannot go live until
+ * the call is made, so waiting time is the thing to act on.
+ */
+function waitingBand(createdAt: string): { label: string; className: string } {
+  const hours = (Date.now() - new Date(createdAt).getTime()) / 3600000;
+  if (hours < 1) {
+    return { label: `${Math.max(1, Math.round(hours * 60))}m waiting`, className: "bg-green-100 text-green-800" };
+  }
+  if (hours < 2) return { label: "1h waiting", className: "bg-green-100 text-green-800" };
+  if (hours < 6) return { label: `${Math.floor(hours)}h waiting`, className: "bg-amber-100 text-amber-800" };
+  if (hours < 24) return { label: `${Math.floor(hours)}h waiting`, className: "bg-red-100 text-red-800" };
+  const days = Math.floor(hours / 24);
+  return { label: `${days}d waiting`, className: "bg-red-100 text-red-800 font-semibold" };
+}
+
 export default function VerificationQueuePage() {
   const { toast } = useToast();
   const [rows, setRows] = useState<QueueRow[]>([]);
-  const [summary, setSummary] = useState({ count: 0, awaitingVerification: 0, readyToApprove: 0 });
+  const [summary, setSummary] = useState({
+    count: 0,
+    awaitingVerification: 0,
+    readyToApprove: 0,
+    overdueForCall: 0,
+    oldestWaitingHours: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [callTarget, setCallTarget] = useState<QueueRow | null>(null);
@@ -53,6 +76,8 @@ export default function VerificationQueuePage() {
         count: res.data.count || 0,
         awaitingVerification: res.data.awaitingVerification || 0,
         readyToApprove: res.data.readyToApprove || 0,
+        overdueForCall: res.data.overdueForCall || 0,
+        oldestWaitingHours: res.data.oldestWaitingHours || 0,
       });
     } catch (error: any) {
       toast({
@@ -112,6 +137,22 @@ export default function VerificationQueuePage() {
         </p>
       </div>
 
+      {summary.overdueForCall > 0 && (
+        <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+          <Clock className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-900">
+              {summary.overdueForCall} contract{summary.overdueForCall === 1 ? "" : "s"} waiting
+              more than 6 hours for a verification call
+            </p>
+            <p className="text-sm text-red-700">
+              The longest has been waiting {summary.oldestWaitingHours}h. These contracts cannot go
+              live until you call the customer.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-5">
@@ -119,10 +160,15 @@ export default function VerificationQueuePage() {
             <p className="text-2xl font-bold">{summary.count}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={summary.awaitingVerification > 0 ? "border-amber-300" : undefined}>
           <CardContent className="pt-5">
-            <p className="text-xs text-gray-500">Awaiting call</p>
+            <p className="text-xs text-gray-500">Awaiting your call</p>
             <p className="text-2xl font-bold text-amber-600">{summary.awaitingVerification}</p>
+            {summary.oldestWaitingHours > 0 && (
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                oldest {summary.oldestWaitingHours}h
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -172,7 +218,9 @@ export default function VerificationQueuePage() {
                       {row.isVerified ? (
                         <Badge className="bg-green-100 text-green-800 shrink-0">Verified</Badge>
                       ) : (
-                        <Badge className="bg-amber-100 text-amber-800 shrink-0">Call needed</Badge>
+                        <Badge className={cn("shrink-0", waitingBand(row.createdAt).className)}>
+                          {waitingBand(row.createdAt).label}
+                        </Badge>
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
@@ -245,9 +293,10 @@ export default function VerificationQueuePage() {
                               {row.verification.result}
                             </Badge>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-amber-700">
-                              <Clock className="h-3 w-3" /> Not called
-                            </span>
+                            <Badge className={waitingBand(row.createdAt).className}>
+                              <Clock className="h-3 w-3 mr-1" />
+                              {waitingBand(row.createdAt).label}
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
