@@ -323,7 +323,7 @@ export default function KnoxSettingsPage() {
         title="Customer Messages"
         description="Text shown to customers during the restriction lifecycle. Applies to all enrolled devices by default."
       >
-        <Field label="Warning message" hint="Shown before restriction is applied — a pre-lock notice sent via blink.">
+        <Field label="Payment reminder" hint="Sent to the device before an installment falls due. The amount and due date are added automatically — keep it under about 100 characters so nothing is trimmed.">
           <textarea
             rows={3}
             value={form.warningMessage ?? ''}

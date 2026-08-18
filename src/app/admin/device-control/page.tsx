@@ -637,7 +637,7 @@ export default function DeviceControlPage() {
                   />
                 </label>
                 <label className="block md:col-span-2 xl:col-span-3">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">Warning message before restriction</span>
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Payment reminder (sent before an installment is due)</span>
                   <Textarea
                     value={enrollForm.warningMessage}
                     onChange={(e) => setEnrollForm((current) => ({ ...current, warningMessage: e.target.value }))}
