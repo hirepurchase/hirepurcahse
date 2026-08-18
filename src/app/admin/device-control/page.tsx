@@ -337,6 +337,17 @@ export default function DeviceControlPage() {
     try {
       setBusyKey(`notify:${contractId}`);
       const res = await api.get(`/knox-guard/contracts/${contractId}/notification-preview`);
+      // An overdue device is locked and its lock screen already states the
+      // amount due, so the server refuses to notify. Say so here rather than
+      // opening a dialog whose Send button would fail.
+      if (res.data.isOverdue) {
+        toast({
+          title: "No notification needed",
+          description:
+            "This account is overdue, so the device shows the amount due on its lock screen. Device notifications are only for upcoming payments.",
+        });
+        return;
+      }
       setNotifyTarget({ contractId, preview: res.data });
       setNotifyMessage(res.data.message || "");
     } catch (error: any) {
