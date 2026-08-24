@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   FileText, Users, Banknote, TrendingUp, AlertCircle,
   Clock, CheckCircle, XCircle, RefreshCw, ChevronRight,
-  Wallet, Target, BarChart2, ArrowUpRight, ArrowDownRight,
+  Wallet, Target,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -80,37 +80,34 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
 };
 
 function StatCard({
-  icon: Icon, label, value, sub, color = 'cyan', trend,
+  icon: Icon, label, value, sub, color = 'blue', trend,
 }: {
   icon: React.ElementType; label: string; value: string | number;
   sub?: string; color?: string; trend?: number;
 }) {
   const colors: Record<string, string> = {
-    cyan:   'from-cyan-500 to-cyan-700',
-    green:  'from-emerald-500 to-emerald-700',
-    amber:  'from-amber-500 to-amber-700',
-    blue:   'from-blue-500 to-blue-700',
-    purple: 'from-purple-500 to-purple-700',
-    red:    'from-red-500 to-red-700',
-    orange: 'from-orange-500 to-orange-700',
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-emerald-50 text-emerald-600',
+    amber: 'bg-amber-50 text-amber-600',
+    purple: 'bg-purple-50 text-purple-600',
+    red: 'bg-red-50 text-red-600',
   };
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex min-w-0 flex-col gap-3">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 flex min-w-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <div className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center shadow`}>
-          <Icon className="w-5 h-5 text-white" />
+        <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${colors[color]}`}>
+          <Icon className="w-4 h-4" />
         </div>
-        {trend !== undefined && (
-          <span className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-            {trend >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {Math.abs(trend)}% vs last month
+        {trend !== undefined && trend !== 0 && (
+          <span className={`text-xs font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            {trend >= 0 ? '+' : ''}{trend}%
           </span>
         )}
       </div>
       <div className="min-w-0">
-        <div className="truncate text-xl sm:text-2xl font-bold text-slate-800 leading-tight" title={typeof value === 'string' ? value : undefined}>{value}</div>
-        <div className="text-sm text-slate-500 mt-0.5">{label}</div>
-        {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
+        <div className="truncate text-xl font-bold text-gray-900 leading-tight" title={typeof value === 'string' ? value : undefined}>{value}</div>
+        <div className="text-sm text-gray-500 mt-0.5">{label}</div>
+        {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
       </div>
     </div>
   );
@@ -144,8 +141,8 @@ export default function AgentDashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-cyan-200 border-t-cyan-600 rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">Loading your dashboard...</p>
+          <div className="w-8 h-8 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+          <p className="text-gray-500 text-sm">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -155,9 +152,9 @@ export default function AgentDashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <p className="text-slate-600">{error ?? 'No data available'}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 text-sm text-cyan-600 underline">Retry</button>
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+          <p className="text-gray-600">{error ?? 'No data available'}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 text-sm text-blue-600 hover:underline">Retry</button>
         </div>
       </div>
     );
@@ -170,67 +167,40 @@ export default function AgentDashboardPage() {
     <div className="space-y-6 pb-10">
 
       {/* ── HEADER ── */}
-      <div className="bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 rounded-2xl p-6 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml,%3Csvg width=60 height=60 viewBox=0 0 60 60 xmlns=http://www.w3.org/2000/svg%3E%3Cg fill=none fill-rule=evenodd%3E%3Cg fill=%23ffffff fill-opacity=1%3E%3Cpath d=M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
-        <div className="relative">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-cyan-300 text-sm font-medium mb-1">Welcome back</p>
-              <h1 className="text-2xl sm:text-3xl font-bold">{agentName}</h1>
-              <p className="text-slate-400 text-sm mt-1">Sales Agent · Personal Dashboard</p>
-            </div>
-            <Link
-              href="/admin/agent/contracts"
-              className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors self-start sm:self-auto"
-            >
-              <FileText className="w-4 h-4" /> My Contracts
-            </Link>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {agentName}</h1>
+          <p className="text-sm text-gray-500 mt-1">Sales Agent · Personal Dashboard</p>
+        </div>
+        <Link
+          href="/admin/agent/contracts"
+          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors self-start sm:self-auto"
+        >
+          <FileText className="w-4 h-4" /> My Contracts
+        </Link>
+      </div>
 
-          {officers.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-white/10">
-              <p className="text-cyan-300 text-xs font-medium mb-2">
-                Your customer service {officers.length === 1 ? 'officer' : 'officers'}
-              </p>
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                {officers.map((o) => (
-                  <div key={o.id} className="text-sm">
-                    <p className="font-semibold">{o.name}</p>
-                    <div className="flex flex-wrap gap-x-3 text-slate-300 text-xs">
-                      {o.phone && (
-                        <a href={`tel:${o.phone}`} className="hover:text-cyan-300">
-                          {o.phone}
-                        </a>
-                      )}
-                      <a href={`mailto:${o.email}`} className="hover:text-cyan-300">
-                        {o.email}
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-slate-400 text-xs mt-2">
-                They verify your customers before contracts are approved
-              </p>
-            </div>
-          )}
-
-          {/* Quick stats ribbon */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-            {[
-              { label: 'Total Contracts', value: portfolio.totalContracts },
-              { label: 'Active',          value: portfolio.activeContracts },
-              { label: 'Customers',       value: customers.total },
-              { label: 'This Month',      value: thisMonth.contractsCreated },
-            ].map(s => (
-              <div key={s.label} className="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center border border-white/10">
-                <div className="text-xl font-bold">{s.value}</div>
-                <div className="text-xs text-slate-300 mt-0.5">{s.label}</div>
+      {officers.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+            Your customer service {officers.length === 1 ? 'officer' : 'officers'}
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {officers.map((o) => (
+              <div key={o.id} className="text-sm">
+                <p className="font-semibold text-gray-800">{o.name}</p>
+                <div className="flex flex-wrap gap-x-3 text-gray-500 text-xs mt-0.5">
+                  {o.phone && (
+                    <a href={`tel:${o.phone}`} className="hover:text-blue-600">{o.phone}</a>
+                  )}
+                  <a href={`mailto:${o.email}`} className="hover:text-blue-600">{o.email}</a>
+                </div>
               </div>
             ))}
           </div>
+          <p className="text-gray-400 text-xs mt-2">They verify your customers before contracts are approved</p>
         </div>
-      </div>
+      )}
 
       {/* ── ALERTS ── */}
       {hasAlerts && (
@@ -238,40 +208,39 @@ export default function AgentDashboardPage() {
           {alerts.overdueInstallments > 0 && (
             <Link
               href="/admin/agent/overdue"
-              className="flex items-center gap-4 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 hover:bg-red-100 transition-colors"
+              className="flex items-center gap-4 bg-white border border-red-200 rounded-xl px-5 py-4 hover:bg-red-50 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-red-600" />
+              <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-4 h-4 text-red-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-red-700 text-sm">{alerts.overdueInstallments} Overdue Installment{alerts.overdueInstallments > 1 ? 's' : ''}</p>
                 <p className="text-red-500 text-xs mt-0.5">Customers on your contracts have missed payments</p>
               </div>
-              <ChevronRight className="w-5 h-5 text-red-600 shrink-0" />
+              <ChevronRight className="w-4 h-4 text-red-600 shrink-0" />
             </Link>
           )}
           {alerts.revisionsPending > 0 && (
-            <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 rounded-2xl px-5 py-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                <RefreshCw className="w-5 h-5 text-orange-600" />
+            <Link
+              href="/admin/agent/contracts?status=REVISION_REQUESTED"
+              className="flex items-center gap-4 bg-white border border-orange-200 rounded-xl px-5 py-4 hover:bg-orange-50 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="w-4 h-4 text-orange-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-orange-700 text-sm">{alerts.revisionsPending} Revision{alerts.revisionsPending > 1 ? 's' : ''} Requested</p>
                 <p className="text-orange-500 text-xs mt-0.5">Admin has sent contracts back for your changes</p>
               </div>
-              <Link href="/admin/agent/contracts?status=REVISION_REQUESTED" className="text-orange-600 flex-shrink-0">
-                <ChevronRight className="w-5 h-5" />
-              </Link>
-            </div>
+              <ChevronRight className="w-4 h-4 text-orange-600 shrink-0" />
+            </Link>
           )}
         </div>
       )}
 
       {/* ── PORTFOLIO STATUS BREAKDOWN ── */}
       <div>
-        <h2 className="text-base font-semibold text-slate-700 mb-3 flex items-center gap-2">
-          <BarChart2 className="w-4 h-4 text-cyan-600" /> Portfolio Breakdown
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Portfolio Breakdown</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { label: 'Active',    value: portfolio.activeContracts,    color: 'bg-emerald-500' },
@@ -279,12 +248,12 @@ export default function AgentDashboardPage() {
             { label: 'Revision',  value: portfolio.revisionContracts,  color: 'bg-orange-500' },
             { label: 'Completed', value: portfolio.completedContracts, color: 'bg-blue-500' },
             { label: 'Defaulted', value: portfolio.defaultedContracts, color: 'bg-red-500' },
-            { label: 'Total',     value: portfolio.totalContracts,     color: 'bg-slate-600' },
+            { label: 'Total',     value: portfolio.totalContracts,     color: 'bg-gray-500' },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm text-center">
-              <div className={`w-2 h-2 rounded-full ${s.color} mx-auto mb-2`} />
-              <div className="text-2xl font-bold text-slate-800">{s.value}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{s.label}</div>
+            <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+              <div className={`w-1.5 h-1.5 rounded-full ${s.color} mx-auto mb-2`} />
+              <div className="text-xl font-bold text-gray-900">{s.value}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
             </div>
           ))}
         </div>
@@ -292,12 +261,10 @@ export default function AgentDashboardPage() {
 
       {/* ── FINANCIAL SUMMARY ── */}
       <div>
-        <h2 className="text-base font-semibold text-slate-700 mb-3 flex items-center gap-2">
-          <Wallet className="w-4 h-4 text-cyan-600" /> Financial Summary
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Financial Summary</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard
-            icon={TrendingUp} label="Total Sales Value" color="cyan"
+            icon={TrendingUp} label="Total Sales Value" color="blue"
             value={formatCurrency(financials.totalSalesValue)}
             sub={`${portfolio.totalContracts} contracts total`}
           />
@@ -318,12 +285,12 @@ export default function AgentDashboardPage() {
             sub="Total upfront deposits"
           />
           <StatCard
-            icon={AlertCircle} label="Outstanding Balance" color="orange"
+            icon={AlertCircle} label="Outstanding Balance" color="amber"
             value={formatCurrency(financials.totalOutstanding)}
             sub="Remaining on active contracts"
           />
           <StatCard
-            icon={Users} label="Customers Registered" color="cyan"
+            icon={Users} label="Customers Registered" color="blue"
             value={customers.total}
             sub={`${customers.thisMonth} registered this month`}
           />
@@ -334,23 +301,21 @@ export default function AgentDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* This month activity */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-          <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2 text-sm">
-            <Clock className="w-4 h-4 text-cyan-600" /> This Month's Activity
-          </h3>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-700 mb-4 text-sm">This Month&apos;s Activity</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-slate-50">
+            <div className="flex items-center justify-between py-3 border-b border-gray-50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-cyan-600" />
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Contracts Created</p>
-                  <p className="text-xs text-slate-400">New hire purchase agreements</p>
+                  <p className="text-sm font-medium text-gray-700">Contracts Created</p>
+                  <p className="text-xs text-gray-400">New hire purchase agreements</p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-slate-800">{thisMonth.contractsCreated}</div>
+                <div className="text-lg font-bold text-gray-900">{thisMonth.contractsCreated}</div>
                 {thisMonth.contractGrowth !== 0 && (
                   <div className={`text-xs font-medium ${thisMonth.contractGrowth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                     {thisMonth.contractGrowth >= 0 ? '+' : ''}{thisMonth.contractGrowth}% vs last month
@@ -358,17 +323,17 @@ export default function AgentDashboardPage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-slate-50">
+            <div className="flex items-center justify-between py-3 border-b border-gray-50">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
                   <Banknote className="w-4 h-4 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Payments Collected</p>
-                  <p className="text-xs text-slate-400">Received this month</p>
+                  <p className="text-sm font-medium text-gray-700">Payments Collected</p>
+                  <p className="text-xs text-gray-400">Received this month</p>
                 </div>
               </div>
-              <div className="text-lg font-bold text-slate-800">{formatCurrency(thisMonth.paymentsCollected)}</div>
+              <div className="text-lg font-bold text-gray-900">{formatCurrency(thisMonth.paymentsCollected)}</div>
             </div>
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
@@ -376,23 +341,21 @@ export default function AgentDashboardPage() {
                   <Users className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Customers Registered</p>
-                  <p className="text-xs text-slate-400">New customers this month</p>
+                  <p className="text-sm font-medium text-gray-700">Customers Registered</p>
+                  <p className="text-xs text-gray-400">New customers this month</p>
                 </div>
               </div>
-              <div className="text-lg font-bold text-slate-800">{customers.thisMonth}</div>
+              <div className="text-lg font-bold text-gray-900">{customers.thisMonth}</div>
             </div>
           </div>
         </div>
 
         {/* Next due / pending approval */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-          <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2 text-sm">
-            <Clock className="w-4 h-4 text-amber-500" /> Attention Required
-          </h3>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="font-semibold text-gray-700 mb-4 text-sm">Attention Required</h3>
           <div className="space-y-3">
             {nextDue && (
-              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
                 <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
                   <Clock className="w-4 h-4 text-amber-600" />
                 </div>
@@ -403,7 +366,7 @@ export default function AgentDashboardPage() {
               </div>
             )}
             {alerts.pendingApproval > 0 && (
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+              <Link href="/admin/agent/contracts?status=PENDING_APPROVAL" className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100 hover:bg-yellow-100 transition-colors">
                 <div className="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
                   <Clock className="w-4 h-4 text-yellow-600" />
                 </div>
@@ -411,13 +374,11 @@ export default function AgentDashboardPage() {
                   <p className="text-sm font-semibold text-yellow-800">{alerts.pendingApproval} Contract{alerts.pendingApproval > 1 ? 's' : ''} Awaiting Approval</p>
                   <p className="text-xs text-yellow-600">In the approval queue</p>
                 </div>
-                <Link href="/admin/agent/contracts?status=PENDING_APPROVAL" className="text-yellow-600 flex-shrink-0">
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
+                <ChevronRight className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+              </Link>
             )}
             {alerts.revisionsPending > 0 && (
-              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100">
+              <Link href="/admin/agent/contracts?status=REVISION_REQUESTED" className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100 hover:bg-orange-100 transition-colors">
                 <div className="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
                   <RefreshCw className="w-4 h-4 text-orange-600" />
                 </div>
@@ -425,13 +386,11 @@ export default function AgentDashboardPage() {
                   <p className="text-sm font-semibold text-orange-800">{alerts.revisionsPending} Revision{alerts.revisionsPending > 1 ? 's' : ''} to Action</p>
                   <p className="text-xs text-orange-600">Edit terms and resubmit</p>
                 </div>
-                <Link href="/admin/agent/contracts?status=REVISION_REQUESTED" className="text-orange-600 flex-shrink-0">
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
+                <ChevronRight className="w-4 h-4 text-orange-600 flex-shrink-0" />
+              </Link>
             )}
             {alerts.overdueInstallments > 0 && (
-              <Link href="/admin/agent/overdue" className="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
+              <Link href="/admin/agent/overdue" className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100 hover:bg-red-100 transition-colors">
                 <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
                   <XCircle className="w-4 h-4 text-red-600" />
                 </div>
@@ -443,9 +402,9 @@ export default function AgentDashboardPage() {
               </Link>
             )}
             {!nextDue && alerts.pendingApproval === 0 && alerts.revisionsPending === 0 && alerts.overdueInstallments === 0 && (
-              <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400">
-                <CheckCircle className="w-8 h-8 text-emerald-400 mb-2" />
-                <p className="text-sm font-medium text-slate-600">All clear!</p>
+              <div className="flex flex-col items-center justify-center py-6 text-center text-gray-400">
+                <CheckCircle className="w-7 h-7 text-emerald-400 mb-2" />
+                <p className="text-sm font-medium text-gray-600">All clear!</p>
                 <p className="text-xs">No items needing your attention</p>
               </div>
             )}
@@ -454,12 +413,10 @@ export default function AgentDashboardPage() {
       </div>
 
       {/* ── RECENT CONTRACTS ── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
-          <h3 className="font-semibold text-slate-700 flex items-center gap-2 text-sm">
-            <FileText className="w-4 h-4 text-cyan-600" /> Recent Contracts
-          </h3>
-          <Link href="/admin/agent/contracts" className="text-xs text-cyan-600 font-medium hover:underline flex items-center gap-1">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-700 text-sm">Recent Contracts</h3>
+          <Link href="/admin/agent/contracts" className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1">
             View all <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
@@ -467,34 +424,34 @@ export default function AgentDashboardPage() {
         {/* Desktop table */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Contract</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Customer</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Price</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Outstanding</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Contract</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Product</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Price</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Outstanding</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-gray-50">
               {recentContracts.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">No contracts yet. <Link href="/admin/contracts" className="text-cyan-600 underline">Create your first contract</Link></td></tr>
+                <tr><td colSpan={6} className="px-5 py-10 text-center text-gray-400 text-sm">No contracts yet. <Link href="/admin/contracts" className="text-blue-600 underline">Create your first contract</Link></td></tr>
               )}
               {recentContracts.map(c => {
                 const s = STATUS_STYLES[c.status] ?? STATUS_STYLES.CANCELLED;
                 return (
-                  <tr key={c.id} className="hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => window.location.href = `/admin/agent/contracts/${c.id}`}>
+                  <tr key={c.id} className="hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => window.location.href = `/admin/agent/contracts/${c.id}`}>
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-slate-800">{c.contractNumber}</div>
-                      <div className="text-xs text-slate-400">{formatDate(c.createdAt)}</div>
+                      <div className="font-semibold text-gray-800">{c.contractNumber}</div>
+                      <div className="text-xs text-gray-400">{formatDate(c.createdAt)}</div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="font-medium text-slate-700">{c.customer.firstName} {c.customer.lastName}</div>
-                      <div className="text-xs text-slate-400">{c.customer.membershipId}</div>
+                      <div className="font-medium text-gray-700">{c.customer.firstName} {c.customer.lastName}</div>
+                      <div className="text-xs text-gray-400">{c.customer.membershipId}</div>
                     </td>
-                    <td className="px-5 py-3.5 text-slate-600">{c.product ?? '—'}</td>
-                    <td className="px-5 py-3.5 font-semibold text-slate-800">{formatCurrency(c.totalPrice)}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{c.product ?? '—'}</td>
+                    <td className="px-5 py-3.5 font-semibold text-gray-800">{formatCurrency(c.totalPrice)}</td>
                     <td className="px-5 py-3.5 font-semibold text-red-600">{formatCurrency(c.outstandingBalance)}</td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
@@ -507,24 +464,24 @@ export default function AgentDashboardPage() {
         </div>
 
         {/* Mobile cards */}
-        <div className="sm:hidden divide-y divide-slate-50">
+        <div className="sm:hidden divide-y divide-gray-50">
           {recentContracts.length === 0 && (
-            <div className="px-5 py-8 text-center text-slate-400 text-sm">
-              No contracts yet. <Link href="/admin/contracts" className="text-cyan-600 underline">Create one</Link>
+            <div className="px-5 py-8 text-center text-gray-400 text-sm">
+              No contracts yet. <Link href="/admin/contracts" className="text-blue-600 underline">Create one</Link>
             </div>
           )}
           {recentContracts.map(c => {
             const s = STATUS_STYLES[c.status] ?? STATUS_STYLES.CANCELLED;
             return (
-              <Link key={c.id} href={`/admin/agent/contracts/${c.id}`} className="block px-5 py-4 hover:bg-slate-50 transition-colors">
+              <Link key={c.id} href={`/admin/agent/contracts/${c.id}`} className="block px-5 py-4 hover:bg-gray-50 transition-colors">
                 <div className="flex justify-between items-start gap-2 mb-2">
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-800 text-sm truncate">{c.contractNumber}</div>
-                    <div className="text-xs text-slate-400 truncate">{c.customer.firstName} {c.customer.lastName}</div>
+                    <div className="font-semibold text-gray-800 text-sm truncate">{c.contractNumber}</div>
+                    <div className="text-xs text-gray-400 truncate">{c.customer.firstName} {c.customer.lastName}</div>
                   </div>
                   <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-500">
+                <div className="flex justify-between text-xs text-gray-500">
                   <span>{c.product ?? '—'}</span>
                   <span className="font-semibold text-red-600">{formatCurrency(c.outstandingBalance)} due</span>
                 </div>
@@ -536,31 +493,31 @@ export default function AgentDashboardPage() {
 
       {/* ── QUICK ACTIONS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link href="/admin/contracts" className="flex items-center gap-4 bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-2xl p-5 hover:from-cyan-100 hover:to-cyan-200 transition-colors group">
-          <div className="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center group-hover:bg-cyan-700 transition-colors">
-            <FileText className="w-5 h-5 text-white" />
+        <Link href="/admin/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 text-blue-600" />
           </div>
           <div>
-            <div className="font-semibold text-cyan-900 text-sm">New Contract</div>
-            <div className="text-xs text-cyan-600">Create a hire purchase agreement</div>
+            <div className="font-semibold text-gray-800 text-sm">New Contract</div>
+            <div className="text-xs text-gray-500">Create a hire purchase agreement</div>
           </div>
         </Link>
-        <Link href="/admin/customers" className="flex items-center gap-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-2xl p-5 hover:from-purple-100 hover:to-purple-200 transition-colors group">
-          <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center group-hover:bg-purple-700 transition-colors">
-            <Users className="w-5 h-5 text-white" />
+        <Link href="/admin/customers" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 text-purple-600" />
           </div>
           <div>
-            <div className="font-semibold text-purple-900 text-sm">Register Customer</div>
-            <div className="text-xs text-purple-600">Add a new hire-purchase customer</div>
+            <div className="font-semibold text-gray-800 text-sm">Register Customer</div>
+            <div className="text-xs text-gray-500">Add a new hire-purchase customer</div>
           </div>
         </Link>
-        <Link href="/admin/agent/contracts" className="flex items-center gap-4 bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-2xl p-5 hover:from-emerald-100 hover:to-emerald-200 transition-colors group">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center group-hover:bg-emerald-700 transition-colors">
-            <CheckCircle className="w-5 h-5 text-white" />
+        <Link href="/admin/agent/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <div className="font-semibold text-emerald-900 text-sm">My Contracts</div>
-            <div className="text-xs text-emerald-600">View your full portfolio</div>
+            <div className="font-semibold text-gray-800 text-sm">My Contracts</div>
+            <div className="text-xs text-gray-500">View your full portfolio</div>
           </div>
         </Link>
       </div>
