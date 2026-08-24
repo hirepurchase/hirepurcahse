@@ -36,6 +36,7 @@ import {
   PhoneCall,
   CalendarClock,
   Headset,
+  Megaphone,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -51,6 +52,7 @@ import {
 } from "@/lib/permissions";
 import NotificationBell from "./NotificationBell";
 import ContractApprovalBell from "./ContractApprovalBell";
+import AnnouncementBell from "./AnnouncementBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
 import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
 
@@ -181,9 +183,10 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL, PERMISSIONS.MANAGE_AGENT_LEDGER, PERMISSIONS.MANAGE_COMMISSION_SETTINGS],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL, PERMISSIONS.MANAGE_AGENT_LEDGER, PERMISSIONS.MANAGE_COMMISSION_SETTINGS, PERMISSIONS.MANAGE_ANNOUNCEMENTS],
     items: [
       { name: "Import Data", href: "/admin/import", icon: Upload, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Announcements", href: "/admin/announcements", icon: Megaphone, permissions: [PERMISSIONS.MANAGE_ANNOUNCEMENTS] },
       { name: "Users", href: "/admin/users", icon: Settings, permissions: [PERMISSIONS.MANAGE_USERS] },
       { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: [PERMISSIONS.MANAGE_ROLES] },
       { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
@@ -602,6 +605,7 @@ function MoreBottomSheet({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <AnnouncementBell variant="light" />
             <NotificationBell variant="light" />
             <ContractApprovalBell variant="light" />
             <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-200 transition-colors">
