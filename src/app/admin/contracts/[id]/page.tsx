@@ -622,6 +622,10 @@ export default function ContractDetailsPage() {
               </Button>
             )}
             {canNullify && contract.status !== 'COMPLETED' && (
+              contract.status === 'PENDING_APPROVAL' ||
+              contract.status === 'REVISION_REQUESTED' ||
+              !(contract.payments?.length > 0)
+            ) && (
               <Button
                 variant="outline" size="sm"
                 className="border-red-700 text-red-700 hover:bg-red-50 font-semibold"
@@ -1724,6 +1728,11 @@ export default function ContractDetailsPage() {
           <div className="space-y-4">
             <div className="bg-red-50 border border-red-300 rounded-lg p-4 text-sm text-red-900 space-y-2">
               <p className="font-bold text-base">⚠ This is permanent and cannot be undone.</p>
+              <p className="text-xs">
+                Only available while the contract is unapproved or has no recorded payments — for a customer
+                backing out before there's anything real to preserve. Once a contract is approved and has
+                payments, use Cancel or Write-off instead.
+              </p>
               <p>Nullifying will delete the following from the database:</p>
               <ul className="list-disc pl-5 space-y-1 text-xs mt-1">
                 <li>All <strong>payment transactions</strong> on this contract</li>
