@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { Megaphone, X } from 'lucide-react';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 
+// Cleared on every successful login in useAuth.ts, so this only suppresses
+// re-opening the modal on every page navigation within one login — not on
+// the next login in the same tab.
 const AUTO_SHOWN_KEY = 'announcements_auto_shown';
 
 function formatDate(value: string) {

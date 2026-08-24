@@ -45,6 +45,13 @@ export function useAuth() {
       });
       const { token, user } = response.data;
       setAuth(user, "admin", token);
+      // Let AnnouncementBell auto-open again on this fresh login — it only
+      // suppresses re-opening within the same login, tracked in sessionStorage.
+      try {
+        sessionStorage.removeItem("announcements_auto_shown");
+      } catch {
+        // sessionStorage unavailable — nothing to clear
+      }
       return { success: true };
     } catch (error: unknown) {
       return {
