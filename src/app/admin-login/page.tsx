@@ -83,6 +83,9 @@ export default function AdminLoginPage() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("userType", "admin");
+      // Let AnnouncementBell auto-open again on this fresh login — it only
+      // suppresses re-opening within the same login, tracked in sessionStorage.
+      sessionStorage.removeItem("announcements_auto_shown");
       window.location.href = "/admin/dashboard";
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Invalid credentials");
