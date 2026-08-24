@@ -79,11 +79,22 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   CANCELLED:         { bg: 'bg-slate-100',   text: 'text-slate-500',   label: 'Cancelled' },
 };
 
+function initialsOf(first: string, last: string) {
+  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
+}
+
+function timeGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 function StatCard({
-  icon: Icon, label, value, sub, color = 'blue', trend,
+  icon: Icon, label, value, sub, color = 'blue', trend, featured = false,
 }: {
   icon: React.ElementType; label: string; value: string | number;
-  sub?: string; color?: string; trend?: number;
+  sub?: string; color?: string; trend?: number; featured?: boolean;
 }) {
   const colors: Record<string, string> = {
     blue: 'bg-blue-50 text-blue-600',
@@ -93,7 +104,11 @@ function StatCard({
     red: 'bg-red-50 text-red-600',
   };
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex min-w-0 flex-col gap-3">
+    <div
+      className={`bg-white rounded-xl border p-4 flex min-w-0 flex-col gap-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+        featured ? 'border-blue-200 sm:col-span-2' : 'border-gray-200'
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center ${colors[color]}`}>
           <Icon className="w-4 h-4" />
@@ -105,7 +120,12 @@ function StatCard({
         )}
       </div>
       <div className="min-w-0">
-        <div className="truncate text-xl font-bold text-gray-900 leading-tight" title={typeof value === 'string' ? value : undefined}>{value}</div>
+        <div
+          className={`truncate font-bold text-gray-900 leading-tight tabular-nums ${featured ? 'text-3xl' : 'text-xl'}`}
+          title={typeof value === 'string' ? value : undefined}
+        >
+          {value}
+        </div>
         <div className="text-sm text-gray-500 mt-0.5">{label}</div>
         {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
       </div>
@@ -117,6 +137,7 @@ export default function AgentDashboardPage() {
   const { user } = useAuthStore();
   const adminUser = user as AdminUser | null;
   const agentName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Agent';
+  const agentInitials = adminUser ? initialsOf(adminUser.firstName, adminUser.lastName) : 'A';
 
   const [data, setData] = useState<AgentDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -163,44 +184,61 @@ export default function AgentDashboardPage() {
   const { portfolio, customers, financials, alerts, thisMonth, nextDue, recentContracts } = data;
   const hasAlerts = alerts.overdueInstallments > 0 || alerts.revisionsPending > 0;
 
+  const portfolioSegments = [
+    { label: 'Active',    value: portfolio.activeContracts,    bar: 'bg-emerald-500', dot: 'bg-emerald-500', text: 'text-emerald-700' },
+    { label: 'Pending',   value: portfolio.pendingContracts,   bar: 'bg-amber-500',   dot: 'bg-amber-500',   text: 'text-amber-700' },
+    { label: 'Revision',  value: portfolio.revisionContracts,  bar: 'bg-orange-500',  dot: 'bg-orange-500',  text: 'text-orange-700' },
+    { label: 'Completed', value: portfolio.completedContracts, bar: 'bg-blue-500',    dot: 'bg-blue-500',    text: 'text-blue-700' },
+    { label: 'Defaulted', value: portfolio.defaultedContracts, bar: 'bg-red-500',     dot: 'bg-red-500',     text: 'text-red-700' },
+  ].filter(s => s.value > 0);
+  const portfolioTotal = Math.max(portfolio.totalContracts, 1);
+
   return (
     <div className="space-y-6 pb-10">
 
       {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {agentName}</h1>
-          <p className="text-sm text-gray-500 mt-1">Sales Agent · Personal Dashboard</p>
-        </div>
-        <Link
-          href="/admin/agent/contracts"
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors self-start sm:self-auto"
-        >
-          <FileText className="w-4 h-4" /> My Contracts
-        </Link>
-      </div>
-
-      {officers.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
-            Your customer service {officers.length === 1 ? 'officer' : 'officers'}
-          </p>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {officers.map((o) => (
-              <div key={o.id} className="text-sm">
-                <p className="font-semibold text-gray-800">{o.name}</p>
-                <div className="flex flex-wrap gap-x-3 text-gray-500 text-xs mt-0.5">
-                  {o.phone && (
-                    <a href={`tel:${o.phone}`} className="hover:text-blue-600">{o.phone}</a>
-                  )}
-                  <a href={`mailto:${o.email}`} className="hover:text-blue-600">{o.email}</a>
-                </div>
-              </div>
-            ))}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-lg sm:text-xl font-bold shrink-0">
+              {agentInitials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-gray-400 font-medium">{timeGreeting()}</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{agentName}</h1>
+              <p className="text-sm text-gray-500 mt-0.5">Sales Agent · Personal Dashboard</p>
+            </div>
           </div>
-          <p className="text-gray-400 text-xs mt-2">They verify your customers before contracts are approved</p>
+          <Link
+            href="/admin/agent/contracts"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 self-start sm:self-auto"
+          >
+            <FileText className="w-4 h-4" /> My Contracts
+          </Link>
         </div>
-      )}
+
+        {officers.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+              Your customer service {officers.length === 1 ? 'officer' : 'officers'}
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {officers.map((o) => (
+                <div key={o.id} className="text-sm">
+                  <p className="font-semibold text-gray-800">{o.name}</p>
+                  <div className="flex flex-wrap gap-x-3 text-gray-500 text-xs mt-0.5">
+                    {o.phone && (
+                      <a href={`tel:${o.phone}`} className="hover:text-blue-600">{o.phone}</a>
+                    )}
+                    <a href={`mailto:${o.email}`} className="hover:text-blue-600">{o.email}</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-gray-400 text-xs mt-2">They verify your customers before contracts are approved</p>
+          </div>
+        )}
+      </div>
 
       {/* ── ALERTS ── */}
       {hasAlerts && (
@@ -208,7 +246,7 @@ export default function AgentDashboardPage() {
           {alerts.overdueInstallments > 0 && (
             <Link
               href="/admin/agent/overdue"
-              className="flex items-center gap-4 bg-white border border-red-200 rounded-xl px-5 py-4 hover:bg-red-50 transition-colors"
+              className="flex items-center gap-4 bg-white border border-red-200 rounded-xl px-5 py-4 shadow-sm hover:bg-red-50 hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-4 h-4 text-red-600" />
@@ -223,7 +261,7 @@ export default function AgentDashboardPage() {
           {alerts.revisionsPending > 0 && (
             <Link
               href="/admin/agent/contracts?status=REVISION_REQUESTED"
-              className="flex items-center gap-4 bg-white border border-orange-200 rounded-xl px-5 py-4 hover:bg-orange-50 transition-colors"
+              className="flex items-center gap-4 bg-white border border-orange-200 rounded-xl px-5 py-4 shadow-sm hover:bg-orange-50 hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
                 <RefreshCw className="w-4 h-4 text-orange-600" />
@@ -239,24 +277,39 @@ export default function AgentDashboardPage() {
       )}
 
       {/* ── PORTFOLIO STATUS BREAKDOWN ── */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Portfolio Breakdown</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[
-            { label: 'Active',    value: portfolio.activeContracts,    color: 'bg-emerald-500' },
-            { label: 'Pending',   value: portfolio.pendingContracts,   color: 'bg-amber-500' },
-            { label: 'Revision',  value: portfolio.revisionContracts,  color: 'bg-orange-500' },
-            { label: 'Completed', value: portfolio.completedContracts, color: 'bg-blue-500' },
-            { label: 'Defaulted', value: portfolio.defaultedContracts, color: 'bg-red-500' },
-            { label: 'Total',     value: portfolio.totalContracts,     color: 'bg-gray-500' },
-          ].map(s => (
-            <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-              <div className={`w-1.5 h-1.5 rounded-full ${s.color} mx-auto mb-2`} />
-              <div className="text-xl font-bold text-gray-900">{s.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
-            </div>
-          ))}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700">Portfolio Breakdown</h2>
+          <p className="text-sm text-gray-400">
+            <span className="font-bold text-gray-900 tabular-nums">{portfolio.totalContracts}</span> total contracts
+          </p>
         </div>
+
+        {portfolio.totalContracts === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">No contracts yet</p>
+        ) : (
+          <>
+            <div className="flex h-2.5 w-full rounded-full overflow-hidden bg-gray-100">
+              {portfolioSegments.map(s => (
+                <div
+                  key={s.label}
+                  className={`${s.bar} h-full first:rounded-l-full last:rounded-r-full`}
+                  style={{ width: `${(s.value / portfolioTotal) * 100}%` }}
+                  title={`${s.label}: ${s.value}`}
+                />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4">
+              {portfolioSegments.map(s => (
+                <div key={s.label} className="flex items-center gap-1.5 text-sm">
+                  <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                  <span className="font-semibold text-gray-900 tabular-nums">{s.value}</span>
+                  <span className="text-gray-500">{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── FINANCIAL SUMMARY ── */}
@@ -264,7 +317,7 @@ export default function AgentDashboardPage() {
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Financial Summary</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard
-            icon={TrendingUp} label="Total Sales Value" color="blue"
+            icon={TrendingUp} label="Total Sales Value" color="blue" featured
             value={formatCurrency(financials.totalSalesValue)}
             sub={`${portfolio.totalContracts} contracts total`}
           />
@@ -301,7 +354,7 @@ export default function AgentDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* This month activity */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <h3 className="font-semibold text-gray-700 mb-4 text-sm">This Month&apos;s Activity</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-gray-50">
@@ -315,7 +368,7 @@ export default function AgentDashboardPage() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-gray-900">{thisMonth.contractsCreated}</div>
+                <div className="text-lg font-bold text-gray-900 tabular-nums">{thisMonth.contractsCreated}</div>
                 {thisMonth.contractGrowth !== 0 && (
                   <div className={`text-xs font-medium ${thisMonth.contractGrowth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                     {thisMonth.contractGrowth >= 0 ? '+' : ''}{thisMonth.contractGrowth}% vs last month
@@ -333,7 +386,7 @@ export default function AgentDashboardPage() {
                   <p className="text-xs text-gray-400">Received this month</p>
                 </div>
               </div>
-              <div className="text-lg font-bold text-gray-900">{formatCurrency(thisMonth.paymentsCollected)}</div>
+              <div className="text-lg font-bold text-gray-900 tabular-nums">{formatCurrency(thisMonth.paymentsCollected)}</div>
             </div>
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
@@ -345,13 +398,13 @@ export default function AgentDashboardPage() {
                   <p className="text-xs text-gray-400">New customers this month</p>
                 </div>
               </div>
-              <div className="text-lg font-bold text-gray-900">{customers.thisMonth}</div>
+              <div className="text-lg font-bold text-gray-900 tabular-nums">{customers.thisMonth}</div>
             </div>
           </div>
         </div>
 
         {/* Next due / pending approval */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <h3 className="font-semibold text-gray-700 mb-4 text-sm">Attention Required</h3>
           <div className="space-y-3">
             {nextDue && (
@@ -413,7 +466,7 @@ export default function AgentDashboardPage() {
       </div>
 
       {/* ── RECENT CONTRACTS ── */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-700 text-sm">Recent Contracts</h3>
           <Link href="/admin/agent/contracts" className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1">
@@ -447,12 +500,19 @@ export default function AgentDashboardPage() {
                       <div className="text-xs text-gray-400">{formatDate(c.createdAt)}</div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="font-medium text-gray-700">{c.customer.firstName} {c.customer.lastName}</div>
-                      <div className="text-xs text-gray-400">{c.customer.membershipId}</div>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0">
+                          {initialsOf(c.customer.firstName, c.customer.lastName)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-700 truncate">{c.customer.firstName} {c.customer.lastName}</div>
+                          <div className="text-xs text-gray-400">{c.customer.membershipId}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{c.product ?? '—'}</td>
-                    <td className="px-5 py-3.5 font-semibold text-gray-800">{formatCurrency(c.totalPrice)}</td>
-                    <td className="px-5 py-3.5 font-semibold text-red-600">{formatCurrency(c.outstandingBalance)}</td>
+                    <td className="px-5 py-3.5 font-semibold text-gray-800 tabular-nums">{formatCurrency(c.totalPrice)}</td>
+                    <td className="px-5 py-3.5 font-semibold text-red-600 tabular-nums">{formatCurrency(c.outstandingBalance)}</td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
                     </td>
@@ -473,17 +533,22 @@ export default function AgentDashboardPage() {
           {recentContracts.map(c => {
             const s = STATUS_STYLES[c.status] ?? STATUS_STYLES.CANCELLED;
             return (
-              <Link key={c.id} href={`/admin/agent/contracts/${c.id}`} className="block px-5 py-4 hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-start gap-2 mb-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-gray-800 text-sm truncate">{c.contractNumber}</div>
-                    <div className="text-xs text-gray-400 truncate">{c.customer.firstName} {c.customer.lastName}</div>
-                  </div>
-                  <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
+              <Link key={c.id} href={`/admin/agent/contracts/${c.id}`} className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center shrink-0">
+                  {initialsOf(c.customer.firstName, c.customer.lastName)}
                 </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>{c.product ?? '—'}</span>
-                  <span className="font-semibold text-red-600">{formatCurrency(c.outstandingBalance)} due</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-2 mb-1">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-800 text-sm truncate">{c.contractNumber}</div>
+                      <div className="text-xs text-gray-400 truncate">{c.customer.firstName} {c.customer.lastName}</div>
+                    </div>
+                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{c.product ?? '—'}</span>
+                    <span className="font-semibold text-red-600">{formatCurrency(c.outstandingBalance)} due</span>
+                  </div>
                 </div>
               </Link>
             );
@@ -493,7 +558,7 @@ export default function AgentDashboardPage() {
 
       {/* ── QUICK ACTIONS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link href="/admin/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:bg-blue-50/50 transition-colors">
+        <Link href="/admin/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-blue-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
             <FileText className="w-4 h-4 text-blue-600" />
           </div>
@@ -502,7 +567,7 @@ export default function AgentDashboardPage() {
             <div className="text-xs text-gray-500">Create a hire purchase agreement</div>
           </div>
         </Link>
-        <Link href="/admin/customers" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 hover:border-purple-300 hover:bg-purple-50/50 transition-colors">
+        <Link href="/admin/customers" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-purple-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
             <Users className="w-4 h-4 text-purple-600" />
           </div>
@@ -511,7 +576,7 @@ export default function AgentDashboardPage() {
             <div className="text-xs text-gray-500">Add a new hire-purchase customer</div>
           </div>
         </Link>
-        <Link href="/admin/agent/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors">
+        <Link href="/admin/agent/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-emerald-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
           </div>
