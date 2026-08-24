@@ -5,9 +5,9 @@ import { Megaphone, X } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 
-// Cleared on every successful login in useAuth.ts, so this only suppresses
-// re-opening the modal on every page navigation within one login — not on
-// the next login in the same tab.
+// Cleared on every real login (admin-login/page.tsx and useAuth.ts's
+// loginAdmin), so this only suppresses re-opening on every page navigation
+// within one login — not on the next login in the same tab.
 const AUTO_SHOWN_KEY = 'announcements_auto_shown';
 
 export default function AnnouncementBell({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
@@ -65,60 +65,49 @@ export default function AnnouncementBell({ variant = 'light' }: { variant?: 'lig
       </button>
 
       {open && (
-        <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
-          {/* Panel — same slate-900 slide-in convention as NotificationBell / ContractApprovalBell */}
-          <div className="fixed top-0 right-0 z-50 h-screen w-96 bg-slate-900 text-white shadow-2xl border-l border-white/10 flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 shrink-0">
-              <div>
-                <p className="text-base font-semibold">Announcements</p>
-                <p className="text-xs text-cyan-100/60 mt-0.5">Updates from admin</p>
+          {/* Centered card — same convention as ChangePasswordModal in TopBar.tsx */}
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-6 py-5 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <Megaphone className="h-4 w-4 text-blue-600" />
+                </div>
+                <h2 className="text-base font-semibold text-gray-900">
+                  Announcement{count !== 1 ? 's' : ''}
+                </h2>
               </div>
-              <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-cyan-100/60 hover:bg-white/10 hover:text-white transition-colors">
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Summary */}
-            <div className="border-b border-white/10 bg-white/5 px-5 py-4 shrink-0">
-              <p className="text-xs text-cyan-100/60 uppercase tracking-wide">Active</p>
-              <p className="text-3xl font-bold text-blue-400 mt-1">{count}</p>
+            <div className="overflow-y-auto flex-1 min-h-0 px-6 pb-2 space-y-3">
+              {data.map((a) => (
+                <div key={a.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{a.message}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {a.createdBy.firstName} {a.createdBy.lastName} · {formatDate(a.createdAt)}
+                  </p>
+                </div>
+              ))}
             </div>
 
-            {/* Announcement list */}
-            <div className="overflow-y-auto flex-1 min-h-0 px-2">
-              {count === 0 ? (
-                <p className="px-4 py-10 text-center text-sm text-cyan-100/50">
-                  No active announcements
-                </p>
-              ) : (
-                <ul className="space-y-1 pb-4">
-                  {data.map((a) => (
-                    <li key={a.id} className="rounded-lg px-4 py-3 hover:bg-white/5 transition-colors">
-                      <p className="text-sm text-white whitespace-pre-wrap">{a.message}</p>
-                      <p className="text-xs text-cyan-100/50 mt-2">
-                        {a.createdBy.firstName} {a.createdBy.lastName} · {formatDate(a.createdAt)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-white/10 px-5 py-4 shrink-0">
+            <div className="px-6 py-5 shrink-0">
               <button
                 onClick={() => setOpen(false)}
-                className="flex w-full items-center justify-center rounded-lg bg-blue-500/20 px-4 py-2.5 text-sm font-semibold text-blue-400 hover:bg-blue-500/30 transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
               >
                 Got it
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
