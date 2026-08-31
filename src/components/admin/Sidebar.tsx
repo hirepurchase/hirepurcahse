@@ -37,6 +37,7 @@ import {
   CalendarClock,
   Headset,
   Megaphone,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -53,6 +54,7 @@ import {
 import NotificationBell from "./NotificationBell";
 import ContractApprovalBell from "./ContractApprovalBell";
 import AnnouncementBell from "./AnnouncementBell";
+import DeviceIssueBell from "./DeviceIssueBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
 import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
 
@@ -193,6 +195,7 @@ const navGroups: NavGroup[] = [
       { name: "Call Logs", href: "/admin/call-logs", icon: PhoneCall, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
       { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control", href: "/admin/device-control", icon: Shield, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Device Lock Issues", href: "/admin/device-issues", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Agent Ledger", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
@@ -606,6 +609,7 @@ function MoreBottomSheet({
           </div>
           <div className="flex items-center gap-1">
             <AnnouncementBell variant="light" />
+            <DeviceIssueBell variant="light" />
             <NotificationBell variant="light" />
             <ContractApprovalBell variant="light" />
             <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-200 transition-colors">

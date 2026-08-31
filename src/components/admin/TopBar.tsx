@@ -9,6 +9,7 @@ import api from "@/lib/api";
 import NotificationBell from "./NotificationBell";
 import ContractApprovalBell from "./ContractApprovalBell";
 import AnnouncementBell from "./AnnouncementBell";
+import DeviceIssueBell from "./DeviceIssueBell";
 
 // ─── Change Password Modal ───────────────────────────────────────────────────
 
@@ -205,6 +206,9 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
         <div className="hidden lg:flex items-center gap-1">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
             <AnnouncementBell />
+          </div>
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
+            <DeviceIssueBell />
           </div>
           <div className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
             <NotificationBell />

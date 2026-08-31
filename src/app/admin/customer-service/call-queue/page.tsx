@@ -47,6 +47,8 @@ interface QueueCustomer {
   lastCallAt: string | null;
   lastCallOutcome: string | null;
   promiseToPayDate: string | null;
+  isUrgent: boolean;
+  urgentReason: string | null;
   contracts: OverdueContract[];
 }
 
@@ -193,7 +195,13 @@ export default function CallQueuePage() {
               {/* Mobile */}
               <div className="sm:hidden divide-y divide-gray-100">
                 {filtered.map((r) => (
-                  <div key={r.customer.id} className="p-4 space-y-2">
+                  <div key={r.customer.id} className={cn("p-4 space-y-2", r.isUrgent && "bg-red-50/60")}>
+                    {r.isUrgent && (
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-red-700">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        URGENT — {r.urgentReason}
+                      </div>
+                    )}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-medium truncate">{r.customer.name}</p>
@@ -201,14 +209,16 @@ export default function CallQueuePage() {
                           {r.customer.phone}
                         </a>
                       </div>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                          daysOverdueClass(r.daysOverdue)
-                        )}
-                      >
-                        {r.daysOverdue}d overdue
-                      </span>
+                      {r.daysOverdue > 0 && (
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                            daysOverdueClass(r.daysOverdue)
+                          )}
+                        >
+                          {r.daysOverdue}d overdue
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-red-600">
@@ -279,7 +289,7 @@ export default function CallQueuePage() {
                   <TableBody>
                     {filtered.map((r) => (
                       <>
-                        <TableRow key={r.customer.id}>
+                        <TableRow key={r.customer.id} className={cn(r.isUrgent && "bg-red-50/60")}>
                           <TableCell className="pr-0">
                             <button
                               onClick={() => toggle(r.customer.id)}
@@ -294,6 +304,12 @@ export default function CallQueuePage() {
                             </button>
                           </TableCell>
                           <TableCell>
+                            {r.isUrgent && (
+                              <div className="flex items-center gap-1 text-[11px] font-bold text-red-700 mb-0.5">
+                                <AlertTriangle className="h-3 w-3" />
+                                URGENT — {r.urgentReason}
+                              </div>
+                            )}
                             <p className="font-medium">{r.customer.name}</p>
                             <p className="text-xs text-gray-400">{r.customer.membershipId}</p>
                           </TableCell>
@@ -314,14 +330,16 @@ export default function CallQueuePage() {
                             {formatCurrency(r.amountOverdue)}
                           </TableCell>
                           <TableCell>
-                            <span
-                              className={cn(
-                                "rounded-full px-2 py-0.5 text-xs font-medium",
-                                daysOverdueClass(r.daysOverdue)
-                              )}
-                            >
-                              {r.daysOverdue}d
-                            </span>
+                            {r.daysOverdue > 0 && (
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-xs font-medium",
+                                  daysOverdueClass(r.daysOverdue)
+                                )}
+                              >
+                                {r.daysOverdue}d
+                              </span>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm">{r.agent?.name ?? "—"}</TableCell>
                           <TableCell className="text-xs text-gray-500">
