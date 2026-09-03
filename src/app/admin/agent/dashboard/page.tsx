@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   FileText, Users, Banknote, TrendingUp, AlertCircle,
   Clock, CheckCircle, XCircle, RefreshCw, ChevronRight,
-  Wallet, Target,
+  Wallet, Target, CalendarClock,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -31,6 +31,7 @@ interface Financials {
 
 interface Alerts {
   overdueInstallments: number;
+  upcomingDueTomorrow: number;
   revisionsPending: number;
   pendingApproval: number;
 }
@@ -182,7 +183,7 @@ export default function AgentDashboardPage() {
   }
 
   const { portfolio, customers, financials, alerts, thisMonth, nextDue, recentContracts } = data;
-  const hasAlerts = alerts.overdueInstallments > 0 || alerts.revisionsPending > 0;
+  const hasAlerts = alerts.overdueInstallments > 0 || alerts.upcomingDueTomorrow > 0 || alerts.revisionsPending > 0;
 
   const portfolioSegments = [
     { label: 'Active',    value: portfolio.activeContracts,    bar: 'bg-emerald-500', dot: 'bg-emerald-500', text: 'text-emerald-700' },
@@ -256,6 +257,21 @@ export default function AgentDashboardPage() {
                 <p className="text-red-500 text-xs mt-0.5">Customers on your contracts have missed payments</p>
               </div>
               <ChevronRight className="w-4 h-4 text-red-600 shrink-0" />
+            </Link>
+          )}
+          {alerts.upcomingDueTomorrow > 0 && (
+            <Link
+              href="/admin/agent/upcoming"
+              className="flex items-center gap-4 bg-white border border-amber-200 rounded-xl px-5 py-4 shadow-sm hover:bg-amber-50 hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <CalendarClock className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-amber-700 text-sm">{alerts.upcomingDueTomorrow} Payment{alerts.upcomingDueTomorrow > 1 ? 's' : ''} Due Tomorrow</p>
+                <p className="text-amber-500 text-xs mt-0.5">Follow up before these go overdue</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-600 shrink-0" />
             </Link>
           )}
           {alerts.revisionsPending > 0 && (
@@ -454,7 +470,19 @@ export default function AgentDashboardPage() {
                 <ChevronRight className="w-4 h-4 text-red-600 shrink-0" />
               </Link>
             )}
-            {!nextDue && alerts.pendingApproval === 0 && alerts.revisionsPending === 0 && alerts.overdueInstallments === 0 && (
+            {alerts.upcomingDueTomorrow > 0 && (
+              <Link href="/admin/agent/upcoming" className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100 hover:bg-amber-100 transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                  <CalendarClock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800">{alerts.upcomingDueTomorrow} Payment{alerts.upcomingDueTomorrow > 1 ? 's' : ''} Due Tomorrow</p>
+                  <p className="text-xs text-amber-600">Call ahead to help customers stay on track</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-600 shrink-0" />
+              </Link>
+            )}
+            {!nextDue && alerts.pendingApproval === 0 && alerts.revisionsPending === 0 && alerts.overdueInstallments === 0 && alerts.upcomingDueTomorrow === 0 && (
               <div className="flex flex-col items-center justify-center py-6 text-center text-gray-400">
                 <CheckCircle className="w-7 h-7 text-emerald-400 mb-2" />
                 <p className="text-sm font-medium text-gray-600">All clear!</p>
