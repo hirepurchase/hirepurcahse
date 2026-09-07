@@ -13,20 +13,51 @@ import { useRouter } from 'next/navigation';
 import { ExportButtons } from '@/components/admin/ExportButtons';
 import { ExportOptions } from '@/lib/exportUtils';
 
+const filterInputCls =
+  'h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+const filterLabelCls = 'mb-1 block text-xs font-medium text-gray-600';
+
 export default function DefaultersReportPage() {
   const [report, setReport] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Date filters apply to when each contract first fell overdue, not the contract date
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [agentId, setAgentId] = useState('');
+  const [productId, setProductId] = useState('');
+  const [minDaysOverdue, setMinDaysOverdue] = useState('');
+  const [maxDaysOverdue, setMaxDaysOverdue] = useState('');
   const { toast } = useToast();
   const router = useRouter();
 
+  const hasFilters = Boolean(startDate || endDate || agentId || productId || minDaysOverdue || maxDaysOverdue);
+
+  const clearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setAgentId('');
+    setProductId('');
+    setMinDaysOverdue('');
+    setMaxDaysOverdue('');
+  };
+
+  // Debounced so typing in the day-count inputs doesn't fire a request per keystroke
   useEffect(() => {
-    loadReport();
-  }, []);
+    const timer = setTimeout(() => loadReport(), 350);
+    return () => clearTimeout(timer);
+  }, [startDate, endDate, agentId, productId, minDaysOverdue, maxDaysOverdue]);
 
   const loadReport = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/reports/defaults');
+      const params: Record<string, string> = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (agentId) params.agentId = agentId;
+      if (productId) params.productId = productId;
+      if (minDaysOverdue) params.minDaysOverdue = minDaysOverdue;
+      if (maxDaysOverdue) params.maxDaysOverdue = maxDaysOverdue;
+      const response = await api.get('/reports/defaults', { params });
       setReport(response.data);
     } catch (error: any) {
       toast({
@@ -62,6 +93,31 @@ export default function DefaultersReportPage() {
         { label: 'Total Defaulters', value: report.summary?.totalDefaulters || 0 },
         { label: 'Total Overdue Amount', value: formatCurrency(report.summary?.totalOverdueAmount || 0) },
         { label: 'Total Penalties', value: formatCurrency(report.summary?.totalPenalties || 0) },
+        // Without these an exported filtered report is indistinguishable from a full one
+        ...(startDate || endDate
+          ? [{
+              label: 'First Overdue Between',
+              value: `${startDate ? formatDate(startDate) : 'Any'} — ${endDate ? formatDate(endDate) : 'Any'}`,
+            }]
+          : []),
+        ...(agentId
+          ? [{
+              label: 'Agent',
+              value: (report.filterOptions?.agents || []).find((a: any) => a.id === agentId)?.name || agentId,
+            }]
+          : []),
+        ...(productId
+          ? [{
+              label: 'Product',
+              value: (report.filterOptions?.products || []).find((p: any) => p.id === productId)?.name || productId,
+            }]
+          : []),
+        ...(minDaysOverdue || maxDaysOverdue
+          ? [{
+              label: 'Days Overdue',
+              value: `${minDaysOverdue || 'Any'} — ${maxDaysOverdue || 'Any'}`,
+            }]
+          : []),
       ],
       columns: [
         { header: 'Customer', accessor: (row: any) => `${row.customer.firstName} ${row.customer.lastName}`, align: 'left' },
@@ -79,9 +135,11 @@ export default function DefaultersReportPage() {
       ],
       data: report.defaulters || [],
     };
-  }, [report]);
+  }, [report, startDate, endDate, agentId, productId, minDaysOverdue, maxDaysOverdue]);
 
-  if (isLoading) {
+  // Only the very first load takes over the page — a filter refresh must leave
+  // the controls mounted, or the inputs vanish under the user mid-change.
+  if (isLoading && !report) {
     return (
       <div className="p-8 flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -107,6 +165,100 @@ export default function DefaultersReportPage() {
           <ExportButtons exportOptions={exportOptions} />
         </div>
       </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Filters</p>
+            <div className="flex items-center gap-3">
+              {isLoading && <span className="text-xs text-gray-400">Updating...</span>}
+              {hasFilters && (
+                <Button variant="outline" size="sm" className="h-8" onClick={clearFilters}>
+                  Clear all
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className={filterLabelCls}>First overdue from</label>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={filterInputCls}
+              />
+            </div>
+            <div>
+              <label className={filterLabelCls}>First overdue to</label>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+                className={filterInputCls}
+              />
+            </div>
+            <div>
+              <label className={filterLabelCls}>Agent</label>
+              <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={filterInputCls}>
+                <option value="">All agents</option>
+                {(report?.filterOptions?.agents || []).map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={filterLabelCls}>Product</label>
+              <select value={productId} onChange={(e) => setProductId(e.target.value)} className={filterInputCls}>
+                <option value="">All products</option>
+                {(report?.filterOptions?.products || []).map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={filterLabelCls}>Days overdue — at least</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="No minimum"
+                value={minDaysOverdue}
+                onChange={(e) => setMinDaysOverdue(e.target.value)}
+                className={filterInputCls}
+              />
+            </div>
+            <div>
+              <label className={filterLabelCls}>Days overdue — at most</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="No maximum"
+                value={maxDaysOverdue}
+                onChange={(e) => setMaxDaysOverdue(e.target.value)}
+                className={filterInputCls}
+              />
+            </div>
+          </div>
+
+          {hasFilters && (
+            <p className="mt-3 text-xs text-gray-500">
+              Showing {report?.summary?.totalDefaulters ?? 0} matching defaulter
+              {report?.summary?.totalDefaulters === 1 ? '' : 's'}.
+              {(startDate || endDate) && (
+                <>
+                  {' '}First overdue between{' '}
+                  <span className="font-medium text-gray-700">{startDate ? formatDate(startDate) : 'any date'}</span> and{' '}
+                  <span className="font-medium text-gray-700">{endDate ? formatDate(endDate) : 'any date'}</span>.
+                </>
+              )}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
