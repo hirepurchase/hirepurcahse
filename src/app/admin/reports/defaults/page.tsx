@@ -66,6 +66,8 @@ export default function DefaultersReportPage() {
       columns: [
         { header: 'Customer', accessor: (row: any) => `${row.customer.firstName} ${row.customer.lastName}`, align: 'left' },
         { header: 'Contact', accessor: (row: any) => row.customer.phone, align: 'left' },
+        { header: 'Agent', accessor: (row: any) => row.agent?.name || '-', align: 'left' },
+        { header: 'Agent Contact', accessor: (row: any) => row.agent?.phone || '-', align: 'left' },
         { header: 'Contract #', accessor: (row: any) => row.contract.contractNumber, align: 'left' },
         { header: 'Product', accessor: (row: any) => row.product?.name || '-', align: 'left' },
         { header: 'Overdue Installments', accessor: 'overdueInstallments', align: 'right' },
@@ -193,6 +195,7 @@ export default function DefaultersReportPage() {
                     </div>
                     <p className="text-xs text-gray-500">{defaulter.customer.phone} · {defaulter.customer.membershipId}</p>
                     <p className="text-xs font-mono text-gray-400">{defaulter.contract.contractNumber} · {defaulter.product?.name || '-'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Agent: <span className="font-medium text-gray-700">{defaulter.agent?.name || '-'}</span>{defaulter.agent?.phone ? ` · ${defaulter.agent.phone}` : ''}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs">
                       <span className="font-bold text-red-600">{formatCurrency(defaulter.totalOwed)} owed</span>
                       <span className="text-orange-600">{formatCurrency(defaulter.unpaidPenalties)} penalties</span>
@@ -208,6 +211,7 @@ export default function DefaultersReportPage() {
                     <TableRow>
                       <TableHead>Customer</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Agent</TableHead>
                       <TableHead>Contract #</TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead className="text-right">Overdue</TableHead>
@@ -223,6 +227,7 @@ export default function DefaultersReportPage() {
                       <TableRow key={defaulter.contract.id}>
                         <TableCell><p className="font-medium">{defaulter.customer.firstName} {defaulter.customer.lastName}</p><p className="text-xs text-gray-500">{defaulter.customer.membershipId}</p></TableCell>
                         <TableCell><div className="flex items-center gap-2"><Phone className="h-3 w-3 text-gray-500" /><span className="text-sm">{defaulter.customer.phone}</span></div></TableCell>
+                        <TableCell><p className="text-sm font-medium">{defaulter.agent?.name || '-'}</p>{defaulter.agent?.phone && <p className="text-xs text-gray-500">{defaulter.agent.phone}</p>}</TableCell>
                         <TableCell className="font-mono text-sm">{defaulter.contract.contractNumber}</TableCell>
                         <TableCell className="text-sm">{defaulter.product?.name || '-'}</TableCell>
                         <TableCell className="text-right font-medium">{defaulter.overdueInstallments}</TableCell>
