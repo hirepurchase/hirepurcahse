@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   CreditCard,
   RefreshCw,
   Pencil,
+  Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,6 +65,38 @@ function RevisionEditModal({
     startDate: contract.startDate ? contract.startDate.split("T")[0] : "",
   });
 
+  // A revision is often requested because the wrong customer was picked, so
+  // the customer can be swapped here as well as the terms.
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(contract.customer ?? null);
+  const [pickingCustomer, setPickingCustomer] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const customerChanged = selectedCustomer?.id && selectedCustomer.id !== contract.customer?.id;
+
+  useEffect(() => {
+    if (!pickingCustomer) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setCustomersLoading(true);
+      try {
+        const params: Record<string, any> = { limit: 25 };
+        if (customerSearch.trim()) params.search = customerSearch.trim();
+        const res = await api.get("/customers", { params });
+        setCustomerResults(res.data.customers || []);
+      } catch {
+        // keep whatever was already listed
+      } finally {
+        setCustomersLoading(false);
+      }
+    }, 300);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [customerSearch, pickingCustomer]);
+
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -89,6 +122,7 @@ function RevisionEditModal({
     setLoading(true);
     try {
       await api.patch(`/contracts/agent/mine/${contract.id}/revision-edit`, {
+        ...(customerChanged ? { customerId: selectedCustomer.id } : {}),
         totalPrice: parseFloat(form.totalPrice),
         depositAmount: parseFloat(form.depositAmount),
         paymentFrequency: form.paymentFrequency,
@@ -130,7 +164,7 @@ function RevisionEditModal({
           <div className="mt-3 grid grid-cols-1 gap-2 rounded-2xl bg-gray-50 p-3 text-xs text-gray-600 sm:grid-cols-2">
             <span className="flex items-center gap-1.5">
               <User className="h-3.5 w-3.5" />
-              {contract.customer?.firstName} {contract.customer?.lastName}
+              {selectedCustomer?.firstName} {selectedCustomer?.lastName}
             </span>
             <span className="flex items-center gap-1.5">
               <Package className="h-3.5 w-3.5" />
@@ -141,6 +175,91 @@ function RevisionEditModal({
 
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           <div className="space-y-4">
+            <div className="rounded-2xl border border-gray-200 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-medium text-gray-600">Customer</label>
+                <button
+                  type="button"
+                  onClick={() => setPickingCustomer((v) => !v)}
+                  className="text-xs font-semibold text-orange-600 hover:underline"
+                >
+                  {pickingCustomer ? "Cancel" : "Change customer"}
+                </button>
+              </div>
+
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                  <User className="h-4 w-4 text-gray-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-900">
+                    {selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "—"}
+                  </p>
+                  <p className="truncate text-xs text-gray-500">
+                    {[selectedCustomer?.membershipId, selectedCustomer?.phone].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
+                {customerChanged && (
+                  <Badge variant="outline" className="ml-auto shrink-0 border-orange-300 bg-orange-50 text-[10px] text-orange-700">
+                    Changed
+                  </Badge>
+                )}
+              </div>
+
+              {pickingCustomer && (
+                <div className="mt-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                      autoFocus
+                      className={`${inputCls} pl-9`}
+                      placeholder="Search by name, phone, or membership ID..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+                    {customersLoading ? (
+                      <p className="py-4 text-center text-xs text-gray-400">Searching...</p>
+                    ) : customerResults.length === 0 ? (
+                      <p className="py-4 text-center text-xs text-gray-400">
+                        {customerSearch.trim() ? "No customers match that search." : "Type to search your customers."}
+                      </p>
+                    ) : (
+                      customerResults.map((c: any) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomer(c);
+                            setPickingCustomer(false);
+                            setCustomerSearch("");
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-xl border p-2 text-left transition-colors ${
+                            selectedCustomer?.id === c.id
+                              ? "border-orange-400 bg-orange-50"
+                              : "border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-semibold text-gray-600">
+                            {`${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-900">
+                              {c.firstName} {c.lastName}
+                            </p>
+                            <p className="truncate text-xs text-gray-500">
+                              {[c.membershipId, c.phone].filter(Boolean).join(" · ")}
+                            </p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Total Price (GHS)</label>
@@ -401,7 +520,7 @@ export default function AgentContractDetailPage() {
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-60"
                 >
                   <Pencil className="h-4 w-4" />
-                  Edit Terms
+                  Edit Contract
                 </button>
                 <button
                   onClick={handleResubmit}
