@@ -20,6 +20,17 @@ import api from "@/lib/api";
 import { Customer } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/lib/permissions";
+
+const MINIMUM_CUSTOMER_AGE_YEARS = 20;
+
+/** Latest date of birth that still meets the minimum age, as YYYY-MM-DD. */
+function maxDateOfBirth(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - MINIMUM_CUSTOMER_AGE_YEARS);
+  return d.toISOString().split("T")[0];
+}
 
 const PHOTO_MAX_DIMENSION = 800;
 const PHOTO_JPEG_QUALITY = 0.7;
@@ -779,9 +790,13 @@ function CustomerRegistrationForm({
                   <label className="block text-sm font-medium mb-2">Date of Birth</label>
                   <Input
                     type="date"
+                    max={maxDateOfBirth()}
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Customer must be at least {MINIMUM_CUSTOMER_AGE_YEARS} years old.
+                  </p>
                 </div>
               </div>
             </div>
@@ -927,6 +942,8 @@ function CustomerEditForm({
   const [photoPreview, setPhotoPreview] = useState<string | null>(customer.photoUrl || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canEditPhone = hasPermission(PERMISSIONS.UPDATE_CUSTOMER_PHONE);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -954,7 +971,7 @@ function CustomerEditForm({
       const submitData = new FormData();
       submitData.append("firstName", formData.firstName);
       submitData.append("lastName", formData.lastName);
-      submitData.append("phone", formData.phone);
+      if (canEditPhone) submitData.append("phone", formData.phone);
       submitData.append("address", formData.address);
       submitData.append("nationalId", formData.nationalId);
       submitData.append("guarantorName", formData.guarantorName);
@@ -1018,7 +1035,20 @@ function CustomerEditForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Phone Number *</label>
-                <Input required type="tel" placeholder="0200000000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                <Input
+                  required
+                  type="tel"
+                  placeholder="0200000000"
+                  value={formData.phone}
+                  disabled={!canEditPhone}
+                  className={!canEditPhone ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : undefined}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+                {!canEditPhone && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Only an admin or customer service can change a phone number.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">National ID</label>
@@ -1031,7 +1061,7 @@ function CustomerEditForm({
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Date of Birth</label>
-              <Input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} />
+              <Input type="date" max={maxDateOfBirth()} value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} />
             </div>
             {/* Guarantor */}
             <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 space-y-3">
