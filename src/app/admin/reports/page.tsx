@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -65,6 +65,13 @@ export default function ReportsPage() {
       icon: BarChart3,
       color: 'text-indigo-600 bg-indigo-100',
       path: '/admin/reports/dashboard',
+    },
+    {
+      title: 'Agent Completions',
+      description: 'Contracts paid off per agent in a month — the basis for paying completion bonuses',
+      icon: Award,
+      color: 'text-emerald-600 bg-emerald-100',
+      path: '/admin/reports/agent-completions',
     },
     {
       title: 'Agent Deposit Collections',

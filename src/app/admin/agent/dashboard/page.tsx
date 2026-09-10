@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   FileText, Users, Banknote, TrendingUp, AlertCircle,
   Clock, CheckCircle, XCircle, RefreshCw, ChevronRight,
-  Wallet, Target, CalendarClock,
+  Wallet, Target, CalendarClock, Award,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -585,7 +585,7 @@ export default function AgentDashboardPage() {
       </div>
 
       {/* ── QUICK ACTIONS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/admin/contracts" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-blue-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
           <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
             <FileText className="w-4 h-4 text-blue-600" />
@@ -611,6 +611,15 @@ export default function AgentDashboardPage() {
           <div>
             <div className="font-semibold text-gray-800 text-sm">My Contracts</div>
             <div className="text-xs text-gray-500">View your full portfolio</div>
+          </div>
+        </Link>
+        <Link href="/admin/agent/completed" className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+            <Award className="w-4 h-4 text-amber-600" />
+          </div>
+          <div>
+            <div className="font-semibold text-gray-800 text-sm">Completed This Month</div>
+            <div className="text-xs text-gray-500">Contracts paid off — counts toward your bonus</div>
           </div>
         </Link>
       </div>
