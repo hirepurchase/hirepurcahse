@@ -38,6 +38,7 @@ import {
   Headset,
   Megaphone,
   AlertTriangle,
+  Unlock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -57,6 +58,7 @@ import AnnouncementBell from "./AnnouncementBell";
 import DeviceIssueBell from "./DeviceIssueBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
 import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
+import { usePendingTemporaryUnlocks } from "@/hooks/usePendingTemporaryUnlocks";
 
 // The customer service directory is for supervisors and officers. Agents are
 // shown only their own officer, on their dashboard.
@@ -71,7 +73,7 @@ interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
-  badge?: (paymentCount: number, approvalCount: number) => number | null;
+  badge?: (paymentCount: number, approvalCount: number, temporaryUnlockCount: number) => number | null;
   badgeColor?: "red" | "amber";
   permissions?: readonly PermissionName[];
 }
@@ -98,6 +100,17 @@ const navGroups: NavGroup[] = [
     roles: ["AGENT"],
     items: [
       { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
+      { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
+    ],
+  },
+  {
+    label: "Cluster Menu",
+    roles: ["CLUSTER_AGENT"],
+    items: [
+      { name: "Dashboard", href: "/admin/cluster/dashboard", icon: LayoutDashboard },
+      { name: "Temporary Unlocks", href: "/admin/temporary-unlocks", icon: Unlock, permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
@@ -196,6 +209,16 @@ const navGroups: NavGroup[] = [
       { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control", href: "/admin/device-control", icon: Shield, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Lock Issues", href: "/admin/device-issues", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      {
+        name: "Temporary Unlocks",
+        href: "/admin/temporary-unlocks",
+        icon: Unlock,
+        // A request sits on a locked phone until someone decides, so the count
+        // belongs in the nav rather than behind a click.
+        badge: (_pc, _ac, tu) => (tu > 0 ? tu : null),
+        badgeColor: "amber",
+        permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS],
+      },
       { name: "Agent Ledger", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
@@ -234,6 +257,17 @@ const MORE_GROUPS: Array<{
     ],
   },
   {
+    label: "Cluster Menu",
+    roles: ["CLUSTER_AGENT"],
+    links: [
+      { name: "Dashboard",     href: "/admin/cluster/dashboard", emoji: "🏠", permissions: [] as PermissionName[] },
+      { name: "Temp Unlocks",  href: "/admin/temporary-unlocks", emoji: "🔓", permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
+      { name: "My Contracts",  href: "/admin/agent/contracts",   emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Deposit Ledger",href: "/admin/agent/deposits",    emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "Price Chart",   href: "/admin/price-chart",       emoji: "🏷️", permissions: [] as PermissionName[] },
+    ],
+  },
+  {
     label: "Customer Service",
     roles: ["CUSTOMER_SERVICE"],
     links: [
@@ -242,6 +276,7 @@ const MORE_GROUPS: Array<{
       { name: "Call Queue",   href: "/admin/customer-service/call-queue",   emoji: "📞", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Follow-ups",   href: "/admin/customer-service/follow-ups",   emoji: "📅", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "My Agents",    href: "/admin/customer-service/my-agents",    emoji: "💼", permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "Temp Unlocks", href: "/admin/temporary-unlocks",            emoji: "🔓", permissions: [PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
       { name: "Call Logs",    href: "/admin/call-logs",                    emoji: "🗒️", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Customers",    href: "/admin/customers",                    emoji: "👥", permissions: [PERMISSIONS.VIEW_ASSIGNED_CUSTOMERS] },
       { name: "Send SMS",     href: "/admin/sms",                          emoji: "💬", permissions: [PERMISSIONS.SEND_SMS] },
@@ -298,6 +333,7 @@ const MORE_GROUPS: Array<{
       { name: "Call Logs",           href: "/admin/call-logs",            emoji: "📞", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
       { name: "Knox Guard",          href: "/admin/knox",                 emoji: "🔒", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control",      href: "/admin/device-control",       emoji: "🛡️", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Temp Unlocks",        href: "/admin/temporary-unlocks",    emoji: "🔓", permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
       { name: "Agent Ledger",        href: "/admin/agent/admin-ledger",   emoji: "📒", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission",  emoji: "💲", permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
@@ -310,11 +346,13 @@ function SidebarNav({
   pathname,
   paymentCount,
   approvalCount,
+  temporaryUnlockCount,
   onNavigate,
 }: {
   pathname: string | null;
   paymentCount: number;
   approvalCount: number;
+  temporaryUnlockCount: number;
   onNavigate: () => void;
 }) {
   const { hasAnyPermission } = usePermissions();
@@ -352,7 +390,7 @@ function SidebarNav({
         if (single) {
           const item = group.items[0];
           const active = pathname === item.href || (item.href !== "/admin/dashboard" && item.href !== "/admin/agent/dashboard" && pathname?.startsWith(item.href + "/"));
-          const badge = item.badge?.(paymentCount, approvalCount) ?? null;
+          const badge = item.badge?.(paymentCount, approvalCount, temporaryUnlockCount) ?? null;
           return (
             <div key={idx}>
               <p className="px-2.5 pt-5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
@@ -400,7 +438,7 @@ function SidebarNav({
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = pathname === item.href || (pathname?.startsWith(item.href + "/") && item.href !== "/admin/sms");
-                  const badge = item.badge?.(paymentCount, approvalCount) ?? null;
+                  const badge = item.badge?.(paymentCount, approvalCount, temporaryUnlockCount) ?? null;
                   return (
                     <Link
                       key={item.href}
@@ -447,6 +485,7 @@ function MobileTabBar({
   pathname: string | null;
   paymentCount: number;
   approvalCount?: number;
+  temporaryUnlockCount?: number;
   moreOpen: boolean;
   onMoreToggle: () => void;
   userRole?: string;
@@ -456,6 +495,10 @@ function MobileTabBar({
   const effectiveTabs = PRIMARY_TABS.map((t) => {
     if (userRole === "AGENT") {
       if (t.href === "/admin/dashboard") return { ...t, href: "/admin/agent/dashboard" };
+      if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
+    }
+    if (userRole === "CLUSTER_AGENT") {
+      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/cluster/dashboard" };
       if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
     }
     if (userRole === "CUSTOMER_SERVICE") {
@@ -675,6 +718,7 @@ export default function Sidebar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const { count: paymentCount } = useDailyPayments();
   const { count: approvalCount } = usePendingContractApprovals();
+  const { count: temporaryUnlockCount } = usePendingTemporaryUnlocks();
 
   const adminUser = user && "role" in user ? (user as AdminUser) : null;
 
@@ -703,6 +747,7 @@ export default function Sidebar() {
           pathname={pathname}
           paymentCount={paymentCount}
           approvalCount={approvalCount}
+          temporaryUnlockCount={temporaryUnlockCount}
           onNavigate={() => {}}
         />
 
@@ -717,6 +762,7 @@ export default function Sidebar() {
         pathname={pathname}
         paymentCount={paymentCount}
         approvalCount={approvalCount}
+        temporaryUnlockCount={temporaryUnlockCount}
         moreOpen={moreOpen}
         onMoreToggle={() => setMoreOpen((o) => !o)}
         userRole={adminUser?.role}

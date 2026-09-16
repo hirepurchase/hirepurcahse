@@ -79,6 +79,11 @@ export default function AdminDashboard() {
       return;
     }
 
+    if (adminUser?.role === 'CLUSTER_AGENT') {
+      router.replace('/admin/cluster/dashboard');
+      return;
+    }
+
     void loadDashboardStats();
   }, [adminUser?.role, isAuthLoading, loadDashboardStats, router]);
 

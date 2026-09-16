@@ -69,9 +69,19 @@ export default function UsersPage() {
     isActive: true,
   });
 
-  // Agent assignments — only meaningful when the edited user is a CSO
+  // Agent assignments — the edited user is either a CSO (coverage) or a
+  // cluster agent (supervision). Both use the same picker against parallel
+  // endpoints; only a cluster agent is exclusive, hence the conflict fields.
   const [assignableAgents, setAssignableAgents] = useState<
-    { id: string; firstName: string; lastName: string; email: string; role: string }[]
+    {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: string;
+      assignedToOtherCluster?: boolean;
+      currentClusterAgentName?: string | null;
+    }[]
   >([]);
   const [assignedAgentIds, setAssignedAgentIds] = useState<Set<string>>(new Set());
   const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
@@ -248,10 +258,11 @@ export default function UsersPage() {
     }
   };
 
-  const loadAssignedAgents = async (userId: string) => {
+  const loadAssignedAgents = async (userId: string, kind: 'CUSTOMER_SERVICE' | 'CLUSTER_AGENT') => {
     try {
       setIsLoadingAssignments(true);
-      const res = await api.get(`/admin-users/${userId}/assigned-agents`);
+      const path = kind === 'CLUSTER_AGENT' ? 'cluster-agents' : 'assigned-agents';
+      const res = await api.get(`/admin-users/${userId}/${path}`);
       setAssignableAgents(res.data.availableAgents || []);
       setAssignedAgentIds(new Set<string>(res.data.assignedAgentIds || []));
     } catch (error: any) {
@@ -267,21 +278,34 @@ export default function UsersPage() {
 
   const saveAssignedAgents = async () => {
     if (!selectedUser) return;
+    const isCluster = selectedUser.role.name === 'CLUSTER_AGENT';
     try {
       setIsSavingAssignments(true);
-      const res = await api.put(`/admin-users/${selectedUser.id}/assigned-agents`, {
+      const path = isCluster ? 'cluster-agents' : 'assigned-agents';
+      const res = await api.put(`/admin-users/${selectedUser.id}/${path}`, {
         agentIds: Array.from(assignedAgentIds),
       });
       toast({
         title: 'Success',
-        description: res.data.count === 0
-          ? 'All agents unassigned — this officer will not see any customers or contracts'
-          : `${res.data.count} agent${res.data.count === 1 ? '' : 's'} assigned`,
+        description:
+          res.data.count === 0
+            ? isCluster
+              ? 'All agents removed — this cluster agent now supervises nobody'
+              : 'All agents unassigned — this officer will not see any customers or contracts'
+            : `${res.data.count} agent${res.data.count === 1 ? '' : 's'} assigned`,
       });
+      await loadAssignedAgents(selectedUser.id, isCluster ? 'CLUSTER_AGENT' : 'CUSTOMER_SERVICE');
     } catch (error: any) {
+      // An agent reports to exactly one cluster agent; name the clash rather
+      // than leaving the admin to guess which row was rejected.
+      const conflicts = error.response?.data?.conflicts as
+        | { agentName: string; currentClusterAgentName: string }[]
+        | undefined;
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'Failed to update assigned agents',
+        description: conflicts?.length
+          ? conflicts.map((c) => `${c.agentName} already reports to ${c.currentClusterAgentName}`).join('; ')
+          : error.response?.data?.error || 'Failed to update assigned agents',
         variant: 'destructive',
       });
     } finally {
@@ -300,8 +324,8 @@ export default function UsersPage() {
     });
     setAssignableAgents([]);
     setAssignedAgentIds(new Set());
-    if (user.role.name === 'CUSTOMER_SERVICE') {
-      loadAssignedAgents(user.id);
+    if (user.role.name === 'CUSTOMER_SERVICE' || user.role.name === 'CLUSTER_AGENT') {
+      loadAssignedAgents(user.id, user.role.name as 'CUSTOMER_SERVICE' | 'CLUSTER_AGENT');
     }
     setShowEditDialog(true);
   };
@@ -678,12 +702,16 @@ export default function UsersPage() {
               <Label htmlFor="editIsActive">Active</Label>
             </div>
 
-            {selectedUser?.role.name === 'CUSTOMER_SERVICE' && (
+            {(selectedUser?.role.name === 'CUSTOMER_SERVICE' ||
+              selectedUser?.role.name === 'CLUSTER_AGENT') && (
               <div className="border-t pt-4">
-                <Label>Assigned Agents</Label>
+                <Label>
+                  {selectedUser?.role.name === 'CLUSTER_AGENT' ? 'Supervised Agents' : 'Assigned Agents'}
+                </Label>
                 <p className="text-xs text-gray-500 mt-1 mb-2">
-                  This officer sees only the customers and contracts created by the agents
-                  selected here. With none selected they see nothing.
+                  {selectedUser?.role.name === 'CLUSTER_AGENT'
+                    ? 'This cluster agent supervises the agents selected here and sees their customers and contracts alongside their own. An agent reports to only one cluster agent.'
+                    : 'This officer sees only the customers and contracts created by the agents selected here. With none selected they see nothing.'}
                 </p>
 
                 {isLoadingAssignments ? (
@@ -698,11 +726,14 @@ export default function UsersPage() {
                       {assignableAgents.map((agent) => (
                         <label
                           key={agent.id}
-                          className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                          className={`flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
+                            agent.assignedToOtherCluster ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                          }`}
                         >
                           <input
                             type="checkbox"
                             className="h-4 w-4"
+                            disabled={agent.assignedToOtherCluster}
                             checked={assignedAgentIds.has(agent.id)}
                             onChange={(e) => {
                               const next = new Set(assignedAgentIds);
@@ -714,6 +745,11 @@ export default function UsersPage() {
                           <span className="flex-1">
                             {agent.firstName} {agent.lastName}
                             <span className="text-gray-400"> · {agent.email}</span>
+                            {agent.assignedToOtherCluster && (
+                              <span className="block text-xs text-amber-600">
+                                Reports to {agent.currentClusterAgentName}
+                              </span>
+                            )}
                           </span>
                           <span className="text-xs text-gray-400">{agent.role}</span>
                         </label>

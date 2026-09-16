@@ -10,6 +10,7 @@ import {
   Phone,
   Search,
   User,
+  Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ interface QueueCustomer {
   promiseToPayDate: string | null;
   isUrgent: boolean;
   urgentReason: string | null;
+  temporaryUnlock: { expiresAt: string; daysRemaining: number; arrearsAtApproval: number | null } | null;
   contracts: OverdueContract[];
 }
 
@@ -195,13 +197,24 @@ export default function CallQueuePage() {
               {/* Mobile */}
               <div className="sm:hidden divide-y divide-gray-100">
                 {filtered.map((r) => (
-                  <div key={r.customer.id} className={cn("p-4 space-y-2", r.isUrgent && "bg-red-50/60")}>
-                    {r.isUrgent && (
+                  <div
+                    key={r.customer.id}
+                    className={cn(
+                      "p-4 space-y-2",
+                      r.temporaryUnlock ? "bg-amber-50/70" : r.isUrgent && "bg-red-50/60"
+                    )}
+                  >
+                    {r.temporaryUnlock ? (
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                        <Unlock className="h-3.5 w-3.5" />
+                        UNLOCK WINDOW — {r.urgentReason}
+                      </div>
+                    ) : r.isUrgent ? (
                       <div className="flex items-center gap-1.5 text-xs font-bold text-red-700">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         URGENT — {r.urgentReason}
                       </div>
-                    )}
+                    ) : null}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-medium truncate">{r.customer.name}</p>
@@ -289,7 +302,10 @@ export default function CallQueuePage() {
                   <TableBody>
                     {filtered.map((r) => (
                       <>
-                        <TableRow key={r.customer.id} className={cn(r.isUrgent && "bg-red-50/60")}>
+                        <TableRow
+                          key={r.customer.id}
+                          className={cn(r.temporaryUnlock ? "bg-amber-50/70" : r.isUrgent && "bg-red-50/60")}
+                        >
                           <TableCell className="pr-0">
                             <button
                               onClick={() => toggle(r.customer.id)}
@@ -304,12 +320,17 @@ export default function CallQueuePage() {
                             </button>
                           </TableCell>
                           <TableCell>
-                            {r.isUrgent && (
+                            {r.temporaryUnlock ? (
+                              <div className="flex items-center gap-1 text-[11px] font-bold text-amber-800 mb-0.5">
+                                <Unlock className="h-3 w-3" />
+                                UNLOCK WINDOW — {r.urgentReason}
+                              </div>
+                            ) : r.isUrgent ? (
                               <div className="flex items-center gap-1 text-[11px] font-bold text-red-700 mb-0.5">
                                 <AlertTriangle className="h-3 w-3" />
                                 URGENT — {r.urgentReason}
                               </div>
-                            )}
+                            ) : null}
                             <p className="font-medium">{r.customer.name}</p>
                             <p className="text-xs text-gray-400">{r.customer.membershipId}</p>
                           </TableCell>

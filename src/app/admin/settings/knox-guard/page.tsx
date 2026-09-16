@@ -11,6 +11,7 @@ interface KnoxGuardSettings {
   id: string;
   supportPhone: string | null;
   lockAfterOverdueDays: number;
+  temporaryUnlockMaxWeeks: number;
   blockOnUnpaidPenalties: boolean;
   maxCommandRetries: number;
   commandCron: string;
@@ -173,6 +174,20 @@ export default function KnoxGuardSettingsPage() {
               max={365}
               value={form.lockAfterOverdueDays ?? 7}
               onChange={(e) => set('lockAfterOverdueDays', parseInt(e.target.value) || 7)}
+              className={inputCls}
+            />
+          </Field>
+
+          <Field
+            label="Longest temporary unlock (weeks)"
+            hint="The most a cluster agent may ask for when vouching that an overdue customer will pay. Admins can approve less, never more."
+          >
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={form.temporaryUnlockMaxWeeks ?? 4}
+              onChange={(e) => set('temporaryUnlockMaxWeeks', parseInt(e.target.value) || 4)}
               className={inputCls}
             />
           </Field>
