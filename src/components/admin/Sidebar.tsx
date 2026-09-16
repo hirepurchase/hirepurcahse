@@ -221,6 +221,7 @@ const navGroups: NavGroup[] = [
       },
       { name: "Agent Ledger", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
+      { name: "Expiry Penalties", href: "/admin/settings/penalties", icon: AlertTriangle, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
     ],
   },
 ];
@@ -336,6 +337,7 @@ const MORE_GROUPS: Array<{
       { name: "Temp Unlocks",        href: "/admin/temporary-unlocks",    emoji: "🔓", permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
       { name: "Agent Ledger",        href: "/admin/agent/admin-ledger",   emoji: "📒", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission",  emoji: "💲", permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
+      { name: "Expiry Penalties",    href: "/admin/settings/penalties",   emoji: "⚠️", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
     ],
   },
 ];
