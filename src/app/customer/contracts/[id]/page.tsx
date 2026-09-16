@@ -129,6 +129,9 @@ export default function CustomerContractDetailPage() {
         <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Deposit Paid</p><p className="text-lg sm:text-xl font-bold mt-1 text-blue-600">{formatCurrency(contract.depositAmount)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Total Paid</p><p className="text-lg sm:text-xl font-bold mt-1 text-green-600">{formatCurrency(contract.totalPaid)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Outstanding</p><p className="text-lg sm:text-xl font-bold mt-1 text-red-600">{formatCurrency(contract.outstandingBalance)}</p></CardContent></Card>
+        {(contract.penaltyOutstanding ?? 0) > 0 && (
+          <Card><CardContent className="p-4"><p className="text-xs text-gray-600">Late Charges</p><p className="text-lg sm:text-xl font-bold mt-1 text-orange-600">{formatCurrency(contract.penaltyOutstanding ?? 0)}</p></CardContent></Card>
+        )}
         <Card className="col-span-2 lg:col-span-1">
           <CardContent className="p-4">
             <p className="text-xs text-gray-600">Progress</p>

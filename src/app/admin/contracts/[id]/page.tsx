@@ -1096,6 +1096,17 @@ export default function ContractDetailsPage() {
                 {formatCurrency(contract.outstandingBalance)}
               </p>
             </div>
+            {(contract.penaltyOutstanding ?? 0) > 0 && (
+              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-sm text-orange-700 font-medium">Penalties Outstanding</p>
+                <p className="text-2xl font-bold text-orange-700 mt-1">
+                  {formatCurrency(contract.penaltyOutstanding ?? 0)}
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Charged on top of the balance — the contract cannot complete until these are paid.
+                </p>
+              </div>
+            )}
             <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-sm text-purple-700 font-medium">Progress</p>
               <p className="text-2xl font-bold text-purple-700 mt-1">

@@ -78,6 +78,7 @@ export interface HirePurchaseContract {
   status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'CANCELLED' | 'PENDING_APPROVAL' | 'REVISION_REQUESTED';
   totalPaid: number;
   outstandingBalance: number;
+  penaltyOutstanding?: number;
   ownershipTransferred: boolean;
   approvedAt?: Date | null;
   rejectionReason?: string | null;

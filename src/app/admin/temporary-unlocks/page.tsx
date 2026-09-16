@@ -206,12 +206,18 @@ export default function TemporaryUnlocksPage() {
       const res = await api.post(`/temporary-unlocks/${request.id}/${action}`, body);
 
       if (action === "approve") {
+        const warning = res.data?.device?.warning as string | null;
         const deviceOpened = res.data?.device?.success;
         toast({
-          title: "Approved",
-          description: deviceOpened
-            ? `${request.customerName}'s phone has been opened until ${formatDate(res.data.request.expiresAt)}.`
-            : "Approved. The device will be opened on the next device-control run.",
+          // A warning means the phone did not open. Saying so as an error
+          // keeps the approver from telling the customer otherwise.
+          title: warning ? "Approved — but the phone did not open" : "Approved",
+          description: warning
+            ? warning
+            : deviceOpened
+              ? `${request.customerName}'s phone has been opened until ${formatDate(res.data.request.expiresAt)}.`
+              : "Approved. The device will be opened on the next device-control run.",
+          variant: warning ? "destructive" : undefined,
         });
       } else {
         toast({ title: "Rejected", description: "The phone stays locked." });
