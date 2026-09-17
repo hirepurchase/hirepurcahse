@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
-interface Person { id: string; name: string; email: string }
+interface Person { id: string; name: string; email: string; area?: string | null; district?: string | null }
 interface AgentRow {
   id: string;
   name: string;
@@ -14,6 +14,8 @@ interface AgentRow {
   phone: string | null;
   role: string;
   canHaveClusterAgent: boolean;
+  area: string | null;
+  district: string | null;
   clusterAgentId: string | null;
   csoIds: string[];
   customers: number;
@@ -57,7 +59,7 @@ export default function AgentSupervisionPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const save = async (agent: AgentRow, patch: Partial<Pick<AgentRow, "clusterAgentId" | "csoIds">>) => {
+  const save = async (agent: AgentRow, patch: Partial<Pick<AgentRow, "clusterAgentId" | "csoIds" | "area" | "district">>) => {
     setSavingId(agent.id);
     // Applied locally first so the row does not snap back while the request is
     // in flight; reverted from the server's answer if it refuses.
@@ -241,13 +243,39 @@ export default function AgentSupervisionPage() {
                   <p className="mt-0.5 text-xs text-gray-400">
                     {agent.role.replace(/_/g, " ").toLowerCase()} · {agent.contracts} contracts
                   </p>
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <input
+                      defaultValue={agent.area ?? ""}
+                      placeholder="Area"
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== (agent.area ?? "")) save(agent, { area: v || null });
+                      }}
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-cyan-500 focus:outline-none"
+                    />
+                    <input
+                      defaultValue={agent.district ?? ""}
+                      placeholder="District"
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== (agent.district ?? "")) save(agent, { district: v || null });
+                      }}
+                      className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-cyan-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <label className="mb-1 block text-xs font-medium text-gray-600">Cluster agent</label>
                   {agent.canHaveClusterAgent ? (
                     <SearchableSelect
-                      options={clusterAgents.map((c) => ({ value: c.id, label: c.name, sublabel: c.email }))}
+                      options={clusterAgents.map((c) => ({
+                        value: c.id,
+                        label: c.name,
+                        // Area first: grouping is meant to follow geography, so
+                        // that is the useful thing to see while choosing.
+                        sublabel: [c.area, c.district].filter(Boolean).join(", ") || c.email,
+                      }))}
                       value={agent.clusterAgentId ?? ""}
                       onChange={(v) => save(agent, { clusterAgentId: v || null })}
                       placeholder="Not assigned"

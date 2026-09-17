@@ -114,6 +114,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Dashboard", href: "/admin/cluster/dashboard", icon: LayoutDashboard },
       { name: "Temporary Unlocks", href: "/admin/temporary-unlocks", icon: Unlock, permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
+      { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Package, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
@@ -266,6 +267,7 @@ const MORE_GROUPS: Array<{
     links: [
       { name: "Dashboard",     href: "/admin/cluster/dashboard", emoji: "🏠", permissions: [] as PermissionName[] },
       { name: "Temp Unlocks",  href: "/admin/temporary-unlocks", emoji: "🔓", permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
+      { name: "Stock",         href: "/admin/cluster/stock",     emoji: "📦", permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "My Contracts",  href: "/admin/agent/contracts",   emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",    emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Price Chart",   href: "/admin/price-chart",       emoji: "🏷️", permissions: [] as PermissionName[] },
