@@ -39,6 +39,7 @@ import {
   Megaphone,
   AlertTriangle,
   Unlock,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -94,6 +95,7 @@ const navGroups: NavGroup[] = [
       // dashboard instead of the whole directory.
       { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
       { name: "Cluster Coverage", href: "/admin/cluster-chart", icon: Users, permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
+      { name: "Agent Supervision", href: "/admin/agent-supervision", icon: ShieldCheck, permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
     ],
   },
   {
