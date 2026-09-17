@@ -75,6 +75,7 @@ const STATUS_TONE: Record<string, string> = {
   APPROVED: "bg-emerald-100 text-emerald-800",
   REJECTED: "bg-gray-100 text-gray-700",
   CANCELLED: "bg-gray-100 text-gray-700",
+  REVOKED: "bg-orange-100 text-orange-800",
   FULFILLED: "bg-blue-100 text-blue-800",
   DEFAULTED: "bg-red-100 text-red-800",
 };
@@ -84,6 +85,7 @@ const STATUS_LABEL: Record<string, string> = {
   APPROVED: "Open",
   REJECTED: "Rejected",
   CANCELLED: "Withdrawn",
+  REVOKED: "Ended early",
   FULFILLED: "Cleared",
   DEFAULTED: "Defaulted",
 };
@@ -243,6 +245,38 @@ export default function TemporaryUnlocksPage() {
       toast({
         title: "Failed",
         description: error.response?.data?.error || `Could not ${action} the request`,
+        variant: "destructive",
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const revoke = async (request: UnlockRequest) => {
+    // Ending a live window relocks a customer's phone, so it asks why and the
+    // reason goes to the requester and into the audit trail.
+    const reason = window.prompt(
+      `End the unlock for ${request.customerName} now? Their phone will be locked again.\n\nReason (recorded, and sent to whoever asked for it):`
+    );
+    if (reason === null) return;
+    if (reason.trim().length < 5) {
+      toast({ title: "Reason too short", description: "Give at least 5 characters", variant: "destructive" });
+      return;
+    }
+    setBusyId(request.id);
+    try {
+      const res = await api.post(`/temporary-unlocks/${request.id}/revoke`, { reason: reason.trim() });
+      toast({
+        title: res.data?.arrearsCleared ? "Window closed" : "Window ended early",
+        description: res.data?.arrearsCleared
+          ? "They had already cleared their arrears, so this closed as fulfilled."
+          : "The phone has been returned to the normal rules.",
+      });
+      await load();
+    } catch (error: any) {
+      toast({
+        title: "Failed",
+        description: error.response?.data?.error || "Could not end the window",
         variant: "destructive",
       });
     } finally {
@@ -440,6 +474,17 @@ export default function TemporaryUnlocksPage() {
                         onClick={() => withdraw(request)}
                       >
                         Withdraw
+                      </Button>
+                    )}
+                    {request.status === "APPROVED" && canApprove && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === request.id}
+                        onClick={() => revoke(request)}
+                      >
+                        <XCircle className="mr-1.5 h-4 w-4" />
+                        End now
                       </Button>
                     )}
                     {request.customerPhone && (
