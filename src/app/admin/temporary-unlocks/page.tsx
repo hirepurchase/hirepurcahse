@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Unlock,
   Clock,
@@ -64,6 +64,7 @@ type EligibleContract = {
   outstandingBalance: number;
   deviceState: string | null;
   hasOpenRequest: boolean;
+  isOwnSale?: boolean;
   overdueAmount: number;
   overdueCount: number;
   maxDaysOverdue: number;
@@ -108,6 +109,7 @@ export default function TemporaryUnlocksPage() {
   const [eligible, setEligible] = useState<EligibleContract[]>([]);
   const [eligibleLoading, setEligibleLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [truncated, setTruncated] = useState(false);
   const [selected, setSelected] = useState<EligibleContract | null>(null);
   const [weeks, setWeeks] = useState("2");
   const [reason, setReason] = useState("");
@@ -138,34 +140,45 @@ export default function TemporaryUnlocksPage() {
     void load();
   }, [load]);
 
+  const loadEligible = useCallback(
+    async (term: string) => {
+      setEligibleLoading(true);
+      try {
+        const res = await api.get("/temporary-unlocks/eligible-contracts", {
+          params: term ? { search: term } : {},
+        });
+        setEligible(res.data.contracts || []);
+        setTruncated(Boolean(res.data.truncated));
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.error || "Failed to load customers",
+          variant: "destructive",
+        });
+      } finally {
+        setEligibleLoading(false);
+      }
+    },
+    [toast]
+  );
+
   const openRequestDialog = async () => {
     setRequestOpen(true);
-    setEligibleLoading(true);
-    try {
-      const res = await api.get("/temporary-unlocks/eligible-contracts");
-      setEligible(res.data.contracts || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.error || "Failed to load customers",
-        variant: "destructive",
-      });
-    } finally {
-      setEligibleLoading(false);
-    }
+    setSearch("");
+    await loadEligible("");
   };
 
-  const filteredEligible = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return eligible;
-    return eligible.filter(
-      (c) =>
-        c.customerName.toLowerCase().includes(term) ||
-        c.contractNumber.toLowerCase().includes(term) ||
-        c.membershipId?.toLowerCase().includes(term) ||
-        c.customerPhone?.includes(term)
-    );
-  }, [eligible, search]);
+  // Searching happens on the server: there are far more overdue customers than
+  // the page can hold, so filtering what was already sent would hide most of
+  // them. Debounced so typing does not fire a query per keystroke.
+  useEffect(() => {
+    if (!requestOpen) return;
+    const id = setTimeout(() => void loadEligible(search.trim()), 300);
+    return () => clearTimeout(id);
+  }, [search, requestOpen, loadEligible]);
+
+  // No local filtering: the server already answered this search.
+  const filteredEligible = eligible;
 
   const submitRequest = async () => {
     if (!selected) return;
@@ -526,7 +539,7 @@ export default function TemporaryUnlocksPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
-                  placeholder="Search by name, phone or contract number"
+                  placeholder="Search by name, phone, membership or contract number"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
@@ -539,14 +552,22 @@ export default function TemporaryUnlocksPage() {
                 </div>
               ) : filteredEligible.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-500">
-                  No overdue customers found for the agents you supervise.
+                  {search.trim()
+                    ? `No overdue customer matches "${search.trim()}".`
+                    : "No overdue customers found."}
                 </p>
               ) : (
                 <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+                  {truncated && !search.trim() && (
+                    <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Showing the most overdue customers only. Type a name, phone or contract number to
+                      reach the rest.
+                    </p>
+                  )}
                   {filteredEligible.map((contract) => (
                     <button
                       key={contract.id}
-                      disabled={contract.hasOpenRequest}
+                      disabled={contract.hasOpenRequest || contract.isOwnSale}
                       onClick={() => setSelected(contract)}
                       className="w-full rounded-lg border border-gray-200 p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-200 disabled:hover:bg-transparent"
                     >
@@ -566,6 +587,11 @@ export default function TemporaryUnlocksPage() {
                       </div>
                       {contract.hasOpenRequest && (
                         <p className="mt-1.5 text-xs text-amber-700">Already has a request open</p>
+                      )}
+                      {contract.isOwnSale && (
+                        <p className="mt-1.5 text-xs text-gray-500">
+                          Your own sale — an administrator has to raise this one.
+                        </p>
                       )}
                     </button>
                   ))}

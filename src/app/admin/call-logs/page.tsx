@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Phone, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -166,21 +167,22 @@ export default function CallLogsPage() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            <SearchableSelect
+              options={officers.map((o: any) => ({
+                value: o.id,
+                label: `${o.firstName} ${o.lastName}`,
+                sublabel: o.email,
+              }))}
               value={officerId}
-              onChange={(e) => {
-                setOfficerId(e.target.value);
+              onChange={(v) => {
+                setOfficerId(v);
                 setPage(1);
               }}
-            >
-              <option value="">All officers</option>
-              {officers.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name} ({o.calls})
-                </option>
-              ))}
-            </select>
+              placeholder="All officers"
+              searchPlaceholder="Search officers…"
+              allowClear
+              clearLabel="All officers"
+            />
 
             <select
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"

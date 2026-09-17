@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -1196,16 +1197,20 @@ function InventoryForm({
                 <label className="block text-sm font-medium mb-2">
                   Assign to Agent <span className="text-gray-400 font-normal">(Optional)</span>
                 </label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                <SearchableSelect
+                  options={agents.map((a) => ({
+                    value: a.id,
+                    label: `${a.firstName} ${a.lastName}`,
+                    sublabel: a.email,
+                  }))}
                   value={assignedAgentId}
-                  onChange={(e) => setAssignedAgentId(e.target.value)}
-                >
-                  <option value="">— No assignment (any agent can use) —</option>
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.id}>{a.firstName} {a.lastName} ({a.email})</option>
-                  ))}
-                </select>
+                  onChange={setAssignedAgentId}
+                  placeholder="— No assignment (any agent can use) —"
+                  searchPlaceholder="Search agents by name or email…"
+                  emptyText="No agent matches"
+                  allowClear
+                  clearLabel="— No assignment (any agent can use) —"
+                />
                 <p className="text-xs text-gray-500 mt-1">
                   Only the assigned agent will be allowed to create a contract with this device.
                 </p>
@@ -1513,16 +1518,20 @@ function EditInventoryForm({
           <label className="block text-sm font-medium mb-2">
             Assigned Agent <span className="text-gray-400 font-normal">(Optional)</span>
           </label>
-          <select
-            className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm"
+          <SearchableSelect
+            options={agents.map((a) => ({
+              value: a.id,
+              label: `${a.firstName} ${a.lastName}`,
+              sublabel: a.email,
+            }))}
             value={formData.assignedAgentId}
-            onChange={(e) => setFormData({ ...formData, assignedAgentId: e.target.value })}
-          >
-            <option value="">— No assignment (any agent can use) —</option>
-            {agents.map((a) => (
-              <option key={a.id} value={a.id}>{a.firstName} {a.lastName} ({a.email})</option>
-            ))}
-          </select>
+            onChange={(v) => setFormData({ ...formData, assignedAgentId: v })}
+            placeholder="— No assignment (any agent can use) —"
+            searchPlaceholder="Search agents by name or email…"
+            emptyText="No agent matches"
+            allowClear
+            clearLabel="— No assignment (any agent can use) —"
+          />
           <p className="text-xs text-gray-500 mt-1">
             Only the assigned agent will be allowed to create a contract with this device.
           </p>

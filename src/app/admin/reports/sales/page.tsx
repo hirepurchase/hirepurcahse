@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -176,31 +177,31 @@ export default function SalesReportPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Product</label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              <SearchableSelect
+                options={products.map((product: any) => ({ value: product.id, label: product.name }))}
                 value={filters.productId}
-                onChange={(e) => setFilters({ ...filters, productId: e.target.value })}
-              >
-                <option value="">All Products</option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>{product.name}</option>
-                ))}
-              </select>
+                onChange={(v) => setFilters({ ...filters, productId: v })}
+                placeholder="All products"
+                searchPlaceholder="Search products…"
+                allowClear
+                clearLabel="All products"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Sales Agent</label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              <SearchableSelect
+                options={agents.map((agent: any) => ({
+                  value: agent.id,
+                  label: `${agent.firstName} ${agent.lastName}`,
+                  sublabel: agent.email,
+                }))}
                 value={filters.agentId}
-                onChange={(e) => setFilters({ ...filters, agentId: e.target.value })}
-              >
-                <option value="">All Agents</option>
-                {agents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.firstName} {agent.lastName}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setFilters({ ...filters, agentId: v })}
+                placeholder="All agents"
+                searchPlaceholder="Search agents…"
+                allowClear
+                clearLabel="All agents"
+              />
             </div>
           </div>
           <div className="flex gap-2 mt-4">

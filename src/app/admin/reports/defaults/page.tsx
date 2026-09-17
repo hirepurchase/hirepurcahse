@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
@@ -204,21 +205,33 @@ export default function DefaultersReportPage() {
             </div>
             <div>
               <label className={filterLabelCls}>Agent</label>
-              <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={filterInputCls}>
-                <option value="">All agents</option>
-                {(report?.filterOptions?.agents || []).map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={(report?.filterOptions?.agents || []).map((a: any) => ({
+                  value: a.id,
+                  label: a.name,
+                }))}
+                value={agentId}
+                onChange={setAgentId}
+                placeholder="All agents"
+                searchPlaceholder="Search agents…"
+                allowClear
+                clearLabel="All agents"
+              />
             </div>
             <div>
               <label className={filterLabelCls}>Product</label>
-              <select value={productId} onChange={(e) => setProductId(e.target.value)} className={filterInputCls}>
-                <option value="">All products</option>
-                {(report?.filterOptions?.products || []).map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={(report?.filterOptions?.products || []).map((prod: any) => ({
+                  value: prod.id,
+                  label: prod.name,
+                }))}
+                value={productId}
+                onChange={setProductId}
+                placeholder="All products"
+                searchPlaceholder="Search products…"
+                allowClear
+                clearLabel="All products"
+              />
             </div>
             <div>
               <label className={filterLabelCls}>Days overdue — at least</label>
