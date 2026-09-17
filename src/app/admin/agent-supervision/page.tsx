@@ -35,6 +35,13 @@ export default function AgentSupervisionPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  // Three officers and ninety-odd agents: assigning one at a time is ninety
+  // saves for what is really one decision.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkCluster, setBulkCluster] = useState("");
+  const [bulkCso, setBulkCso] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("no-cluster");
 
@@ -80,6 +87,42 @@ export default function AgentSupervisionPage() {
       });
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const togglePick = (id: string) =>
+    setPicked((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  const applyBulk = async () => {
+    setBulkBusy(true);
+    try {
+      const body: Record<string, unknown> = { agentIds: [...picked] };
+      if (bulkCluster) body.clusterAgentId = bulkCluster;
+      if (bulkCso) body.csoId = bulkCso;
+      const res = await api.put("/admin-users/agent-supervision/bulk", body);
+      toast({
+        title: res.data.message,
+        description: res.data.skipped?.length
+          ? `Skipped: ${res.data.skipped.join(", ")}`
+          : undefined,
+      });
+      setBulkOpen(false);
+      setPicked(new Set());
+      setBulkCluster("");
+      setBulkCso("");
+      await load();
+    } catch (error: any) {
+      toast({
+        title: "Could not assign",
+        description: error.response?.data?.error || "Failed to update",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -218,6 +261,41 @@ export default function AgentSupervisionPage() {
         </div>
       </div>
 
+      {picked.size > 0 && (
+        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+          <p className="text-sm text-cyan-900">
+            <strong>{picked.size}</strong> agent{picked.size === 1 ? "" : "s"} selected
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPicked(new Set())}
+              className="rounded-lg border border-cyan-300 px-3 py-1.5 text-xs font-medium text-cyan-900 hover:bg-cyan-100"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-700"
+            >
+              Assign together
+            </button>
+          </div>
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <button
+          onClick={() =>
+            setPicked((s) =>
+              s.size === filtered.length ? new Set() : new Set(filtered.map((a) => a.id))
+            )
+          }
+          className="text-xs font-medium text-cyan-700 hover:underline"
+        >
+          {picked.size === filtered.length ? "Deselect all" : `Select all ${filtered.length} shown`}
+        </button>
+      )}
+
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-gray-100 bg-white py-12 text-center">
           <Users className="mx-auto mb-3 h-8 w-8 text-gray-300" />
@@ -234,6 +312,13 @@ export default function AgentSupervisionPage() {
           {filtered.map((agent) => (
             <div key={agent.id} className="rounded-xl border border-gray-100 bg-white p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <input
+                  type="checkbox"
+                  checked={picked.has(agent.id)}
+                  onChange={() => togglePick(agent.id)}
+                  className="mt-1 h-4 w-4 shrink-0 self-start rounded border-gray-300 lg:mt-0 lg:self-center"
+                  aria-label={`Select ${agent.name}`}
+                />
                 <div className="min-w-0 lg:w-56">
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-semibold text-gray-900">{agent.name}</p>
@@ -309,6 +394,72 @@ export default function AgentSupervisionPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {bulkOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5">
+            <h2 className="text-base font-semibold text-gray-900">
+              Assign {picked.size} agent{picked.size === 1 ? "" : "s"}
+            </h2>
+            <p className="mt-1 text-xs text-gray-500">
+              Leave a field blank to leave that link untouched.
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Cluster agent</label>
+                <SearchableSelect
+                  options={clusterAgents.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    sublabel: [c.area, c.district].filter(Boolean).join(", ") || c.email,
+                  }))}
+                  value={bulkCluster}
+                  onChange={setBulkCluster}
+                  placeholder="Leave unchanged"
+                  searchPlaceholder="Search cluster agents…"
+                  emptyText="No cluster agents exist yet"
+                  allowClear
+                  clearLabel="Leave unchanged"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Customer service officer
+                </label>
+                <SearchableSelect
+                  options={officers.map((c) => ({ value: c.id, label: c.name, sublabel: c.email }))}
+                  value={bulkCso}
+                  onChange={setBulkCso}
+                  placeholder="Leave unchanged"
+                  searchPlaceholder="Search officers…"
+                  allowClear
+                  clearLabel="Leave unchanged"
+                />
+              </div>
+              <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                Assigning an officer replaces whoever covers these agents now.
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setBulkOpen(false)}
+                className="rounded-lg border border-gray-200 px-3.5 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={applyBulk}
+                disabled={bulkBusy || (!bulkCluster && !bulkCso)}
+                className="rounded-lg bg-cyan-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+              >
+                {bulkBusy ? "Assigning…" : "Assign"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

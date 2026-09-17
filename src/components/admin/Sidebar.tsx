@@ -250,6 +250,8 @@ const MORE_GROUPS: Array<{
     permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS,
     links: [
       { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
+      { name: "Cluster Coverage", href: "/admin/cluster-chart", emoji: "🗺️", permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
+      { name: "Agent Supervision", href: "/admin/agent-supervision", emoji: "🧭", permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
     ],
   },
   {
@@ -295,6 +297,7 @@ const MORE_GROUPS: Array<{
     links: [
       { name: "Products",    href: "/admin/products",    emoji: "📦", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
       { name: "Inventory",   href: "/admin/inventory",   emoji: "🏭", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
+      { name: "Stock by Agent", href: "/admin/cluster/stock", emoji: "📦", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
       { name: "Price Chart", href: "/admin/price-chart", emoji: "🏷️", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
     ],
   },
