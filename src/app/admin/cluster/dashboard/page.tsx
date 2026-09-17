@@ -57,6 +57,7 @@ export default function ClusterDashboardPage() {
   const adminUser = user as AdminUser | null;
   const { toast } = useToast();
 
+  const [officers, setOfficers] = useState<{ id: string; name: string; email: string; phone: string | null }[]>([]);
   const [agents, setAgents] = useState<ClusterAgent[]>([]);
   const [summary, setSummary] = useState<ClusterSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +65,12 @@ export default function ClusterDashboardPage() {
   useEffect(() => {
     const load = async () => {
       try {
+        // Cluster agents sell too, so they have an officer of their own — the
+        // same "who do I call" question their agents have.
+        void api
+          .get("/admin-users/me/customer-service")
+          .then((r) => setOfficers(r.data.officers || []))
+          .catch(() => setOfficers([]));
         const res = await api.get("/cluster/my-agents");
         // Their own book sits in the same table as their agents', labelled, so
         // the totals above it are explainable by the rows beneath it.
@@ -99,6 +106,24 @@ export default function ClusterDashboardPage() {
           {adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : "Cluster"}
         </h1>
         <p className="mt-0.5 text-sm text-gray-500">Cluster Agent · Your team and their portfolio</p>
+        {officers.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Your customer service {officers.length === 1 ? "officer" : "officers"}
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {officers.map((o) => (
+                <div key={o.id} className="text-sm">
+                  <p className="font-semibold text-gray-800">{o.name}</p>
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-500">
+                    {o.phone && <a href={`tel:${o.phone}`} className="hover:text-blue-600">{o.phone}</a>}
+                    <a href={`mailto:${o.email}`} className="hover:text-blue-600">{o.email}</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {agents.length === 0 ? (

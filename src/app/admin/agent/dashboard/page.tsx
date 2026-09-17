@@ -143,6 +143,10 @@ export default function AgentDashboardPage() {
   const [data, setData] = useState<AgentDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [leader, setLeader] = useState<{
+    id: string; name: string; email: string; phone: string | null;
+    area: string | null; district: string | null;
+  } | null>(null);
   const [officers, setOfficers] = useState<
     { id: string; name: string; email: string; phone: string | null }[]
   >([]);
@@ -155,7 +159,10 @@ export default function AgentDashboardPage() {
 
     // Supplementary — a failure here must not blank the dashboard.
     api.get('/admin-users/me/customer-service')
-      .then(r => setOfficers(r.data.officers || []))
+      .then(r => {
+        setOfficers(r.data.officers || []);
+        setLeader(r.data.clusterLeader || null);
+      })
       .catch(() => setOfficers([]));
   }, []);
 
@@ -217,6 +224,33 @@ export default function AgentDashboardPage() {
             <FileText className="w-4 h-4" /> My Contracts
           </Link>
         </div>
+
+        {leader && (
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+              Your cluster leader
+            </p>
+            <div className="text-sm">
+              <p className="font-semibold text-gray-800">
+                {leader.name}
+                {(leader.area || leader.district) && (
+                  <span className="ml-2 font-normal text-xs text-gray-400">
+                    {[leader.area, leader.district].filter(Boolean).join(', ')}
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-x-3 text-gray-500 text-xs mt-0.5">
+                {leader.phone && (
+                  <a href={`tel:${leader.phone}`} className="hover:text-blue-600">{leader.phone}</a>
+                )}
+                <a href={`mailto:${leader.email}`} className="hover:text-blue-600">{leader.email}</a>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs mt-2">
+              They supervise your work and can request a temporary unlock for your customers
+            </p>
+          </div>
+        )}
 
         {officers.length > 0 && (
           <div className="mt-5 pt-4 border-t border-gray-100">
