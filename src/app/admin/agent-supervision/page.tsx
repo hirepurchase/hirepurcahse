@@ -42,6 +42,9 @@ export default function AgentSupervisionPage() {
   const [bulkCluster, setBulkCluster] = useState("");
   const [bulkCso, setBulkCso] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirm, setConfirm] = useState<{
+    key: keyof Settings; value: boolean; message: string; uncovered: number;
+  } | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("no-cluster");
 
@@ -126,20 +129,36 @@ export default function AgentSupervisionPage() {
     }
   };
 
-  const toggleRule = async (key: keyof Settings, value: boolean) => {
+  const toggleRule = async (key: keyof Settings, value: boolean, confirmBlocking = false) => {
     try {
-      const res = await api.put("/admin-users/agent-supervision/settings", { [key]: value });
+      const res = await api.put("/admin-users/agent-supervision/settings", {
+        [key]: value,
+        ...(confirmBlocking ? { confirmBlocking: true } : {}),
+      });
       setSettings(res.data.settings);
+      const blocked = (res.data.blocked ?? []).reduce(
+        (sum: number, b: any) => Math.max(sum, b.uncovered),
+        0
+      );
       toast({
         title: value ? "Rule switched on" : "Rule switched off",
         description: value
-          ? "Agents without this link can no longer create contracts."
+          ? blocked > 0
+            ? `${blocked} unassigned agent${blocked === 1 ? "" : "s"} can no longer create contracts until assigned.`
+            : "Agents without this link can no longer create contracts."
           : "The link is no longer required to create contracts.",
       });
     } catch (error: any) {
+      const data = error.response?.data;
+      // The rule exists to make people get assigned, so switching it on while
+      // some are not is a deliberate act, not a mistake to be prevented.
+      if (data?.needsConfirmation) {
+        setConfirm({ key, value, message: data.error, uncovered: data.uncovered ?? 0 });
+        return;
+      }
       toast({
         title: "Not switched on",
-        description: error.response?.data?.error || "Failed to update the rule",
+        description: data?.error || "Failed to update the rule",
         variant: "destructive",
       });
     }
@@ -210,8 +229,8 @@ export default function AgentSupervisionPage() {
           Requirements for creating contracts
         </h2>
         <p className="mt-1 text-xs text-gray-500">
-          Switching a rule on blocks unassigned agents immediately, so it is refused until everyone is
-          covered.
+          Switching a rule on blocks unassigned agents from creating contracts straight away. You will be
+          asked to confirm if anyone would be affected.
         </p>
         <div className="mt-4 space-y-4">
           <RuleToggle
@@ -397,6 +416,44 @@ export default function AgentSupervisionPage() {
         </div>
       )}
 
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-gray-900">
+                  Block {confirm.uncovered} agent{confirm.uncovered === 1 ? "" : "s"} from selling?
+                </h2>
+                <p className="mt-2 text-sm text-gray-600">{confirm.message}</p>
+                <p className="mt-2 text-sm text-gray-600">
+                  They will be able to sell again as soon as they are assigned. You can switch the rule
+                  off at any time.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirm(null)}
+                className="rounded-lg border border-gray-200 px-3.5 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const c = confirm;
+                  setConfirm(null);
+                  void toggleRule(c.key, c.value, true);
+                }}
+                className="rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                Switch it on
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {bulkOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div className="w-full max-w-md rounded-2xl bg-white p-5">
@@ -482,7 +539,7 @@ function RuleToggle({
         <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
         {!checked && blockedBy > 0 && (
           <p className="mt-1 text-xs text-amber-700">
-            {blockedBy} agent{blockedBy === 1 ? "" : "s"} would be blocked — assign them before switching this on.
+            {blockedBy} agent{blockedBy === 1 ? "" : "s"} would be blocked immediately if you switch this on.
           </p>
         )}
       </div>
