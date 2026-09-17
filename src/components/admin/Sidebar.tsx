@@ -180,6 +180,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Products", href: "/admin/products", icon: Package, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
       { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
+      { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Package, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
     ],
   },

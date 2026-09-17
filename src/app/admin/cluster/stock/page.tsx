@@ -30,7 +30,6 @@ interface AgentStock {
   isSelf: boolean;
   inStock: number;
   sold: number;
-  items: Item[];
 }
 interface Transfer {
   id: string; serialNumber: string | null; product: string | null;
@@ -44,6 +43,13 @@ export default function ClusterStockPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Devices are fetched when a row is opened: an admin covers every holder in
+  // the company, and shipping every serial number to draw a summary is a page
+  // nobody waits for.
+  const [items, setItems] = useState<Record<string, Item[]>>({});
+  const [itemsLoading, setItemsLoading] = useState<string | null>(null);
+  const [pool, setPool] = useState<{ available: number; sold: number } | null>(null);
+  const [scope, setScope] = useState<"all" | "cluster">("cluster");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [transferOpen, setTransferOpen] = useState(false);
   const [toAgentId, setToAgentId] = useState("");
@@ -57,6 +63,8 @@ export default function ClusterStockPage() {
       const res = await api.get("/cluster/stock");
       setAgents(res.data.agents ?? []);
       setSummary(res.data.summary ?? null);
+      setPool(res.data.pool ?? null);
+      setScope(res.data.scope ?? "cluster");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -77,6 +85,25 @@ export default function ClusterStockPage() {
       setHistory(res.data.transfers ?? []);
     } catch {
       setHistory([]);
+    }
+  };
+
+  const openAgent = async (agentId: string) => {
+    if (expanded === agentId) { setExpanded(null); return; }
+    setExpanded(agentId);
+    if (items[agentId]) return;
+    setItemsLoading(agentId);
+    try {
+      const res = await api.get("/cluster/stock/items", { params: { agentId } });
+      setItems((m) => ({ ...m, [agentId]: res.data.items ?? [] }));
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || "Failed to load devices",
+        variant: "destructive",
+      });
+    } finally {
+      setItemsLoading(null);
     }
   };
 
@@ -101,6 +128,8 @@ export default function ClusterStockPage() {
       setSelected(new Set());
       setToAgentId("");
       setReason("");
+      // Both ends of the move are stale now.
+      setItems({});
       await load();
     } catch (error: any) {
       const data = error.response?.data;
@@ -124,9 +153,9 @@ export default function ClusterStockPage() {
         a.name.toLowerCase().includes(term) ||
         (a.area ?? "").toLowerCase().includes(term) ||
         (a.district ?? "").toLowerCase().includes(term) ||
-        a.items.some((i) => i.serialNumber.toLowerCase().includes(term))
+        (items[a.id] ?? []).some((i) => i.serialNumber.toLowerCase().includes(term))
     );
-  }, [agents, search]);
+  }, [agents, search, items]);
 
   if (loading) {
     return (
@@ -141,7 +170,11 @@ export default function ClusterStockPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Stock by Agent</h1>
-          <p className="mt-0.5 text-sm text-gray-500">What each of your agents is holding, and where they are</p>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {scope === "all"
+              ? "What every agent and cluster agent is holding, and where they are"
+              : "What each of your agents is holding, and where they are"}
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={openHistory}>
           <History className="mr-2 h-4 w-4" />
@@ -149,19 +182,26 @@ export default function ClusterStockPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className={`grid gap-3 sm:gap-4 ${pool ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3"}`}>
         <div className="rounded-xl border border-gray-100 bg-white p-4">
-          <p className="text-xs text-gray-600">Agents</p>
+          <p className="text-xs text-gray-600">{scope === "all" ? "Holders" : "Agents"}</p>
           <p className="mt-1 text-2xl font-bold text-gray-900">{summary?.agents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-gray-100 bg-white p-4">
-          <p className="text-xs text-gray-600">Unsold stock</p>
+          <p className="text-xs text-gray-600">Available</p>
           <p className="mt-1 text-2xl font-bold text-blue-600">{summary?.inStock ?? 0}</p>
         </div>
         <div className="rounded-xl border border-gray-100 bg-white p-4">
           <p className="text-xs text-gray-600">Sold</p>
           <p className="mt-1 text-2xl font-bold text-emerald-600">{summary?.sold ?? 0}</p>
         </div>
+        {pool && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs text-amber-800">Not yet given out</p>
+            <p className="mt-1 text-2xl font-bold text-amber-700">{pool.available}</p>
+            <p className="mt-0.5 text-[11px] text-amber-700">in the central pool</p>
+          </div>
+        )}
       </div>
 
       <div className="relative">
@@ -201,7 +241,7 @@ export default function ClusterStockPage() {
           {filtered.map((agent) => (
             <div key={agent.id} className="rounded-xl border border-gray-100 bg-white">
               <button
-                onClick={() => setExpanded((e) => (e === agent.id ? null : agent.id))}
+                onClick={() => openAgent(agent.id)}
                 className="flex w-full items-center justify-between gap-3 p-4 text-left"
               >
                 <div className="min-w-0">
@@ -210,6 +250,11 @@ export default function ClusterStockPage() {
                     {agent.isSelf && (
                       <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-800">
                         You
+                      </span>
+                    )}
+                    {agent.role === "CLUSTER_AGENT" && !agent.isSelf && (
+                      <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-800">
+                        Cluster agent
                       </span>
                     )}
                   </div>
@@ -227,17 +272,19 @@ export default function ClusterStockPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-lg font-bold text-blue-600">{agent.inStock}</p>
-                  <p className="text-[11px] text-gray-400">in stock · {agent.sold} sold</p>
+                  <p className="text-[11px] text-gray-400">available · {agent.sold} sold</p>
                 </div>
               </button>
 
               {expanded === agent.id && (
                 <div className="border-t border-gray-100 p-3">
-                  {agent.items.length === 0 ? (
+                  {itemsLoading === agent.id ? (
+                    <p className="py-4 text-center text-xs text-gray-400">Loading devices…</p>
+                  ) : (items[agent.id] ?? []).length === 0 ? (
                     <p className="py-4 text-center text-xs text-gray-400">Holding nothing</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {agent.items.map((item) => (
+                      {(items[agent.id] ?? []).map((item) => (
                         <label
                           key={item.id}
                           className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
