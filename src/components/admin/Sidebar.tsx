@@ -93,6 +93,7 @@ const navGroups: NavGroup[] = [
       // Deliberately not shown to agents — they see their own officer on their
       // dashboard instead of the whole directory.
       { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
+      { name: "Cluster Coverage", href: "/admin/cluster-chart", icon: Users, permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
     ],
   },
   {
