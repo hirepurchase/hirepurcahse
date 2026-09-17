@@ -944,11 +944,11 @@ function InventoryForm({
   const [registerWithKnox, setRegisterWithKnox] = useState(true);
   const [lockOnUpload, setLockOnUpload] = useState(false);
   const [assignedAgentId, setAssignedAgentId] = useState("");
-  const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string }[]>([]);
+  const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string; role?: { name: string } }[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    api.get("/admin-users", { params: { roleName: "AGENT", limit: 200, isActive: "true" } })
+    api.get("/admin-users", { params: { roleName: "CLUSTER_AGENT,AGENT", limit: 200, isActive: "true" } })
       .then((res) => setAgents(res.data?.users || []))
       .catch(() => {});
   }, []);
@@ -1201,7 +1201,7 @@ function InventoryForm({
                   options={agents.map((a) => ({
                     value: a.id,
                     label: `${a.firstName} ${a.lastName}`,
-                    sublabel: a.email,
+                    sublabel: a.role?.name === "CLUSTER_AGENT" ? `Cluster agent · ${a.email}` : a.email,
                   }))}
                   value={assignedAgentId}
                   onChange={setAssignedAgentId}
@@ -1294,7 +1294,7 @@ function EditInventoryForm({
     assignedAgentId: item.assignedAgent?.id || "",
   });
   const [products, setProducts] = useState<Product[]>([]);
-  const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string }[]>([]);
+  const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string; role?: { name: string } }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(item.product || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1302,7 +1302,7 @@ function EditInventoryForm({
 
   useEffect(() => {
     loadProducts();
-    api.get("/admin-users", { params: { roleName: "AGENT", limit: 200, isActive: "true" } })
+    api.get("/admin-users", { params: { roleName: "CLUSTER_AGENT,AGENT", limit: 200, isActive: "true" } })
       .then((res) => setAgents(res.data?.users || []))
       .catch(() => {});
   }, []);
@@ -1522,7 +1522,9 @@ function EditInventoryForm({
             options={agents.map((a) => ({
               value: a.id,
               label: `${a.firstName} ${a.lastName}`,
-              sublabel: a.email,
+              // Cluster agents are named as such: stock normally goes to one of
+              // them first, who then distributes it to their own agents.
+              sublabel: a.role?.name === "CLUSTER_AGENT" ? `Cluster agent · ${a.email}` : a.email,
             }))}
             value={formData.assignedAgentId}
             onChange={(v) => setFormData({ ...formData, assignedAgentId: v })}
