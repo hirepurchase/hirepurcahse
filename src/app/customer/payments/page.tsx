@@ -25,6 +25,8 @@ interface Contract {
   totalPrice: number;
   totalPaid: number;
   outstandingBalance: number;
+  penaltyOutstanding?: number;
+  totalDue?: number;
   inventoryItem: {
     product: {
       name: string;
@@ -56,8 +58,12 @@ export default function CustomerPaymentsPage() {
       const allContracts = response.data.contracts || [];
 
       // Filter to only show active contracts
+      // Penalties sit outside outstandingBalance, so filtering on that alone
+      // hid contracts where only late charges remain — the customer could not
+      // reach the one screen that would clear them.
       const activeContracts = allContracts.filter(
-        (c: Contract) => c.status === 'ACTIVE' && c.outstandingBalance > 0
+        (c: Contract) =>
+          c.status === 'ACTIVE' && (c.totalDue ?? c.outstandingBalance) > 0
       );
 
       setContracts(activeContracts);
@@ -78,7 +84,10 @@ export default function CustomerPaymentsPage() {
   };
 
   const getContractStats = () => {
-    const totalOutstanding = contracts.reduce((sum, c) => sum + c.outstandingBalance, 0);
+    const totalOutstanding = contracts.reduce(
+      (sum, c) => sum + (c.totalDue ?? c.outstandingBalance),
+      0
+    );
     const pendingInstallments = contracts.reduce((sum, c) =>
       sum + (c.installments?.filter(i => i.status === 'PENDING' || i.status === 'PARTIAL').length || 0), 0
     );
@@ -188,7 +197,14 @@ export default function CustomerPaymentsPage() {
                       </div>
                       <p className="text-xs text-gray-500">{contract.inventoryItem?.product?.name || 'N/A'}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs">
-                        <span className="text-orange-600 font-semibold">{formatCurrency(contract.outstandingBalance)} outstanding</span>
+                        <span className="text-orange-600 font-semibold">
+                          {formatCurrency(contract.totalDue ?? contract.outstandingBalance)} outstanding
+                        </span>
+                        {(contract.penaltyOutstanding ?? 0) > 0 && (
+                          <span className="ml-2 text-xs text-orange-700">
+                            (includes {formatCurrency(contract.penaltyOutstanding ?? 0)} late charges)
+                          </span>
+                        )}
                         <span className="text-green-600">{formatCurrency(contract.totalPaid)} paid</span>
                       </div>
                       <Button size="sm" className="mt-2 w-full" onClick={() => router.push(`/customer/payments/${contract.id}`)}>

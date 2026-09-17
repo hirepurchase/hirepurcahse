@@ -97,13 +97,15 @@ export default function CustomerContractDetailPage() {
   }
 
   const progress = calculateProgress(contract.totalPaid, contract.totalPrice);
-  const canMakePayment = contract.status === 'ACTIVE' && contract.outstandingBalance > 0;
+  // Late charges are money owed even when the installment schedule is settled.
+  const totalDue = contract.totalDue ?? contract.outstandingBalance + (contract.penaltyOutstanding ?? 0);
+  const canMakePayment = contract.status === 'ACTIVE' && totalDue > 0;
   const paymentStatusNote =
     contract.status === 'PENDING_APPROVAL'
       ? 'This contract is still awaiting approval, so payments are not available yet.'
       : contract.status === 'REVISION_REQUESTED'
         ? 'This contract is under revision and cannot receive payments until it is approved.'
-        : contract.outstandingBalance <= 0
+        : totalDue <= 0
           ? 'This contract has no outstanding balance.'
           : null;
 

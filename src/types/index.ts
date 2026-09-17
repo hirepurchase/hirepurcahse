@@ -79,6 +79,7 @@ export interface HirePurchaseContract {
   totalPaid: number;
   outstandingBalance: number;
   penaltyOutstanding?: number;
+  totalDue?: number;
   penalties?: {
     id: string;
     amount: number;
