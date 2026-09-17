@@ -141,6 +141,28 @@ export default function ContractDetailsPage() {
     void loadKnoxContractDevice();
   }, [params.id, canViewDeviceControl]);
 
+  const waivePenalty = async (penaltyId: string) => {
+    // A waiver cancels a charge against a named customer, so it is not a
+    // one-click action and the reason goes into the audit entry.
+    const reason = window.prompt('Why is this charge being cancelled? (recorded in the audit trail)');
+    if (reason === null) return;
+    if (reason.trim().length < 5) {
+      toast({ title: 'Reason too short', description: 'Give a reason of at least 5 characters', variant: 'destructive' });
+      return;
+    }
+    try {
+      await api.post(`/settings/penalties/${penaltyId}/waive`, { reason: reason.trim() });
+      toast({ title: 'Penalty waived', description: 'The charge no longer blocks completion.' });
+      await loadContract();
+    } catch (err: any) {
+      toast({
+        title: 'Could not waive',
+        description: err.response?.data?.error || 'Failed to waive the penalty',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const loadContract = async () => {
     try {
       setIsLoading(true);
@@ -1103,8 +1125,29 @@ export default function ContractDetailsPage() {
                   {formatCurrency(contract.penaltyOutstanding ?? 0)}
                 </p>
                 <p className="text-xs text-orange-600 mt-1">
-                  Charged on top of the balance — the contract cannot complete until these are paid.
+                  Charged on top of the balance — the contract cannot complete until these are paid
+                  or waived.
                 </p>
+                {(contract.penalties ?? []).filter((x: any) => !x.isPaid && !x.isWaived).length > 0 && (
+                  <div className="mt-3 space-y-1.5 border-t border-orange-200 pt-2">
+                    {(contract.penalties ?? [])
+                      .filter((x: any) => !x.isPaid && !x.isWaived)
+                      .map((pen: any) => (
+                        <div key={pen.id} className="flex items-start justify-between gap-2 text-xs">
+                          <span className="min-w-0 flex-1 text-orange-800">{pen.reason}</span>
+                          <span className="shrink-0 font-semibold text-orange-900">
+                            {formatCurrency(pen.amount - (pen.paidAmount ?? 0))}
+                          </span>
+                          <button
+                            onClick={() => waivePenalty(pen.id)}
+                            className="shrink-0 rounded border border-orange-300 px-1.5 py-0.5 font-medium text-orange-800 hover:bg-orange-100"
+                          >
+                            Waive
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             )}
             <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">

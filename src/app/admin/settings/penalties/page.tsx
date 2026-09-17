@@ -14,6 +14,7 @@ interface PenaltySettings {
   expiryGraceDays: number;
   maxPenaltyPercentage: number;
   activatedAt: string | null;
+  notifyCustomer: boolean;
   blockUnlockOnPenalty: boolean;
 }
 
@@ -284,7 +285,9 @@ export default function PenaltySettingsPage() {
                 onChange={(e) => set("maxPenaltyPercentage", parseInt(e.target.value) || 50)}
                 className={`mt-1.5 ${inputCls}`}
               />
-              <p className="mt-1 text-xs text-gray-500">Total penalties never exceed this</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Of the balance owed when the contract expired
+              </p>
             </div>
           </div>
 
@@ -299,6 +302,30 @@ export default function PenaltySettingsPage() {
               </span>
             </div>
           )}
+
+          <div className="flex items-center justify-between gap-4 border-t border-gray-100 pt-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Tell the customer when they are first charged</p>
+              <p className="mt-0.5 text-xs text-gray-500">
+                One SMS the first time a contract is charged — not per charge, so daily mode does not
+                message them every morning.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => set("notifyCustomer", !form.notifyCustomer)}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                form.notifyCustomer ? "bg-cyan-600" : "bg-gray-300"
+              }`}
+              aria-pressed={form.notifyCustomer}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  form.notifyCustomer ? "translate-x-[22px]" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
 
           <div className="flex items-center justify-between gap-4 border-t border-gray-100 pt-4">
             <div>

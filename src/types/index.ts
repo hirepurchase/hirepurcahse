@@ -79,6 +79,15 @@ export interface HirePurchaseContract {
   totalPaid: number;
   outstandingBalance: number;
   penaltyOutstanding?: number;
+  penalties?: {
+    id: string;
+    amount: number;
+    paidAmount?: number;
+    reason: string;
+    kind?: string;
+    isPaid: boolean;
+    isWaived?: boolean;
+  }[];
   ownershipTransferred: boolean;
   approvedAt?: Date | null;
   rejectionReason?: string | null;
