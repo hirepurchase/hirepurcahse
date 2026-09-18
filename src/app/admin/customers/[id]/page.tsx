@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import api from '@/lib/api';
-import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import LogCallModal from '@/components/admin/LogCallModal';
 
@@ -424,7 +424,7 @@ export default function CustomerStatementPage() {
                       <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
                       <Badge variant={payment.status === 'SUCCESS' ? 'default' : 'secondary'}>{payment.status}</Badge>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{formatDate(payment.createdAt)}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDateTime(payment.createdAt)}</p>
                     <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
                     <p className="text-xs text-gray-500">{payment.contract?.contractNumber || 'N/A'} · {payment.paymentMethod}</p>
                   </div>
@@ -446,7 +446,7 @@ export default function CustomerStatementPage() {
                   <TableBody>
                     {paymentHistory.map((payment: any) => (
                       <TableRow key={payment.id}>
-                        <TableCell>{formatDate(payment.createdAt)}</TableCell>
+                        <TableCell>{formatDateTime(payment.createdAt)}</TableCell>
                         <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
                         <TableCell>{payment.contract?.contractNumber || 'N/A'}</TableCell>
                         <TableCell className="font-semibold">{formatCurrency(payment.amount)}</TableCell>

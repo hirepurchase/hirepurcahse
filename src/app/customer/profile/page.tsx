@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import type { Customer, HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
 
@@ -509,7 +509,7 @@ export default function CustomerProfilePage() {
                   <div key={payment.id} className="px-4 py-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
-                      <span className="text-xs text-gray-400">{formatDate(payment.createdAt)}</span>
+                      <span className="text-xs text-gray-400">{formatDateTime(payment.createdAt)}</span>
                     </div>
                     <p className="text-xs text-gray-500">{payment.contract?.contractNumber || '-'} · {payment.contract?.inventoryItem?.product?.name || '-'}</p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -535,7 +535,7 @@ export default function CustomerProfilePage() {
                   <TableBody>
                     {profile.payments.slice(0, 20).map((payment: ProfilePayment) => (
                       <TableRow key={payment.id}>
-                        <TableCell className="text-sm">{formatDate(payment.createdAt)}</TableCell>
+                        <TableCell className="text-sm">{formatDateTime(payment.createdAt)}</TableCell>
                         <TableCell className="font-mono text-sm">{payment.contract?.contractNumber || '-'}</TableCell>
                         <TableCell>{payment.contract?.inventoryItem?.product?.name || '-'}</TableCell>
                         <TableCell><Badge variant="outline">{payment.paymentMethod}</Badge></TableCell>

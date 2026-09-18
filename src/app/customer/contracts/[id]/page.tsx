@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
-import { cn, formatCurrency, formatDate, getStatusColor, calculateProgress } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, formatDateTime, getStatusColor, calculateProgress } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import type { HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
 
@@ -234,7 +234,7 @@ export default function CustomerContractDetailPage() {
                           <Badge className={`text-xs ${getStatusColor(payment.status)}`}>{payment.status}</Badge>
                         </div>
                         <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
-                        <p className="text-xs text-gray-400">{payment.paymentMethod} · {formatDate(payment.paymentDate)}</p>
+                        <p className="text-xs text-gray-400">{payment.paymentMethod} · {formatDateTime(payment.paymentDate)}</p>
                       </div>
                     ))}
                   </div>
@@ -256,7 +256,7 @@ export default function CustomerContractDetailPage() {
                             <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
                             <TableCell>{formatCurrency(payment.amount)}</TableCell>
                             <TableCell>{payment.paymentMethod}</TableCell>
-                            <TableCell>{formatDate(payment.paymentDate)}</TableCell>
+                            <TableCell>{formatDateTime(payment.paymentDate)}</TableCell>
                             <TableCell><Badge className={getStatusColor(payment.status)}>{payment.status}</Badge></TableCell>
                           </TableRow>
                         ))}

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import { ExportButtons } from '@/components/admin/ExportButtons';
@@ -103,7 +103,7 @@ export default function PaymentReportPage() {
         { label: 'Total Collected', value: formatCurrency(report.summary?.totalAmountCollected || 0) },
       ],
       columns: [
-        { header: 'Date', accessor: (row: any) => formatDate(row.createdAt), align: 'left' },
+        { header: 'Date', accessor: (row: any) => formatDateTime(row.createdAt), align: 'left' },
         { header: 'Transaction Ref', accessor: 'transactionRef', align: 'left' },
         { header: 'Contract #', accessor: (row: any) => row.contract?.contractNumber || '-', align: 'left' },
         { header: 'Customer', accessor: (row: any) => `${row.customer?.firstName || ''} ${row.customer?.lastName || ''}`, align: 'left' },
@@ -255,7 +255,7 @@ export default function PaymentReportPage() {
                     <p className="text-xs text-gray-500 mt-0.5">{payment.customer?.firstName} {payment.customer?.lastName}</p>
                     <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
                     <p className="text-xs text-gray-400">{payment.contract?.contractNumber || '-'} · {payment.paymentMethod}{payment.mobileMoneyProvider ? ` (${payment.mobileMoneyProvider})` : ''}</p>
-                    <p className="text-xs text-gray-400">{formatDate(payment.createdAt)}</p>
+                    <p className="text-xs text-gray-400">{formatDateTime(payment.createdAt)}</p>
                   </div>
                 ))}
               </div>
@@ -276,7 +276,7 @@ export default function PaymentReportPage() {
                   <TableBody>
                     {paginatedPayments.map((payment: any) => (
                       <TableRow key={payment.id}>
-                        <TableCell className="text-sm">{formatDate(payment.createdAt)}</TableCell>
+                        <TableCell className="text-sm">{formatDateTime(payment.createdAt)}</TableCell>
                         <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
                         <TableCell className="text-sm">{payment.contract?.contractNumber || '-'}</TableCell>
                         <TableCell>{payment.customer?.firstName} {payment.customer?.lastName}</TableCell>

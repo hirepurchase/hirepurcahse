@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
-import { cn, formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, formatDateTime, getStatusColor } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 import { adminHasAnyPermission, PERMISSIONS } from '@/lib/permissions';
@@ -1293,7 +1293,7 @@ export default function ContractDetailsPage() {
                       <p className="text-xs text-gray-500 mt-0.5">Due: {formatDate(installment.dueDate)}</p>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs font-semibold text-gray-700">{formatCurrency(installment.amount)}</span>
-                        {installment.paidAt && <span className="text-xs text-gray-400">Paid: {formatDate(installment.paidAt)}</span>}
+                        {installment.paidAt && <span className="text-xs text-gray-400">Paid: {formatDateTime(installment.paidAt)}</span>}
                       </div>
                     </div>
                     {contract.status === 'ACTIVE' && (
@@ -1329,7 +1329,7 @@ export default function ContractDetailsPage() {
                         <TableCell>
                           <Badge className={getStatusColor(installment.status)}>{installment.status}</Badge>
                         </TableCell>
-                        <TableCell>{installment.paidAt ? formatDate(installment.paidAt) : '-'}</TableCell>
+                        <TableCell>{installment.paidAt ? formatDateTime(installment.paidAt) : '-'}</TableCell>
                         {contract.status === 'ACTIVE' && (
                           <TableCell>
                             <Button variant="ghost" size="sm" onClick={() => openEditInstallmentDialog(installment)} disabled={isPaid}>
@@ -1369,7 +1369,7 @@ export default function ContractDetailsPage() {
                         <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
                         <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{payment.paymentDate ? formatDate(payment.paymentDate) : formatDate(payment.createdAt)}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{payment.paymentDate ? formatDateTime(payment.paymentDate) : formatDateTime(payment.createdAt)}</p>
                       <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
                       <p className="text-xs text-gray-500">{payment.paymentMethod?.replace(/_/g, ' ')}</p>
                     </div>
@@ -1406,7 +1406,7 @@ export default function ContractDetailsPage() {
                     const isManual = !!meta.isManual;
                     return (
                       <TableRow key={payment.id}>
-                        <TableCell>{payment.paymentDate ? formatDate(payment.paymentDate) : formatDate(payment.createdAt)}</TableCell>
+                        <TableCell>{payment.paymentDate ? formatDateTime(payment.paymentDate) : formatDateTime(payment.createdAt)}</TableCell>
                         <TableCell className="font-mono text-xs">{payment.transactionRef}</TableCell>
                         <TableCell>{payment.paymentMethod?.replace(/_/g, ' ')}</TableCell>
                         <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}</TableCell>

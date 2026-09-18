@@ -30,12 +30,16 @@ export function formatDate(date: Date | string | null | undefined): string {
 export function formatDateTime(date: Date | string | null | undefined): string {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
+  // Pinned to Accra: a payment happened at a Ghana time, and the receipt the
+  // customer holds says that time. Formatting in the viewing phone's own zone
+  // would show a different hour to anyone whose device is set elsewhere.
   return new Intl.DateTimeFormat('en-GB', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Africa/Accra',
   }).format(d);
 }
 

@@ -789,7 +789,7 @@ export default function AgentContractDetailPage() {
                           {installment.status}
                         </Badge>
                         {installment.paidAt && (
-                          <p className="mt-1 text-xs text-gray-400">{formatDate(installment.paidAt)}</p>
+                          <p className="mt-1 text-xs text-gray-400">{formatDateTime(installment.paidAt)}</p>
                         )}
                       </div>
                     </div>
@@ -820,7 +820,7 @@ export default function AgentContractDetailPage() {
                           <Badge className={getStatusColor(installment.status)}>{installment.status}</Badge>
                         </TableCell>
                         <TableCell className="text-xs text-gray-400">
-                          {installment.paidAt ? formatDate(installment.paidAt) : "—"}
+                          {installment.paidAt ? formatDateTime(installment.paidAt) : "—"}
                         </TableCell>
                       </TableRow>
                     ))}
