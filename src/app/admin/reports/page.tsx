@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign, Award } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign, Award, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -72,6 +72,13 @@ export default function ReportsPage() {
       icon: Award,
       color: 'text-emerald-600 bg-emerald-100',
       path: '/admin/reports/agent-completions',
+    },
+    {
+      title: 'Portfolio at Risk',
+      description: 'PAR 1 and PAR 30 by agent and cluster, ageing of the book, and who is over the contract-blocking limit',
+      icon: ShieldAlert,
+      color: 'text-rose-600 bg-rose-100',
+      path: '/admin/reports/portfolio-at-risk',
     },
     {
       title: 'Agent Deposit Collections',

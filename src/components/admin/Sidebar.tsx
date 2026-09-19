@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   Unlock,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -196,9 +197,10 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Reports",
-    permissions: [PERMISSIONS.VIEW_REPORTS],
+    permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS],
     items: [
       { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
+      { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", icon: ShieldAlert, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
     ],
   },
   {
@@ -317,9 +319,10 @@ const MORE_GROUPS: Array<{
   },
   {
     label: "Reports",
-    permissions: [PERMISSIONS.VIEW_REPORTS],
+    permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS],
     links: [
       { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: [PERMISSIONS.VIEW_REPORTS] },
+      { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
     ],
   },
   {
