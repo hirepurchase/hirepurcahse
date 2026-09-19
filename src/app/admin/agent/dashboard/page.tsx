@@ -8,7 +8,7 @@ import {
   Wallet, Target, CalendarClock, Award,
 } from 'lucide-react';
 import api from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { AdminUser } from '@/types';
 
@@ -143,6 +143,10 @@ export default function AgentDashboardPage() {
   const [data, setData] = useState<AgentDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [myPar, setMyPar] = useState<{
+    par30: number; par1: number; activeContracts: number; contractsAtRisk30: number;
+    atRisk30: number; limit: number; judgedFrom: number; enforced: boolean; overLimit: boolean;
+  } | null>(null);
   const [leader, setLeader] = useState<{
     id: string; name: string; email: string; phone: string | null;
     area: string | null; district: string | null;
@@ -162,6 +166,7 @@ export default function AgentDashboardPage() {
       .then(r => {
         setOfficers(r.data.officers || []);
         setLeader(r.data.clusterLeader || null);
+        setMyPar(r.data.portfolio || null);
       })
       .catch(() => setOfficers([]));
   }, []);
@@ -224,6 +229,42 @@ export default function AgentDashboardPage() {
             <FileText className="w-4 h-4" /> My Contracts
           </Link>
         </div>
+
+        {myPar && myPar.activeContracts > 0 && (
+          <div
+            className={cn(
+              'mt-5 rounded-xl border px-4 py-3',
+              myPar.overLimit
+                ? 'border-red-200 bg-red-50'
+                : myPar.par30 > myPar.limit * 0.75
+                  ? 'border-amber-200 bg-amber-50'
+                  : 'border-gray-100 bg-gray-50'
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Your portfolio at risk</p>
+              <p className={cn('text-xl font-bold', myPar.overLimit ? 'text-red-700' : 'text-gray-900')}>
+                {myPar.par30}%
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-gray-600">
+              {myPar.contractsAtRisk30} of {myPar.activeContracts} customers more than 30 days behind
+              {myPar.atRisk30 > 0 ? ` · ${formatCurrency(myPar.atRisk30)} owed on them` : ''}.
+              {' '}Limit {myPar.limit}%.
+            </p>
+            {myPar.overLimit ? (
+              <p className="mt-1.5 text-xs font-medium text-red-700">
+                {myPar.enforced
+                  ? 'You cannot create new contracts until you collect this back under the limit.'
+                  : 'You are over the limit. Collect from these customers now — new contracts will be blocked when this rule is switched on.'}
+              </p>
+            ) : myPar.activeContracts < myPar.judgedFrom ? (
+              <p className="mt-1.5 text-xs text-gray-500">
+                Not judged until you have {myPar.judgedFrom} active contracts.
+              </p>
+            ) : null}
+          </div>
+        )}
 
         {leader && (
           <div className="mt-5 pt-4 border-t border-gray-100">

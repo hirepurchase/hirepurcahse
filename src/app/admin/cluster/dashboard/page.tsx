@@ -43,12 +43,18 @@ type ClusterSummary = {
   outstanding: number;
   amountAtRisk: number;
   portfolioAtRisk: number;
+  par1?: number;
+  activeContracts?: number;
 };
 
 /** Amber from 15%, red from 30% — the thresholds collections treats as "needs a conversation". */
+// PAR30 bands. Red from 20% matches the default limit at which an agent is
+// blocked from new contracts, so a leader sees red exactly when it bites. The
+// old bands (15/30) were set for an "any overdue" figure that read about three
+// times higher, and would have left a blocked agent showing amber.
 function parTone(par: number): string {
-  if (par >= 30) return "bg-red-100 text-red-800";
-  if (par >= 15) return "bg-amber-100 text-amber-800";
+  if (par > 20) return "bg-red-100 text-red-800";
+  if (par > 10) return "bg-amber-100 text-amber-800";
   return "bg-emerald-100 text-emerald-800";
 }
 
@@ -174,7 +180,7 @@ export default function ClusterDashboardPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-600 sm:text-sm">Portfolio at Risk</p>
+                    <p className="text-xs text-gray-600 sm:text-sm">Portfolio at Risk (PAR30)</p>
                     <p className="mt-1 text-2xl font-bold">{(summary?.portfolioAtRisk ?? 0).toFixed(1)}%</p>
                   </div>
                   <ShieldAlert className="h-7 w-7 shrink-0 text-amber-600" />
@@ -207,7 +213,7 @@ export default function ClusterDashboardPage() {
                         <p className="truncate text-xs text-gray-500">{a.email}</p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${parTone(a.portfolioAtRisk)}`}>
-                        {a.portfolioAtRisk.toFixed(1)}% PAR
+                        {a.portfolioAtRisk.toFixed(1)}% PAR30
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -247,7 +253,7 @@ export default function ClusterDashboardPage() {
                       <TableHead className="text-right">Overdue</TableHead>
                       <TableHead className="text-right">Outstanding</TableHead>
                       <TableHead className="text-right">At Risk</TableHead>
-                      <TableHead>PAR</TableHead>
+                      <TableHead>PAR30</TableHead>
                       <TableHead>Since</TableHead>
                     </TableRow>
                   </TableHeader>

@@ -20,10 +20,21 @@ interface AgentRow {
   csoIds: string[];
   customers: number;
   contracts: number;
+  activeContracts?: number;
+  par30?: number;
+  par1?: number;
+  atRisk30?: number;
+  parBlocked?: boolean;
 }
-interface Settings { requireClusterAgent: boolean; requireCso: boolean }
+interface Settings {
+  requireClusterAgent: boolean;
+  requireCso: boolean;
+  parBlockEnabled: boolean;
+  parBlockThreshold: number;
+  parBlockMinContracts: number;
+}
 
-type Filter = "all" | "no-cluster" | "no-cso";
+type Filter = "all" | "no-cluster" | "no-cso" | "over-par";
 
 export default function AgentSupervisionPage() {
   const { toast } = useToast();
@@ -31,7 +42,7 @@ export default function AgentSupervisionPage() {
   const [clusterAgents, setClusterAgents] = useState<Person[]>([]);
   const [officers, setOfficers] = useState<Person[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [summary, setSummary] = useState<{ total: number; withoutClusterAgent: number; withoutCso: number } | null>(null);
+  const [summary, setSummary] = useState<{ total: number; withoutClusterAgent: number; withoutCso: number; overParLimit?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -43,7 +54,7 @@ export default function AgentSupervisionPage() {
   const [bulkCso, setBulkCso] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [confirm, setConfirm] = useState<{
-    key: keyof Settings; value: boolean; message: string; uncovered: number;
+    patch: Partial<Settings>; message: string; uncovered: number;
   } | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("no-cluster");
@@ -129,10 +140,10 @@ export default function AgentSupervisionPage() {
     }
   };
 
-  const toggleRule = async (key: keyof Settings, value: boolean, confirmBlocking = false) => {
+  const applySettings = async (patch: Partial<Settings>, confirmBlocking = false) => {
     try {
       const res = await api.put("/admin-users/agent-supervision/settings", {
-        [key]: value,
+        ...patch,
         ...(confirmBlocking ? { confirmBlocking: true } : {}),
       });
       setSettings(res.data.settings);
@@ -140,35 +151,43 @@ export default function AgentSupervisionPage() {
         (sum: number, b: any) => Math.max(sum, b.uncovered),
         0
       );
+      const turnedOff = Object.entries(patch).some(([k, v]) => k !== "parBlockThreshold" && k !== "parBlockMinContracts" && v === false);
       toast({
-        title: value ? "Rule switched on" : "Rule switched off",
-        description: value
-          ? blocked > 0
-            ? `${blocked} unassigned agent${blocked === 1 ? "" : "s"} can no longer create contracts until assigned.`
-            : "Agents without this link can no longer create contracts."
-          : "The link is no longer required to create contracts.",
+        title: turnedOff ? "Rule switched off" : "Saved",
+        description: turnedOff
+          ? "It no longer stops anyone creating contracts."
+          : blocked > 0
+            ? `${blocked} agent${blocked === 1 ? "" : "s"} can no longer create contracts until this is resolved.`
+            : "No one is blocked by this change.",
       });
+      await load();
     } catch (error: any) {
       const data = error.response?.data;
-      // The rule exists to make people get assigned, so switching it on while
-      // some are not is a deliberate act, not a mistake to be prevented.
+      // Switching a rule on that blocks people is a deliberate act, not a
+      // mistake to be prevented — ask, then apply.
       if (data?.needsConfirmation) {
-        setConfirm({ key, value, message: data.error, uncovered: data.uncovered ?? 0 });
+        setConfirm({ patch, message: data.error, uncovered: data.uncovered ?? 0 });
         return;
       }
       toast({
-        title: "Not switched on",
+        title: "Not saved",
         description: data?.error || "Failed to update the rule",
         variant: "destructive",
       });
     }
   };
 
+  const toggleRule = (key: "requireClusterAgent" | "requireCso" | "parBlockEnabled", value: boolean) =>
+    applySettings({ [key]: value } as Partial<Settings>);
+
+  const [parDraft, setParDraft] = useState<{ threshold: string; min: string } | null>(null);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return agents.filter((a) => {
       if (filter === "no-cluster" && (!a.canHaveClusterAgent || a.clusterAgentId)) return false;
       if (filter === "no-cso" && a.csoIds.length > 0) return false;
+      if (filter === "over-par" && !a.parBlocked) return false;
       if (!term) return true;
       return a.name.toLowerCase().includes(term) || a.email.toLowerCase().includes(term);
     });
@@ -247,6 +266,66 @@ export default function AgentSupervisionPage() {
             blockedBy={noCso}
             onChange={(v) => toggleRule("requireCso", v)}
           />
+          <RuleToggle
+            label={`Portfolio at risk must stay at or below ${settings?.parBlockThreshold ?? 20}%`}
+            hint={`PAR30: share of an agent's outstanding book on customers more than 30 days behind. Agents with fewer than ${settings?.parBlockMinContracts ?? 10} active contracts are not judged — one late customer is not a pattern. The block lifts by itself once they collect it back down.`}
+            checked={settings?.parBlockEnabled ?? false}
+            blockedBy={summary?.overParLimit ?? 0}
+            onChange={(v) => toggleRule("parBlockEnabled", v)}
+          />
+          <div className="flex flex-wrap items-end gap-3 pl-0">
+            <div>
+              <label htmlFor="par-threshold" className="mb-1 block text-xs font-medium text-gray-600">
+                PAR30 limit (%)
+              </label>
+              <input
+                id="par-threshold"
+                type="number"
+                min={1}
+                max={100}
+                value={parDraft?.threshold ?? String(settings?.parBlockThreshold ?? 20)}
+                onChange={(e) =>
+                  setParDraft({
+                    threshold: e.target.value,
+                    min: parDraft?.min ?? String(settings?.parBlockMinContracts ?? 10),
+                  })
+                }
+                className="w-24 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-cyan-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="par-min" className="mb-1 block text-xs font-medium text-gray-600">
+                Judged from (contracts)
+              </label>
+              <input
+                id="par-min"
+                type="number"
+                min={1}
+                value={parDraft?.min ?? String(settings?.parBlockMinContracts ?? 10)}
+                onChange={(e) =>
+                  setParDraft({
+                    threshold: parDraft?.threshold ?? String(settings?.parBlockThreshold ?? 20),
+                    min: e.target.value,
+                  })
+                }
+                className="w-24 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-cyan-500 focus:outline-none"
+              />
+            </div>
+            {parDraft && (
+              <button
+                onClick={async () => {
+                  await applySettings({
+                    parBlockThreshold: Number(parDraft.threshold),
+                    parBlockMinContracts: Number(parDraft.min),
+                  });
+                  setParDraft(null);
+                }}
+                className="rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-700"
+              >
+                Save limit
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -265,6 +344,7 @@ export default function AgentSupervisionPage() {
           {([
             ["no-cluster", `Needs cluster (${noCluster})`],
             ["no-cso", `Needs officer (${noCso})`],
+            ["over-par", `Over PAR limit (${summary?.overParLimit ?? 0})`],
             ["all", `All (${summary?.total ?? 0})`],
           ] as [Filter, string][]).map(([key, label]) => (
             <button
@@ -347,6 +427,27 @@ export default function AgentSupervisionPage() {
                   <p className="mt-0.5 text-xs text-gray-400">
                     {agent.role.replace(/_/g, " ").toLowerCase()} · {agent.contracts} contracts
                   </p>
+                  {(agent.activeContracts ?? 0) > 0 && (
+                    <p className="mt-0.5 text-xs">
+                      <span
+                        className={
+                          agent.parBlocked
+                            ? "font-semibold text-red-700"
+                            : (agent.par30 ?? 0) > 10
+                              ? "font-medium text-amber-700"
+                              : "text-gray-500"
+                        }
+                      >
+                        PAR30 {agent.par30 ?? 0}%
+                      </span>
+                      <span className="text-gray-400"> · PAR1 {agent.par1 ?? 0}% · {agent.activeContracts} active</span>
+                      {agent.parBlocked && (
+                        <span className="ml-1 rounded bg-red-100 px-1 py-0.5 text-[10px] font-semibold text-red-800">
+                          {settings?.parBlockEnabled ? "BLOCKED" : "OVER LIMIT"}
+                        </span>
+                      )}
+                    </p>
+                  )}
                   <div className="mt-2 grid grid-cols-2 gap-1.5">
                     <input
                       defaultValue={agent.area ?? ""}
@@ -443,7 +544,7 @@ export default function AgentSupervisionPage() {
                 onClick={() => {
                   const c = confirm;
                   setConfirm(null);
-                  void toggleRule(c.key, c.value, true);
+                  void applySettings(c.patch, true);
                 }}
                 className="rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-amber-700"
               >
