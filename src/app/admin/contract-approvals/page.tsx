@@ -22,6 +22,7 @@ import {
   ShieldAlert,
   CreditCard,
   FileText,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,8 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/lib/permissions";
 
 interface PendingContract {
   id: string;
@@ -133,12 +136,14 @@ function ContractPreviewModal({
   onClose,
   onApprove,
   onRevision,
+  onCancelPending,
   approvingId,
 }: {
   contract: PendingContract;
   onClose: () => void;
   onApprove: (contract: PendingContract) => void;
   onRevision: (contract: PendingContract) => void;
+  onCancelPending: ((contract: PendingContract) => void) | null;
   approvingId: string | null;
 }) {
   const freqLabel = (f: string) =>
@@ -456,6 +461,16 @@ function ContractPreviewModal({
             <XCircle className="h-4 w-4" />
             Request Revision
           </button>
+          {onCancelPending && (
+            <button
+              onClick={() => { onClose(); onCancelPending(contract); }}
+              disabled={isApproving}
+              className="px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl flex items-center gap-1.5"
+            >
+              <Ban className="h-4 w-4" />
+              Cancel
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl"
@@ -532,6 +547,86 @@ function RejectModal({
             className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl"
           >
             Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Cancel Modal — for a contract the customer has walked away from
+function CancelPendingModal({
+  contract,
+  onConfirm,
+  onClose,
+}: {
+  contract: PendingContract;
+  onConfirm: (reason: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!reason.trim()) return;
+    setLoading(true);
+    await onConfirm(reason.trim());
+    setLoading(false);
+  };
+
+  const deposit = Number(contract.depositAmount) || 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative z-10 bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 w-full sm:max-w-md sm:mx-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Ban className="h-5 w-5 text-gray-700 shrink-0" />
+          <h2 className="text-base font-semibold text-gray-900">Cancel this contract</h2>
+        </div>
+        <p className="text-sm text-gray-600 mb-1">
+          Contract <span className="font-semibold">{contract.contractNumber}</span> for{" "}
+          <span className="font-semibold">
+            {contract.customer.firstName} {contract.customer.lastName}
+          </span>{" "}
+          will be closed and the item returned to stock.
+        </p>
+        <p className="text-sm text-gray-500 mb-3">
+          Use this when the sale is not going ahead — the customer changed their mind. To send it
+          back to the agent to fix instead, use Request Revision.
+        </p>
+        {deposit > 0 && (
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            A deposit of <span className="font-semibold">{formatCurrency(deposit)}</span> is recorded
+            on this contract. Cancelling does not refund it — arrange that separately.
+          </div>
+        )}
+        <div>
+          <label className="text-xs font-medium text-gray-600">
+            Reason <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            rows={3}
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 resize-none"
+            placeholder="e.g. Customer changed their mind and no longer wants the phone"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !reason.trim()}
+            className="flex-1 bg-gray-900 hover:bg-black disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
+          >
+            {loading ? "Cancelling..." : "Cancel contract"}
+          </button>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl"
+          >
+            Keep it
           </button>
         </div>
       </div>
@@ -764,6 +859,8 @@ export default function ContractApprovalsPage() {
   const { toast } = useToast();
   const { refresh: refreshCount } = usePendingContractApprovals();
   const { user } = useAuth();
+  const { hasAnyPermission } = usePermissions();
+  const canCancelPending = hasAnyPermission([PERMISSIONS.CANCEL_PENDING_CONTRACT, PERMISSIONS.CANCEL_CONTRACT]);
   const currentUserId = (user as { id?: string } | null)?.id || "";
 
   const [contracts, setContracts] = useState<PendingContract[]>([]);
@@ -778,6 +875,7 @@ export default function ContractApprovalsPage() {
   const [sortBy, setSortBy] = useState("age");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [rejectTarget, setRejectTarget] = useState<PendingContract | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<PendingContract | null>(null);
   const [editTarget, setEditTarget] = useState<PendingContract | null>(null);
   const [previewTarget, setPreviewTarget] = useState<PendingContract | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -850,6 +948,26 @@ export default function ContractApprovalsPage() {
       toast({
         title: "Error",
         description: err.response?.data?.error || "Failed to request revision",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelPending = async (reason: string) => {
+    if (!cancelTarget) return;
+    try {
+      const res = await api.post(`/contracts/${cancelTarget.id}/cancel-pending`, { reason });
+      toast({
+        title: "Contract cancelled",
+        description: res.data?.message || `Contract ${cancelTarget.contractNumber} has been cancelled.`,
+      });
+      setCancelTarget(null);
+      loadContracts();
+      refreshCount();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.error || "Failed to cancel the contract",
         variant: "destructive",
       });
     }
@@ -1140,6 +1258,27 @@ export default function ContractApprovalsPage() {
                               <XCircle className="h-3.5 w-3.5" />
                               Request Revision
                             </button>
+                            {canCancelPending && (
+                              <button
+                                onClick={() => setCancelTarget(contract)}
+                                disabled={approvingId === contract.id}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-60"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                                Cancel
+                              </button>
+                            )}
+                            {canCancelPending && (
+                              <button
+                                onClick={() => setCancelTarget(contract)}
+                                disabled={approvingId === contract.id}
+                                title="The customer is not going ahead — close it and return the item to stock"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-60 transition-colors"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                                Cancel
+                              </button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1331,7 +1470,16 @@ export default function ContractApprovalsPage() {
           onClose={() => setPreviewTarget(null)}
           onApprove={handleApprove}
           onRevision={(c) => { setPreviewTarget(null); setRejectTarget(c); }}
+          onCancelPending={canCancelPending ? (c) => { setPreviewTarget(null); setCancelTarget(c); } : null}
           approvingId={approvingId}
+        />
+      )}
+
+      {cancelTarget && (
+        <CancelPendingModal
+          contract={cancelTarget}
+          onConfirm={handleCancelPending}
+          onClose={() => setCancelTarget(null)}
         />
       )}
 
