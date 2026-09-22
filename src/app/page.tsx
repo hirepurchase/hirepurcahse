@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShieldCheck, Wallet } from "lucide-react";
 
 /**
  * Entry point for an internal system, so it is built as a sign-in chooser
@@ -21,11 +21,13 @@ const ENTRANCES = [
     href: "/admin-login",
     label: "Staff portal",
     who: "Agents, cluster leaders, customer service, administrators",
+    icon: ShieldCheck,
   },
   {
     href: "/customer-login",
     label: "Customer portal",
     who: "Balances, payment history and instalment payments",
+    icon: Wallet,
   },
 ];
 
@@ -70,50 +72,58 @@ export default function Home() {
       </aside>
 
       {/* Ways in */}
-      <main className="flex px-6 py-10 sm:px-10 lg:items-center lg:px-16 lg:py-12">
-        <div className="w-full max-w-lg">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900">Sign in</h2>
-          <p className="mt-1.5 text-sm text-slate-500">
-            Choose the portal for your account.
+      <main className="flex px-6 py-10 sm:px-10 lg:items-center lg:px-12 lg:py-12">
+        <div className="mx-auto w-full max-w-[420px]">
+          <h2 className="text-[26px] font-semibold leading-tight tracking-tight text-slate-900">
+            Sign in
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Two portals run on this system. Choose the one your account belongs to.
           </p>
 
-          <div className="mt-7 border-t border-slate-200">
-            {ENTRANCES.map(({ href, label, who }) => (
+          {/* A bordered list, not floating cards: the rows read as one control
+              with a clear boundary, which is what a chooser should look like. */}
+          <div className="mt-7 divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200">
+            {ENTRANCES.map(({ href, label, who, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
-                className="group flex items-center gap-5 border-b border-slate-200 py-5 transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
+                className="group flex items-center gap-4 bg-white px-4 py-4 transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
               >
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors"
+                  style={{ borderColor: "rgba(1,59,154,0.18)", backgroundColor: "rgba(1,59,154,0.05)" }}
+                >
+                  <Icon className="h-[18px] w-[18px]" style={{ color: BRAND }} aria-hidden="true" />
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-semibold text-slate-900">{label}</span>
-                  <span className="mt-1 block text-[13px] leading-5 text-slate-500">{who}</span>
+                  <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">{who}</span>
                 </span>
                 <ArrowRight
-                  className="h-4 w-4 shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-slate-500"
+                  className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5"
                   aria-hidden="true"
                 />
               </Link>
             ))}
           </div>
 
-          <dl className="mt-8 space-y-3 text-[13px] leading-5">
-            <div className="flex gap-3">
-              <dt className="w-32 shrink-0 font-medium text-slate-500">First sign-in</dt>
-              <dd className="text-slate-700">
-                Customers use their phone number as both username and password, then set a new one.
-              </dd>
-            </div>
-            <div className="flex gap-3">
-              <dt className="w-32 shrink-0 font-medium text-slate-500">Trouble signing in</dt>
-              <dd className="text-slate-700">
-                Staff should contact their administrator; customers should contact their agent.
-              </dd>
-            </div>
-          </dl>
+          {/* The two questions this screen actually gets asked. */}
+          <div className="mt-6 rounded-lg bg-slate-50 px-4 py-4 text-[13px] leading-6 text-slate-600">
+            <p>
+              <span className="font-semibold text-slate-800">Signing in for the first time?</span>{" "}
+              Customers use their phone number as both username and password, then set a new one.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-slate-800">Cannot get in?</span> Staff should
+              contact their administrator, customers their agent.
+            </p>
+          </div>
 
-          <p className="mt-10 border-t border-slate-200 pt-5 text-xs text-slate-400">
-            hirepurchase.aidootechsolutions.com &middot; &copy; {new Date().getFullYear()} Aidoo Tech
-            Solutions
+          <p className="mt-8 text-xs leading-5 text-slate-400">
+            hirepurchase.aidootechsolutions.com
+            <br />
+            &copy; {new Date().getFullYear()} Aidoo Tech Solutions
           </p>
         </div>
       </main>
