@@ -4,11 +4,32 @@ import { useEffect, useState } from 'react';
 import { Megaphone, X } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
+import AnnouncementMessage from './AnnouncementMessage';
 
-// Cleared on every real login (admin-login/page.tsx and useAuth.ts's
-// loginAdmin), so this only suppresses re-opening on every page navigation
-// within one login — not on the next login in the same tab.
-const AUTO_SHOWN_KEY = 'announcements_auto_shown';
+// Which announcements this person has already had opened in their face.
+// Previously keyed per login in sessionStorage, so the same notice reopened at
+// every login; an announcement everyone has read should stop interrupting them.
+// It stays reachable from the bell either way.
+const SEEN_KEY = 'announcements_seen_ids';
+
+function readSeen(): string[] {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function markSeen(ids: string[]) {
+  try {
+    // Keep the list from growing without bound as announcements come and go.
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...new Set(ids)].slice(-100)));
+  } catch {
+    // localStorage unavailable — the notice simply opens again next time
+  }
+}
 
 export default function AnnouncementBell({ variant = 'light' }: { variant?: 'light' | 'dark' }) {
   const { data, count } = useAnnouncements();
@@ -18,23 +39,13 @@ export default function AnnouncementBell({ variant = 'light' }: { variant?: 'lig
   // at least one active announcement for this user's role.
   useEffect(() => {
     if (count === 0) return;
-
-    let alreadyShown = false;
-    try {
-      alreadyShown = sessionStorage.getItem(AUTO_SHOWN_KEY) === 'true';
-    } catch {
-      // sessionStorage unavailable — fall back to showing every load
-    }
-
-    if (!alreadyShown) {
+    const ids = data.map((a) => a.id);
+    const seen = readSeen();
+    if (ids.some((id) => !seen.includes(id))) {
       setOpen(true);
-      try {
-        sessionStorage.setItem(AUTO_SHOWN_KEY, 'true');
-      } catch {
-        // ignore
-      }
+      markSeen([...seen, ...ids]);
     }
-  }, [count]);
+  }, [count, data]);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -90,7 +101,7 @@ export default function AnnouncementBell({ variant = 'light' }: { variant?: 'lig
             <div className="overflow-y-auto flex-1 min-h-0 px-6 pb-2 space-y-3">
               {data.map((a) => (
                 <div key={a.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{a.message}</p>
+                  <AnnouncementMessage message={a.message} />
                   <p className="text-xs text-gray-400 mt-2">
                     {a.createdBy.firstName} {a.createdBy.lastName} · {formatDate(a.createdAt)}
                   </p>
