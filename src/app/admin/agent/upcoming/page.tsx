@@ -31,6 +31,8 @@ type UpcomingRow = {
   product: string | null;
   amountDue: number;
   dueDate: string;
+  agentId: string;
+  agentName: string;
 };
 
 export default function AgentUpcomingInstallmentsPage() {
@@ -38,6 +40,8 @@ export default function AgentUpcomingInstallmentsPage() {
   const { toast } = useToast();
 
   const [rows, setRows] = useState<UpcomingRow[]>([]);
+  // Cluster leaders see their whole team here; agents only their own book.
+  const [scope, setScope] = useState<"own" | "cluster">("own");
   const [totalUpcomingAmount, setTotalUpcomingAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -47,6 +51,7 @@ export default function AgentUpcomingInstallmentsPage() {
     try {
       const res = await api.get("/reports/agent-dashboard/upcoming-installments");
       setRows(res.data.installments || []);
+      setScope(res.data.scope || "own");
       setTotalUpcomingAmount(res.data.totalUpcomingAmount || 0);
     } catch (err: any) {
       toast({
@@ -85,6 +90,9 @@ export default function AgentUpcomingInstallmentsPage() {
         </button>
         <div className="min-w-0">
           <h1 className="truncate text-xl sm:text-2xl font-bold text-gray-900">Upcoming Payments</h1>
+          {scope === "cluster" && (
+            <p className="text-xs font-medium text-blue-600">Across your cluster — your agents and your own book</p>
+          )}
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Due tomorrow — follow up before they go overdue</p>
         </div>
       </div>
@@ -143,6 +151,9 @@ export default function AgentUpcomingInstallmentsPage() {
                         <p className="text-sm font-semibold text-gray-900 truncate">{r.customer.name}</p>
                         <p className="text-xs text-gray-500 font-mono truncate">{r.contractNumber}</p>
                         <p className="text-xs text-gray-400 truncate">{r.product || "—"}</p>
+                        {scope === "cluster" && (
+                          <p className="mt-0.5 truncate text-xs font-medium text-blue-600">{r.agentName}</p>
+                        )}
                       </div>
                       <span className="text-sm font-bold text-amber-600 shrink-0">{formatCurrency(r.amountDue)}</span>
                     </div>
@@ -166,6 +177,7 @@ export default function AgentUpcomingInstallmentsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Customer</TableHead>
+                      {scope === "cluster" && <TableHead>Agent</TableHead>}
                       <TableHead>Phone</TableHead>
                       <TableHead>Contract</TableHead>
                       <TableHead className="text-right">Amount Due</TableHead>
@@ -179,6 +191,9 @@ export default function AgentUpcomingInstallmentsPage() {
                           <p className="font-medium text-gray-900">{r.customer.name}</p>
                           <p className="text-xs text-gray-400">{r.customer.membershipId}</p>
                         </TableCell>
+                        {scope === "cluster" && (
+                          <TableCell className="text-sm text-blue-700">{r.agentName}</TableCell>
+                        )}
                         <TableCell>
                           <a
                             href={`tel:${r.customer.phone}`}

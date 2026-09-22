@@ -35,6 +35,8 @@ type OverdueRow = {
   daysOverdue: number;
   lastPaymentDate: string | null;
   lastPaymentAmount: number | null;
+  agentId: string;
+  agentName: string;
 };
 
 function daysOverdueClass(days: number): string {
@@ -48,6 +50,9 @@ export default function AgentOverdueInstallmentsPage() {
   const { toast } = useToast();
 
   const [rows, setRows] = useState<OverdueRow[]>([]);
+  // A cluster leader sees their whole team here, so each row has to say whose
+  // customer it is; a plain agent only ever sees their own and does not.
+  const [scope, setScope] = useState<"own" | "cluster">("own");
   const [totalOverdueAmount, setTotalOverdueAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -57,6 +62,7 @@ export default function AgentOverdueInstallmentsPage() {
     try {
       const res = await api.get("/reports/agent-dashboard/overdue-installments");
       setRows(res.data.installments || []);
+      setScope(res.data.scope || "own");
       setTotalOverdueAmount(res.data.totalOverdueAmount || 0);
     } catch (err: any) {
       toast({
@@ -95,6 +101,9 @@ export default function AgentOverdueInstallmentsPage() {
         </button>
         <div className="min-w-0">
           <h1 className="truncate text-xl sm:text-2xl font-bold text-gray-900">Overdue Installments</h1>
+          {scope === "cluster" && (
+            <p className="text-xs font-medium text-blue-600">Across your cluster — your agents and your own book</p>
+          )}
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Customers on your contracts with missed payments</p>
         </div>
       </div>
@@ -153,6 +162,9 @@ export default function AgentOverdueInstallmentsPage() {
                         <p className="text-sm font-semibold text-gray-900 truncate">{r.customer.name}</p>
                         <p className="text-xs text-gray-500 font-mono truncate">{r.contractNumber}</p>
                         <p className="text-xs text-gray-400 truncate">{r.product || "—"}</p>
+                        {scope === "cluster" && (
+                          <p className="mt-0.5 truncate text-xs font-medium text-blue-600">{r.agentName}</p>
+                        )}
                       </div>
                       <Badge className={cn(daysOverdueClass(r.daysOverdue), "shrink-0")}>
                         {r.daysOverdue} day{r.daysOverdue === 1 ? "" : "s"}
@@ -185,6 +197,7 @@ export default function AgentOverdueInstallmentsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Customer</TableHead>
+                      {scope === "cluster" && <TableHead>Agent</TableHead>}
                       <TableHead>Phone</TableHead>
                       <TableHead>Contract</TableHead>
                       <TableHead className="text-right">Amount Overdue</TableHead>
@@ -199,6 +212,9 @@ export default function AgentOverdueInstallmentsPage() {
                           <p className="font-medium text-gray-900">{r.customer.name}</p>
                           <p className="text-xs text-gray-400">{r.customer.membershipId}</p>
                         </TableCell>
+                        {scope === "cluster" && (
+                          <TableCell className="text-sm text-blue-700">{r.agentName}</TableCell>
+                        )}
                         <TableCell>
                           <a
                             href={`tel:${r.customer.phone}`}

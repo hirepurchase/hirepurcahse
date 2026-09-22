@@ -215,6 +215,9 @@ export default function ContractsPage() {
           page: pageOverride,
           limit: itemsPerPage,
           includeDeviceControl: canViewDeviceControl || undefined,
+          // Set when a supervisor drills in from their cluster dashboard. The
+          // server narrows within the caller's scope, never outside it.
+          agentId: searchParams.get("agentId") || undefined,
         },
       });
       setContracts(response.data.contracts || []);
@@ -230,6 +233,15 @@ export default function ContractsPage() {
       setIsLoading(false);
     }
   };
+
+  const filteredAgentId = searchParams.get("agentId");
+  const filteredAgentName = filteredAgentId
+    ? contracts.find((c: any) => c.createdBy?.id === filteredAgentId)
+      ? `${contracts.find((c: any) => c.createdBy?.id === filteredAgentId)?.createdBy?.firstName ?? ""} ${
+          contracts.find((c: any) => c.createdBy?.id === filteredAgentId)?.createdBy?.lastName ?? ""
+        }`.trim()
+      : null
+    : null;
 
   const handleSearch = () => {
     setCurrentPage(1);
@@ -323,6 +335,21 @@ export default function ContractsPage() {
           <span className="sm:hidden">New</span>
         </Button>
       </div>
+
+      {filteredAgentId && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm text-blue-900">
+            Showing contracts created by{" "}
+            <span className="font-semibold">{filteredAgentName || "this agent"}</span>
+          </p>
+          <button
+            onClick={() => router.push("/admin/contracts")}
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+          >
+            Show all
+          </button>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

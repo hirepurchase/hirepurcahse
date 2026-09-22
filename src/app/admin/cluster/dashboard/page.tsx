@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, AlertTriangle, ShieldAlert, Clock, Phone, Mail } from "lucide-react";
+import { Users, AlertTriangle, ShieldAlert, Clock, Phone, Mail, CalendarClock, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -66,6 +66,12 @@ export default function ClusterDashboardPage() {
   const [officers, setOfficers] = useState<{ id: string; name: string; email: string; phone: string | null }[]>([]);
   const [agents, setAgents] = useState<ClusterAgent[]>([]);
   const [summary, setSummary] = useState<ClusterSummary | null>(null);
+  // The follow-up figures come from the two agent endpoints, which now cover
+  // the whole cluster for a leader rather than just their own book.
+  const [followUp, setFollowUp] = useState<{
+    overdue: { count: number; amount: number } | null;
+    upcoming: { count: number; amount: number } | null;
+  }>({ overdue: null, upcoming: null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -77,6 +83,15 @@ export default function ClusterDashboardPage() {
           .get("/admin-users/me/customer-service")
           .then((r) => setOfficers(r.data.officers || []))
           .catch(() => setOfficers([]));
+        void api
+          .get("/reports/agent-dashboard/overdue-installments")
+          .then((r) => setFollowUp((f) => ({ ...f, overdue: { count: r.data.count ?? 0, amount: r.data.totalOverdueAmount ?? 0 } })))
+          .catch(() => {});
+        void api
+          .get("/reports/agent-dashboard/upcoming-installments")
+          .then((r) => setFollowUp((f) => ({ ...f, upcoming: { count: r.data.count ?? 0, amount: r.data.totalUpcomingAmount ?? 0 } })))
+          .catch(() => {});
+
         const res = await api.get("/cluster/my-agents");
         // Their own book sits in the same table as their agents', labelled, so
         // the totals above it are explainable by the rows beneath it.
@@ -160,7 +175,7 @@ export default function ClusterDashboardPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-600 sm:text-sm">Contracts Overdue</p>
+                    <p className="text-xs text-gray-600 sm:text-sm">Over 30 Days Late</p>
                     <p className="mt-1 text-2xl font-bold text-red-600">{summary?.contractsOverdue ?? 0}</p>
                   </div>
                   <AlertTriangle className="h-7 w-7 shrink-0 text-red-600" />
@@ -189,6 +204,46 @@ export default function ClusterDashboardPage() {
             </Card>
           </div>
 
+          {/* Follow-up work across the cluster. These were only ever on the
+              agent dashboard, so a leader had no way to see the calls waiting
+              across their team. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            <Link
+              href="/admin/agent/overdue"
+              className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 transition-colors hover:bg-red-100"
+            >
+              <AlertTriangle className="h-8 w-8 shrink-0 text-red-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-red-900">
+                  {followUp.overdue ? `${followUp.overdue.count} overdue installment${followUp.overdue.count === 1 ? "" : "s"}` : "Overdue installments"}
+                </p>
+                <p className="truncate text-xs text-red-700">
+                  {followUp.overdue
+                    ? `${formatCurrency(followUp.overdue.amount)} to collect across your cluster`
+                    : "Loading…"}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-red-400" />
+            </Link>
+            <Link
+              href="/admin/agent/upcoming"
+              className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 transition-colors hover:bg-amber-100"
+            >
+              <CalendarClock className="h-8 w-8 shrink-0 text-amber-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-amber-900">
+                  {followUp.upcoming ? `${followUp.upcoming.count} due tomorrow` : "Due tomorrow"}
+                </p>
+                <p className="truncate text-xs text-amber-700">
+                  {followUp.upcoming
+                    ? `${formatCurrency(followUp.upcoming.amount)} — call before it goes late`
+                    : "Loading…"}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-amber-400" />
+            </Link>
+          </div>
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">
@@ -199,7 +254,11 @@ export default function ClusterDashboardPage() {
               {/* Mobile */}
               <div className="divide-y divide-gray-100 sm:hidden">
                 {agents.map((a) => (
-                  <div key={a.id} className="px-4 py-3">
+                  <Link
+                    key={a.id}
+                    href={`/admin/contracts?agentId=${a.id}`}
+                    className="block px-4 py-3 transition-colors active:bg-gray-50"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-900">
@@ -228,7 +287,11 @@ export default function ClusterDashboardPage() {
                     </div>
                     <div className="mt-1.5 flex items-center justify-between text-xs">
                       {a.phone ? (
-                        <a href={`tel:${a.phone}`} className="flex items-center gap-1.5 font-medium text-cyan-700">
+                        <a
+                          href={`tel:${a.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1.5 font-medium text-cyan-700"
+                        >
                           <Phone className="h-3.5 w-3.5" />
                           {a.phone}
                         </a>
@@ -237,7 +300,11 @@ export default function ClusterDashboardPage() {
                       )}
                       <span className="text-gray-500">{formatCurrency(a.amountAtRisk)} at risk</span>
                     </div>
-                  </div>
+                    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-blue-600">
+                      View their contracts
+                      <ChevronRight className="h-3 w-3" />
+                    </p>
+                  </Link>
                 ))}
               </div>
 
@@ -255,6 +322,7 @@ export default function ClusterDashboardPage() {
                       <TableHead className="text-right">At Risk</TableHead>
                       <TableHead>PAR30</TableHead>
                       <TableHead>Since</TableHead>
+                      <TableHead className="text-right">Contracts</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -304,6 +372,15 @@ export default function ClusterDashboardPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-sm text-gray-500">{formatDate(a.assignedAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <Link
+                            href={`/admin/contracts?agentId=${a.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                          >
+                            View
+                            <ChevronRight className="h-3 w-3" />
+                          </Link>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
