@@ -39,6 +39,7 @@ type UnlockRequest = {
   customerPhone: string | null;
   membershipId: string | null;
   agentName: string | null;
+  requestedById: string | null;
   requestedByName: string | null;
   requestedWeeks: number;
   approvedWeeks: number | null;
@@ -663,6 +664,19 @@ export default function TemporaryUnlocksPage() {
                 </p>
                 <p className="mt-2 text-gray-700">{reviewTarget.reason}</p>
               </div>
+
+              {/* Approving your own request skips the second pair of eyes the
+                  policy normally requires, so say so rather than letting it
+                  look like any other approval. */}
+              {reviewTarget.requestedById === adminUser?.id && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>
+                    This is your own request. Approving it records you as both the person who asked
+                    and the person who granted it.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="reviewWeeks">Weeks to grant</Label>
