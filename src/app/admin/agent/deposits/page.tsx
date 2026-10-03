@@ -8,6 +8,7 @@ import { PERMISSIONS } from '@/lib/permissions';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { ExportButtons } from '@/components/admin/ExportButtons';
 import { ExportOptions } from '@/lib/exportUtils';
+import MyCompletionCommissionsCard from '@/components/admin/MyCompletionCommissionsCard';
 import {
   Wallet,
   TrendingUp,
@@ -194,6 +195,8 @@ export default function AgentDepositsPage() {
           ))}
         </div>
       )}
+
+      <MyCompletionCommissionsCard />
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
