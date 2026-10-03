@@ -28,6 +28,7 @@ import {
   Briefcase,
   Smartphone,
   TabletSmartphone,
+  Medal,
   Wallet,
   BookOpen,
   DollarSign,
@@ -205,6 +206,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
       { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", icon: ShieldAlert, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", icon: Medal, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
   },
   {
@@ -331,6 +333,7 @@ const MORE_GROUPS: Array<{
     links: [
       { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: [PERMISSIONS.VIEW_REPORTS] },
       { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", emoji: "🏅", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
   },
   {
