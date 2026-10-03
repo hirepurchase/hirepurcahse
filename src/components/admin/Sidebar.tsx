@@ -27,6 +27,7 @@ import {
   X,
   Briefcase,
   Smartphone,
+  TabletSmartphone,
   Wallet,
   BookOpen,
   DollarSign,
@@ -217,6 +218,7 @@ const navGroups: NavGroup[] = [
       { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
       { name: "Call Logs", href: "/admin/call-logs", icon: PhoneCall, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
       { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "PayTrigger", href: "/admin/paytrigger", icon: TabletSmartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control", href: "/admin/device-control", icon: Shield, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Lock Issues", href: "/admin/device-issues", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       {
@@ -351,6 +353,7 @@ const MORE_GROUPS: Array<{
       { name: "Audit Trail",         href: "/admin/audit",                emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
       { name: "Call Logs",           href: "/admin/call-logs",            emoji: "📞", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
       { name: "Knox Guard",          href: "/admin/knox",                 emoji: "🔒", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "PayTrigger",          href: "/admin/paytrigger",           emoji: "📱", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control",      href: "/admin/device-control",       emoji: "🛡️", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Temp Unlocks",        href: "/admin/temporary-unlocks",    emoji: "🔓", permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
       { name: "Agent Ledger",        href: "/admin/agent/admin-ledger",   emoji: "📒", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
