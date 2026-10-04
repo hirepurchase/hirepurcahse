@@ -17,6 +17,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { useAuthStore } from "@/store/authStore";
 import { AdminUser } from "@/types";
+import MyScorecardCard from "@/components/admin/MyScorecardCard";
 
 type ClusterAgent = {
   id: string;
@@ -146,6 +147,8 @@ export default function ClusterDashboardPage() {
           </div>
         )}
       </div>
+
+      <MyScorecardCard />
 
       {agents.length === 0 ? (
         <Card>

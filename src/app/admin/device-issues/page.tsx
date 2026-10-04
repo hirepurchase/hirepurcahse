@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, RefreshCw, ShieldAlert, HelpCircle } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ShieldAlert, HelpCircle, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
+import { useAuthStore } from '@/store/authStore';
+import KnoxPinDialog from '@/components/admin/KnoxPinDialog';
 
 interface DeviceIssue {
   contractId: string;
@@ -32,10 +34,12 @@ interface DeviceIssuesResponse {
 }
 
 function IssueTable({
-  title, subtitle, icon: Icon, tone, issues, onRetry, retrying,
+  title, subtitle, icon: Icon, tone, issues, onRetry, retrying, onPin,
 }: {
   title: string; subtitle: string; icon: React.ElementType; tone: 'red' | 'amber' | 'slate';
   issues: DeviceIssue[]; onRetry: (contractId: string) => void; retrying: string | null;
+  /** Offline unlock PIN, offered where a paid customer's phone is still locked. */
+  onPin?: (issue: DeviceIssue) => void;
 }) {
   const toneClasses = {
     red: 'text-red-600 bg-red-50',
@@ -97,6 +101,12 @@ function IssueTable({
                         <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${retrying === issue.contractId ? 'animate-spin' : ''}`} />
                         {retrying === issue.contractId ? 'Retrying…' : 'Retry'}
                       </Button>
+                      {onPin && (
+                        <Button size="sm" variant="outline" className="ml-2" onClick={() => onPin(issue)}>
+                          <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                          PIN
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -114,6 +124,9 @@ export default function DeviceIssuesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [retrying, setRetrying] = useState<string | null>(null);
   const { toast } = useToast();
+  const role = (useAuthStore((st) => st.user) as { role?: string } | null)?.role;
+  const canIssuePin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+  const [pinFor, setPinFor] = useState<DeviceIssue | null>(null);
 
   const load = async () => {
     try {
@@ -151,6 +164,7 @@ export default function DeviceIssuesPage() {
 
   return (
     <div className="space-y-6">
+      {pinFor && <KnoxPinDialog contractId={pinFor.contractId} customer={pinFor.customerName} onClose={() => setPinFor(null)} />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -188,6 +202,7 @@ export default function DeviceIssuesPage() {
             issues={data.categoryB}
             onRetry={handleRetry}
             retrying={retrying}
+            onPin={canIssuePin ? setPinFor : undefined}
           />
           <IssueTable
             title="Should be UNLOCKED, state unknown"

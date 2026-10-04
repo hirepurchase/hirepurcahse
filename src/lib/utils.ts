@@ -79,6 +79,26 @@ export function getStatusColor(status: string): string {
   return colors[status] || 'bg-gray-100 text-gray-800';
 }
 
+/** Saturday and Sunday are not collection days. */
+export function isWeekend(date: Date): boolean {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
+
+/**
+ * Move a date forward to the next collection day, so nothing falls due on a
+ * Saturday or Sunday. Mirrors `toBusinessDay` in the backend's helpers.ts —
+ * the two must agree or the schedule previewed here will not match the one
+ * the server saves.
+ */
+export function toBusinessDay(date: Date): Date {
+  const result = new Date(date);
+  while (isWeekend(result)) {
+    result.setDate(result.getDate() + 1);
+  }
+  return result;
+}
+
 export function isOverdue(dueDate: Date | string, gracePeriodDays: number = 0): boolean {
   const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
   const gracePeriod = new Date(due);

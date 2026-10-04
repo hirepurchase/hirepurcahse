@@ -15,6 +15,7 @@ import {
   Smartphone,
   Trash2,
   Unlock,
+  KeyRound,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
@@ -22,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { adminHasPermission, PERMISSIONS } from '@/lib/permissions';
 import { Pagination } from '@/components/ui/pagination';
 import type { AdminUser } from '@/types';
+import KnoxPinDialog from '@/components/admin/KnoxPinDialog';
 
 interface ManagedDevice {
   id: string;
@@ -194,6 +196,9 @@ export default function KnoxDevicesPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const canManage = useMemo(() => adminHasPermission(user as AdminUser | null, PERMISSIONS.MANAGE_DEVICE_CONTROL), [user]);
+  // Offline unlock PIN is for administrators by role, as the backend enforces.
+  const canIssuePin = ['ADMIN', 'SUPER_ADMIN'].includes((user as AdminUser | null)?.role ?? '');
+  const [pinFor, setPinFor] = useState<{ contractId: string; customer: string | null } | null>(null);
 
   const [devices, setDevices] = useState<ManagedDevice[]>([]);
   const [uploads, setUploads] = useState<KnoxUploadItem[]>([]);
@@ -552,6 +557,7 @@ export default function KnoxDevicesPage() {
 
   return (
     <div className="space-y-4">
+      {pinFor && <KnoxPinDialog contractId={pinFor.contractId} customer={pinFor.customer} onClose={() => setPinFor(null)} />}
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -782,6 +788,17 @@ export default function KnoxDevicesPage() {
                                   {busyKey === `unlock:${device.contract.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlock className="h-3.5 w-3.5" />}
                                   Unlock
                                 </button>
+                                {canIssuePin && (
+                                  <button
+                                    onClick={() => setPinFor({ contractId: device.contract!.id, customer: device.customer ? `${device.customer.firstName} ${device.customer.lastName}` : null })}
+                                    disabled={!!busyKey}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-300 bg-white px-3 py-1.5 text-xs font-medium text-cyan-800 hover:bg-cyan-50 disabled:opacity-60"
+                                    title="Offline unlock PIN for a paid customer whose phone has no data"
+                                  >
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                    PIN
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleDelete(device.deviceUid)}
                                   disabled={!!busyKey}

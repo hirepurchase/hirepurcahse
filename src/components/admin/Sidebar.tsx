@@ -27,6 +27,9 @@ import {
   X,
   Briefcase,
   Smartphone,
+  TabletSmartphone,
+  Medal,
+  Gift,
   Wallet,
   BookOpen,
   DollarSign,
@@ -204,6 +207,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
       { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", icon: ShieldAlert, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", icon: Medal, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
   },
   {
@@ -217,6 +221,7 @@ const navGroups: NavGroup[] = [
       { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
       { name: "Call Logs", href: "/admin/call-logs", icon: PhoneCall, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
       { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "PayTrigger", href: "/admin/paytrigger", icon: TabletSmartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control", href: "/admin/device-control", icon: Shield, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Lock Issues", href: "/admin/device-issues", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       {
@@ -230,6 +235,7 @@ const navGroups: NavGroup[] = [
         permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS],
       },
       { name: "Agent Ledger", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
+      { name: "Completion Commissions", href: "/admin/agent/completion-commissions", icon: Gift, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
       { name: "Expiry Penalties", href: "/admin/settings/penalties", icon: AlertTriangle, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
     ],
@@ -329,6 +335,7 @@ const MORE_GROUPS: Array<{
     links: [
       { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: [PERMISSIONS.VIEW_REPORTS] },
       { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", emoji: "🏅", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
     ],
   },
   {
@@ -351,9 +358,11 @@ const MORE_GROUPS: Array<{
       { name: "Audit Trail",         href: "/admin/audit",                emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
       { name: "Call Logs",           href: "/admin/call-logs",            emoji: "📞", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
       { name: "Knox Guard",          href: "/admin/knox",                 emoji: "🔒", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "PayTrigger",          href: "/admin/paytrigger",           emoji: "📱", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Device Control",      href: "/admin/device-control",       emoji: "🛡️", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
       { name: "Temp Unlocks",        href: "/admin/temporary-unlocks",    emoji: "🔓", permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
       { name: "Agent Ledger",        href: "/admin/agent/admin-ledger",   emoji: "📒", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
+      { name: "Completion Pay",      href: "/admin/agent/completion-commissions", emoji: "🎁", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
       { name: "Commission Settings", href: "/admin/settings/commission",  emoji: "💲", permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
       { name: "Expiry Penalties",    href: "/admin/settings/penalties",   emoji: "⚠️", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
     ],
