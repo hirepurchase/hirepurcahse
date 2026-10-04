@@ -31,7 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import api from "@/lib/api";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusColor, toBusinessDay } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import { adminHasAnyPermission, PERMISSIONS } from "@/lib/permissions";
@@ -1165,7 +1165,7 @@ function CreateHirePurchaseSale({
   const getStartDate = () => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split("T")[0];
+    return toBusinessDay(d).toISOString().split("T")[0];
   };
 
   const computeInstallments = (months: number, frequency: "DAILY" | "WEEKLY" | "MONTHLY") => {
@@ -1405,22 +1405,28 @@ function CreateHirePurchaseSale({
     const schedule = [];
     const startDate = new Date(formData.startDate);
 
-    for (let i = 0; i < installments; i++) {
-      const dueDate = new Date(startDate);
+    // Mirrors buildDueDates() in the backend's helpers.ts: nothing falls due on
+    // a weekend, daily collections count from the day actually collected, and
+    // weekly/monthly keep their calendar cadence so the due date does not creep.
+    let anchor = new Date(startDate);
 
-      if (formData.paymentFrequency === "DAILY") {
-        dueDate.setDate(dueDate.getDate() + i);
-      } else if (formData.paymentFrequency === "WEEKLY") {
-        dueDate.setDate(dueDate.getDate() + i * 7);
-      } else if (formData.paymentFrequency === "MONTHLY") {
-        dueDate.setMonth(dueDate.getMonth() + i);
-      }
+    for (let i = 0; i < installments; i++) {
+      const dueDate = toBusinessDay(anchor);
 
       schedule.push({
         installmentNo: i + 1,
         dueDate: dueDate.toISOString().split("T")[0],
         amount: installmentAmount,
       });
+
+      if (formData.paymentFrequency === "DAILY") {
+        anchor = new Date(dueDate);
+        anchor.setDate(anchor.getDate() + 1);
+      } else if (formData.paymentFrequency === "WEEKLY") {
+        anchor.setDate(anchor.getDate() + 7);
+      } else {
+        anchor.setMonth(anchor.getMonth() + 1);
+      }
     }
 
     setInstallmentSchedule(schedule);
