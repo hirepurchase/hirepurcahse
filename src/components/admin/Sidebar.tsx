@@ -64,6 +64,7 @@ import DeviceIssueBell from "./DeviceIssueBell";
 import { useDailyPayments } from "@/hooks/useDailyPayments";
 import { usePendingContractApprovals } from "@/hooks/usePendingContractApprovals";
 import { usePendingTemporaryUnlocks } from "@/hooks/usePendingTemporaryUnlocks";
+import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
 // The customer service directory is for supervisors and officers. Agents are
 // shown only their own officer, on their dashboard.
@@ -733,6 +734,7 @@ function MoreBottomSheet({
               <LogOut className="h-4 w-4" /> Sign Out
             </button>
           </div>
+          <DeveloperCredit phone="0246-462398" className="pt-1" />
         </div>
       </div>
     </>
@@ -782,7 +784,7 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="border-t border-slate-800 px-3 py-3 shrink-0">
-          <p className="text-[10px] text-slate-600 text-center">EYO Solutions · 0246-462398</p>
+          <DeveloperCredit tone="dark" phone="0246-462398" size="xs" />
         </div>
       </div>
 

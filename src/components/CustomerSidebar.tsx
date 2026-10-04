@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { Customer } from "@/types";
 import type { LucideIcon } from "lucide-react";
+import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
 type NavItem = { name: string; href: string; icon: LucideIcon; tabLabel?: string };
 
@@ -56,7 +57,7 @@ function SidebarContent({ user, pathname, onNavigate, onLogout }: {
         </button>
       </div>
       <div className="px-5 py-3 border-t border-white/15 shrink-0">
-        <p className="text-xs text-white/40">EYO Solutions · 0246-462398</p>
+        <DeveloperCredit tone="brand" phone="0246-462398" align="left" size="md" />
       </div>
     </>
   );

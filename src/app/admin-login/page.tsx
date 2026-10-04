@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, Shield } from "lucide-react";
+import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
 const SLIDES = [
   {
@@ -257,6 +258,7 @@ export default function AdminLoginPage() {
               </button>
               <p className="text-xs text-gray-300">Staff access only</p>
             </div>
+            <DeveloperCredit className="mt-5" />
           </div>
         </div>
       </div>

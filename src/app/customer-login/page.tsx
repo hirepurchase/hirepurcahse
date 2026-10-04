@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, AlertCircle, CreditCard } from "lucide-react";
+import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
 const SLIDES = [
   {
@@ -245,6 +246,7 @@ export default function CustomerLoginPage() {
               </button>
               <p className="text-xs text-gray-300">© {new Date().getFullYear()} Aidoo Tech</p>
             </div>
+            <DeveloperCredit className="mt-5" />
           </div>
         </div>
       </div>

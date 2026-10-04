@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Wallet } from "lucide-react";
+import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
 /**
  * Entry point for an internal system, so it is built as a sign-in chooser
@@ -125,6 +126,7 @@ export default function Home() {
             <br />
             &copy; {new Date().getFullYear()} Aidoo Tech Solutions
           </p>
+          <DeveloperCredit align="left" className="mt-3" />
         </div>
       </main>
     </div>
