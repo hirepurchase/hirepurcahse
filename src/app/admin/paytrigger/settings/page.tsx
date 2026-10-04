@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ImageUp, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,7 +155,7 @@ export default function PayTriggerSettingsPage() {
       <Section title="Branding on the phone" subtitle="Company name, logo and support number shown in the PayTrigger app.">
         <div className="space-y-3">
           <Input placeholder="Company name" value={brand.companyName} onChange={(e) => setBrand({ ...brand, companyName: e.target.value })} />
-          <Input placeholder="Logo URL (PNG, up to 512×512, 50 KB)" value={brand.logoUrl} onChange={(e) => setBrand({ ...brand, logoUrl: e.target.value })} />
+          <LogoPicker url={brand.logoUrl} onChange={(logoUrl) => setBrand({ ...brand, logoUrl })} />
           <Input placeholder="Customer service number" value={brand.supportNumber} onChange={(e) => setBrand({ ...brand, supportNumber: e.target.value })} />
           <Button variant="outline" onClick={saveBrand}>Send branding</Button>
         </div>
@@ -192,5 +192,83 @@ function Toggle({ label, help, checked, onChange }: { label: string; help?: stri
         {help && <span className="block text-xs text-gray-500">{help}</span>}
       </span>
     </label>
+  );
+}
+
+/**
+ * Logo for the PayTrigger app: choose an image from this device, or paste an
+ * address. A chosen image is fitted by the server to PayTrigger's limits
+ * (PNG, up to 512×512, 50 KB) and stored at a public address, which fills the
+ * field below; "Send branding" then passes it to PayTrigger.
+ */
+function LogoPicker({ url, onChange }: { url: string; onChange: (url: string) => void }) {
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [broken, setBroken] = useState(false);
+
+  const choose = async (file: File | undefined) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      toast({ title: 'Choose a PNG or JPEG image', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    setNote(null);
+    try {
+      const form = new FormData();
+      form.append('logo', file);
+      const { data } = await api.post('/paytrigger/branding/logo', form);
+      onChange(data.url);
+      setBroken(false);
+      setNote(`Saved as PNG, ${data.width}×${data.height}, ${Math.ceil(data.bytes / 1024)} KB. Press “Send branding” to use it.`);
+    } catch (err) {
+      toast({ title: 'Logo not uploaded', description: errorText(err, 'Upload failed'), variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+          {url && !broken ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt="Logo preview" className="h-full w-full object-contain" onError={() => setBroken(true)} />
+          ) : (
+            <ImageUp className="h-6 w-6 text-gray-300" />
+          )}
+        </div>
+        <div className="min-w-0 space-y-1">
+          <input
+            ref={inputRef}
+            id="paytrigger-logo-file"
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={(e) => choose(e.target.files?.[0])}
+          />
+          <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => inputRef.current?.click()}>
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />}
+            {uploading ? 'Uploading…' : url ? 'Choose another image' : 'Choose image'}
+          </Button>
+          <p className="text-xs text-gray-500">PNG or JPEG. It is resized to fit PayTrigger&apos;s limit (512×512, 50 KB).</p>
+        </div>
+      </div>
+      <Input
+        placeholder="…or paste a logo address"
+        value={url}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setBroken(false);
+          setNote(null);
+        }}
+      />
+      {broken && url && <p className="text-xs text-amber-700">That address does not load as an image.</p>}
+      {note && <p className="text-xs text-emerald-700">{note}</p>}
+    </div>
   );
 }
