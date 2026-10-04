@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock, ShieldCheck } from "lucide-react";
+import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock, ShieldCheck, TabletSmartphone, ExternalLink, RefreshCw, KeyRound, XCircle } from "lucide-react";
+import Link from "next/link";
+import { EnrolmentBadge, PhoneStateBadge, PinDialog, type PtDevice } from "@/app/admin/paytrigger/shared";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
@@ -23,6 +25,7 @@ import { Product, InventoryItem } from "@/types";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -81,6 +84,9 @@ export default function InventoryPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [lockingId, setLockingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  // PayTrigger (TECNO / Infinix / itel) items have their own actions.
+  const [ptBusyId, setPtBusyId] = useState<string | null>(null);
+  const [ptPinFor, setPtPinFor] = useState<PtRow | null>(null);
   const [knoxConfirm, setKnoxConfirm] = useState<{
     item: any;
     newStatus: 'LOCKED' | 'UNLOCKED';
@@ -244,12 +250,51 @@ export default function InventoryPage() {
     }
   };
 
+  // Enrol Transsion stock with PayTrigger (single row or the selected rows).
+  const handlePtEnrol = async (itemIds: string[]) => {
+    if (itemIds.length === 0) return;
+    setPtBusyId(itemIds.length === 1 ? itemIds[0] : "bulk");
+    try {
+      const { data } = await api.post("/paytrigger/enrolment", { inventoryItemIds: itemIds });
+      const results: Array<{ ok: boolean; message: string }> = data.results || [];
+      const okCount = results.filter((r) => r.ok).length;
+      const failed = results.filter((r) => !r.ok);
+      toast(
+        failed.length === 0
+          ? { title: `Enrolled ${okCount} with PayTrigger`, description: results[0]?.message }
+          : { title: `Enrolled ${okCount}, ${failed.length} failed`, description: failed[0]?.message, variant: "destructive" },
+      );
+      loadInventory();
+    } catch (error) {
+      const message = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast({ title: "PayTrigger enrolment failed", description: message || "Try again from PayTrigger → Enrol.", variant: "destructive" });
+    } finally {
+      setPtBusyId(null);
+    }
+  };
+
+  const handlePtAction = async (item: PtRow, action: "reconcile" | "cancel-enrolment", done: string) => {
+    setPtBusyId(item.id);
+    try {
+      if (!item.payTrigger) return;
+      await api.post(`/paytrigger/devices/${item.payTrigger.id}/${action}`);
+      toast({ title: done });
+      loadInventory();
+    } catch (error) {
+      const message = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast({ title: "Not done", description: message || "PayTrigger request failed", variant: "destructive" });
+    } finally {
+      setPtBusyId(null);
+    }
+  };
+
   const handleKnoxUpload = async (itemIds?: string[]) => {
     const ids = itemIds ?? Array.from(selectedIds);
     if (ids.length === 0) return;
 
-    // Filter out already uploaded items to prevent DEVICE_DUPLICATE errors
-    const items = inventory.filter((i) => ids.includes(i.id) && i.knoxUploadStatus !== 'UPLOADED' && i.knoxUploadStatus !== 'DELETE_PENDING');
+    // Filter out already uploaded items to prevent DEVICE_DUPLICATE errors,
+    // and Transsion phones, which PayTrigger manages instead.
+    const items = inventory.filter((i) => ids.includes(i.id) && !isPayTriggerItem(i) && i.knoxUploadStatus !== 'UPLOADED' && i.knoxUploadStatus !== 'DELETE_PENDING');
     if (items.length === 0) {
       toast({ title: 'Nothing to upload', description: 'All selected devices are already uploaded to Knox Guard.' });
       return;
@@ -418,8 +463,23 @@ export default function InventoryPage() {
         </div>
         <div className="flex items-center gap-2">
           {canManageKnox && selectedIds.size > 0 && (() => {
+            const enrollable = inventory.filter((i) => selectedIds.has(i.id) && ptCanEnrol(i)).map((i) => i.id);
+            return enrollable.length > 0 ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePtEnrol(enrollable)}
+                disabled={ptBusyId === "bulk"}
+                className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+              >
+                {ptBusyId === "bulk" ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <TabletSmartphone className="h-4 w-4 mr-1.5" />}
+                Enrol {enrollable.length} with PayTrigger
+              </Button>
+            ) : null;
+          })()}
+          {canManageKnox && selectedIds.size > 0 && (() => {
             const uploadableCount = inventory.filter(
-              (i) => selectedIds.has(i.id) && i.knoxUploadStatus !== 'UPLOADED' && i.knoxUploadStatus !== 'DELETE_PENDING'
+              (i) => selectedIds.has(i.id) && !isPayTriggerItem(i) && i.knoxUploadStatus !== 'UPLOADED' && i.knoxUploadStatus !== 'DELETE_PENDING'
             ).length;
             return uploadableCount > 0 ? (
               <Button
@@ -567,13 +627,19 @@ export default function InventoryPage() {
                         )}
                         <div className="flex gap-1.5 mt-1.5 flex-wrap">
                           <Badge className={getStatusColor(item.status)}>{item.status}</Badge>
-                          <Badge
-                            variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
-                            className={item.lockStatus !== "LOCKED" ? "bg-green-100 text-green-800" : ""}
-                          >
-                            {item.lockStatus || "UNLOCKED"}
-                          </Badge>
-                          {canManageKnox && <KnoxUploadBadge status={item.knoxUploadStatus} />}
+                          {isPayTriggerItem(item) ? (
+                            canManageKnox && <PayTriggerStatus item={item} />
+                          ) : (
+                            <>
+                              <Badge
+                                variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
+                                className={item.lockStatus !== "LOCKED" ? "bg-green-100 text-green-800" : ""}
+                              >
+                                {item.lockStatus || "UNLOCKED"}
+                              </Badge>
+                              {canManageKnox && <KnoxUploadBadge status={item.knoxUploadStatus} />}
+                            </>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -587,7 +653,17 @@ export default function InventoryPage() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
-                        {canManageKnox && item.knoxUploadStatus !== 'UPLOADED' && item.knoxUploadStatus !== 'DELETE_PENDING' && (
+                        {canManageKnox && isPayTriggerItem(item) && (
+                          <PayTriggerActions
+                            item={item}
+                            busy={ptBusyId === item.id}
+                            onEnrol={() => handlePtEnrol([item.id])}
+                            onReconcile={() => handlePtAction(item, "reconcile", "Phone brought in line with the contract")}
+                            onCancel={() => handlePtAction(item, "cancel-enrolment", "Enrolment cancelled — licence kept")}
+                            onPin={() => setPtPinFor(item)}
+                          />
+                        )}
+                        {canManageKnox && !isPayTriggerItem(item) && item.knoxUploadStatus !== 'UPLOADED' && item.knoxUploadStatus !== 'DELETE_PENDING' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -599,7 +675,7 @@ export default function InventoryPage() {
                             <Upload className="h-4 w-4" />
                           </Button>
                         )}
-                        {canManageKnox && (
+                        {canManageKnox && !isPayTriggerItem(item) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -616,7 +692,7 @@ export default function InventoryPage() {
                             }
                           </Button>
                         )}
-                        {canManageKnox && (
+                        {canManageKnox && !isPayTriggerItem(item) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -657,7 +733,7 @@ export default function InventoryPage() {
                       <TableHead>Category</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Lock Status</TableHead>
-                      {canManageKnox && <TableHead>Knox Upload</TableHead>}
+                      {canManageKnox && <TableHead>Lock system</TableHead>}
                       <TableHead>Registered Under</TableHead>
                       <TableHead>Contract</TableHead>
                       <TableHead>Assigned Agent</TableHead>
@@ -686,16 +762,20 @@ export default function InventoryPage() {
                           <Badge className={getStatusColor(item.status)}>{item.status}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
-                            className={item.lockStatus === "UNLOCKED" ? "bg-green-100 text-green-800" : ""}
-                          >
-                            {item.lockStatus || "UNLOCKED"}
-                          </Badge>
+                          {isPayTriggerItem(item) ? (
+                            <PayTriggerPhoneState item={item} />
+                          ) : (
+                            <Badge
+                              variant={item.lockStatus === "LOCKED" ? "destructive" : "default"}
+                              className={item.lockStatus === "UNLOCKED" ? "bg-green-100 text-green-800" : ""}
+                            >
+                              {item.lockStatus || "UNLOCKED"}
+                            </Badge>
+                          )}
                         </TableCell>
                         {canManageKnox && (
                           <TableCell>
-                            <KnoxUploadBadge status={item.knoxUploadStatus} />
+                            {isPayTriggerItem(item) ? <PayTriggerEnrolment item={item} /> : <KnoxUploadBadge status={item.knoxUploadStatus} />}
                           </TableCell>
                         )}
                         <TableCell className="max-w-[150px] truncate">{item.registeredUnder || "-"}</TableCell>
@@ -720,7 +800,17 @@ export default function InventoryPage() {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
-                              {canManageKnox && (
+                              {canManageKnox && isPayTriggerItem(item) && (
+                                <PayTriggerActions
+                                  item={item}
+                                  busy={ptBusyId === item.id}
+                                  onEnrol={() => handlePtEnrol([item.id])}
+                                  onReconcile={() => handlePtAction(item, "reconcile", "Phone brought in line with the contract")}
+                                  onCancel={() => handlePtAction(item, "cancel-enrolment", "Enrolment cancelled — licence kept")}
+                                  onPin={() => setPtPinFor(item)}
+                                />
+                              )}
+                              {canManageKnox && !isPayTriggerItem(item) && (
                                 <>
                                   <Button
                                     variant="ghost"
@@ -783,6 +873,18 @@ export default function InventoryPage() {
           />
         )}
       </Card>
+
+      {ptPinFor?.payTrigger && (
+        <PinDialog
+          deviceId={ptPinFor.payTrigger.id}
+          needsKeyCode={ptPinFor.payTrigger.needsKeyCode}
+          customer={ptPinFor.product?.name}
+          onClose={() => {
+            setPtPinFor(null);
+            loadInventory();
+          }}
+        />
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -911,6 +1013,88 @@ export default function InventoryPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/** The PayTrigger fields the inventory list adds to each item. */
+interface PtRow {
+  id: string;
+  lockProvider?: "PAYTRIGGER" | "KNOX";
+  product?: { name?: string } | null;
+  payTrigger?: (PtDevice & { contractId: string | null; needsKeyCode?: boolean }) | null;
+}
+
+/** Transsion phones (TECNO / Infinix / itel) are locked through PayTrigger, not Knox. */
+function isPayTriggerItem(item: PtRow): boolean {
+  return item?.lockProvider === "PAYTRIGGER";
+}
+
+/** Not enrolled yet, or enrolled and cancelled: can be (re-)enrolled. */
+function ptCanEnrol(item: PtRow): boolean {
+  return isPayTriggerItem(item) && (!item.payTrigger || item.payTrigger.enrollmentStatus === "CANCELLED");
+}
+
+function PayTriggerEnrolment({ item }: { item: PtRow }) {
+  const d = item.payTrigger;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">PayTrigger</span>
+      {d ? <EnrolmentBadge status={d.enrollmentStatus} /> : <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Not enrolled</span>}
+    </span>
+  );
+}
+
+function PayTriggerPhoneState({ item }: { item: PtRow }) {
+  const d = item.payTrigger;
+  if (!d || d.enrollmentStatus !== "ACTIVE") return <span className="text-xs text-gray-400">—</span>;
+  return <PhoneStateBadge device={d} />;
+}
+
+function PayTriggerStatus({ item }: { item: PtRow }) {
+  return (
+    <>
+      <PayTriggerEnrolment item={item} />
+      {item.payTrigger?.enrollmentStatus === "ACTIVE" && <PhoneStateBadge device={item.payTrigger} />}
+    </>
+  );
+}
+
+function PayTriggerActions({
+  item, busy, onEnrol, onReconcile, onCancel, onPin,
+}: {
+  item: PtRow; busy: boolean; onEnrol: () => void; onReconcile: () => void; onCancel: () => void; onPin: () => void;
+}) {
+  const { user } = useAuth();
+  const canPin = ["ADMIN", "SUPER_ADMIN"].includes((user as { role?: string } | null)?.role ?? "");
+  const d = item.payTrigger;
+  if (ptCanEnrol(item) || !d) {
+    return (
+      <Button variant="ghost" size="sm" onClick={onEnrol} disabled={busy} title="Enrol with PayTrigger" className="text-indigo-600 hover:bg-indigo-50">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <TabletSmartphone className="h-4 w-4" />}
+      </Button>
+    );
+  }
+  return (
+    <>
+      <Link href={`/admin/paytrigger/devices/${d.id}`} title="Open in PayTrigger" className="inline-flex h-9 items-center rounded-md px-3 text-indigo-600 hover:bg-indigo-50">
+        <ExternalLink className="h-4 w-4" />
+      </Link>
+      {d.enrollmentStatus === "ACTIVE" && d.contractId && (
+        <Button variant="ghost" size="sm" onClick={onReconcile} disabled={busy} title="Reconcile with the contract now" className="text-indigo-600 hover:bg-indigo-50">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+        </Button>
+      )}
+      {d.enrollmentStatus === "ACTIVE" && canPin && (
+        <Button variant="ghost" size="sm" onClick={onPin} title="Offline unlock PIN" className={d.awaitingPinSince ? "text-red-600 hover:bg-red-50" : "text-indigo-600 hover:bg-indigo-50"}>
+          <KeyRound className="h-4 w-4" />
+        </Button>
+      )}
+      {d.enrollmentStatus === "QUEUED" && (
+        <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy} title="Cancel enrolment (licence kept)" className="text-gray-500 hover:bg-gray-100">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+        </Button>
+      )}
+    </>
   );
 }
 
