@@ -21,7 +21,14 @@ interface Settings {
   lockTips: string | null;
   depositHoldTitle: string;
   depositHoldTips: string;
+  unlinkedTitle: string;
+  unlinkedTips: string;
   payDeeplink: string | null;
+  reminderEnabled: boolean;
+  reminderDaysBefore: string;
+  reminderChannel: 'POPUP' | 'PUSH' | 'BOTH';
+  reminderTitle: string;
+  reminderText: string;
   operatorOfflineTimerHours: number;
   morningSweepCron: string;
 }
@@ -107,15 +114,69 @@ export default function PayTriggerSettingsPage() {
         </div>
       </Section>
 
-      <Section title="Lock-screen text">
+      <Section title="Message when the phone is locked" subtitle="Stored on each phone ahead of time, so it shows even when the phone locks with no data.">
         <div className="space-y-3">
-          <Input placeholder="Overdue title (blank = PayTrigger portal default)" value={s.lockTitle || ''} onChange={(e) => set('lockTitle', e.target.value)} />
-          <Textarea rows={2} maxLength={400} placeholder="Overdue message" value={s.lockTips || ''} onChange={(e) => set('lockTips', e.target.value)} />
+          <p className="text-xs font-semibold text-gray-700">When a payment is overdue</p>
+          <Input maxLength={80} placeholder="Title (blank = PayTrigger portal default)" value={s.lockTitle || ''} onChange={(e) => set('lockTitle', e.target.value)} />
+          <Textarea
+            rows={3}
+            maxLength={400}
+            placeholder="e.g. Dear {firstName}, your phone is locked because {amount} due on {dueDate} is unpaid. Pay to unlock."
+            value={s.lockTips || ''}
+            onChange={(e) => set('lockTips', e.target.value)}
+          />
+          <Preview text={s.lockTips} />
           <p className="pt-2 text-xs font-semibold text-gray-700">While waiting for the agent&apos;s deposit</p>
-          <Input value={s.depositHoldTitle} onChange={(e) => set('depositHoldTitle', e.target.value)} />
+          <Input maxLength={80} value={s.depositHoldTitle} onChange={(e) => set('depositHoldTitle', e.target.value)} />
           <Textarea rows={3} maxLength={400} value={s.depositHoldTips} onChange={(e) => set('depositHoldTips', e.target.value)} />
-          <p className="text-[11px] text-gray-500">{'{agentName}'} and {'{agentPhone}'} are filled in for each phone.</p>
+          <PlaceholderHelp />
+          <p className="pt-2 text-xs font-semibold text-gray-700">Phone switched on with no active contract</p>
+          <p className="text-xs text-gray-500">Unsold stock, a sale not yet approved, or a cancelled contract. The phone locks itself when it activates and shows this.</p>
+          <Input maxLength={80} value={s.unlinkedTitle} onChange={(e) => set('unlinkedTitle', e.target.value)} />
+          <Textarea rows={3} maxLength={400} value={s.unlinkedTips} onChange={(e) => set('unlinkedTips', e.target.value)} />
           <Input placeholder="Pay link opened from the lock screen (optional)" value={s.payDeeplink || ''} onChange={(e) => set('payDeeplink', e.target.value)} />
+        </div>
+      </Section>
+
+      <Section title="Reminders before a payment is due" subtitle="Sent each morning at 08:36 to phones that are open. The phone needs data to receive them.">
+        <div className="space-y-4">
+          <Toggle
+            label="Send payment reminders"
+            help="As on Samsung phones. Locked phones get none: their lock screen already carries the message."
+            checked={s.reminderEnabled}
+            onChange={(v) => set('reminderEnabled', v)}
+          />
+          <label className="block">
+            <span className="block text-sm text-gray-800">Days before the due date</span>
+            <span className="block text-xs text-gray-500">Separate with commas. 0 is the due day itself. Example: 3,1,0</span>
+            <Input className="mt-1 w-40" value={s.reminderDaysBefore} onChange={(e) => set('reminderDaysBefore', e.target.value.replace(/[^0-9,\s]/g, ''))} />
+          </label>
+          <div>
+            <span className="block text-sm text-gray-800">Show it as</span>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {([
+                ['POPUP', 'Pop-up'],
+                ['PUSH', 'Notification'],
+                ['BOTH', 'Both'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => set('reminderChannel', value)}
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${s.reminderChannel === value ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">A pop-up covers the screen until the customer closes it. A notification sits in the notification bar.</p>
+          </div>
+          <div className="space-y-2">
+            <Input maxLength={80} placeholder="Reminder title" value={s.reminderTitle} onChange={(e) => set('reminderTitle', e.target.value)} />
+            <Textarea rows={3} maxLength={500} placeholder="Reminder message" value={s.reminderText} onChange={(e) => set('reminderText', e.target.value)} />
+            <Preview text={s.reminderText} />
+            <PlaceholderHelp />
+          </div>
         </div>
       </Section>
 
@@ -161,6 +222,43 @@ export default function PayTriggerSettingsPage() {
         </div>
       </Section>
     </div>
+  );
+}
+
+const SAMPLE: Record<string, string> = {
+  customerName: 'Ama Mensah',
+  firstName: 'Ama',
+  amount: 'GHS 125.00',
+  dueDate: '15 Oct 2026',
+  daysLeft: '3 days',
+  balance: 'GHS 950.00',
+  contractNumber: 'HP-2026-0142',
+  agentName: 'Kofi Boateng',
+  agentPhone: '0244000000',
+};
+
+/** The message as one customer would read it, with sample figures. */
+function Preview({ text }: { text: string | null }) {
+  if (!text?.trim()) return null;
+  const filled = text.replace(/\{([^{}\s]+)\}/g, (whole, name: string) => SAMPLE[name] ?? whole);
+  const unknown = (text.match(/\{([^{}\s]+)\}/g) || []).filter((p) => !(p.slice(1, -1) in SAMPLE));
+  return (
+    <div className="rounded-lg bg-gray-50 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Example</p>
+      <p className="text-sm text-gray-800">{filled}</p>
+      {unknown.length > 0 && <p className="mt-1 text-xs text-red-600">{unknown.join(', ')} cannot be filled in — check the spelling.</p>}
+    </div>
+  );
+}
+
+function PlaceholderHelp() {
+  return (
+    <p className="text-[11px] leading-5 text-gray-500">
+      Filled in for each customer:{' '}
+      {Object.keys(SAMPLE).map((name) => (
+        <code key={name} className="mr-1 rounded bg-gray-100 px-1 text-gray-700">{`{${name}}`}</code>
+      ))}
+    </p>
   );
 }
 

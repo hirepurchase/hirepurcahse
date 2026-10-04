@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, KeyRound, Loader2, PauseCircle, PlayCircle, RefreshCw, ShieldCheck, Unlock } from 'lucide-react';
+import { ArrowLeft, KeyRound, Loader2, MessageSquare, PauseCircle, PlayCircle, RefreshCw, ShieldCheck, Unlock, X } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/useToast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/permissions';
@@ -29,6 +30,8 @@ interface Detail {
   } | null;
   logs: Array<{ id: string; action: string; success: boolean; dryRun: boolean; skippedReason: string | null; providerCode: string | null; createdAt: string; request: { nextRepayTime?: number | string } | null }>;
   canIssuePin: boolean;
+  messagesToday?: { POPUP: number; PUSH: number };
+  messageLimit?: number;
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -38,6 +41,10 @@ const ACTION_LABEL: Record<string, string> = {
   EXTEND: 'Lock date moved later (open)',
   LOCK: 'Told to lock',
   SYNC: 'Lock-screen text updated',
+  REMIND_POPUP: 'Payment reminder (pop-up)',
+  REMIND_PUSH: 'Payment reminder (notification)',
+  MESSAGE_POPUP: 'Message sent (pop-up)',
+  MESSAGE_PUSH: 'Message sent (notification)',
   STATUS_READ: 'Status read',
   VERIFY: 'Checked with PayTrigger',
   PIN: 'Offline PIN issued',
@@ -60,6 +67,7 @@ export default function PayTriggerDeviceDetail() {
   const [busy, setBusy] = useState<string | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
 
   const load = useCallback(() => {
@@ -129,6 +137,11 @@ export default function PayTriggerDeviceDetail() {
           {detail.canIssuePin && active && (
             <Button className="bg-indigo-600 text-white hover:bg-indigo-700" size="sm" onClick={() => setPinOpen(true)}>
               <KeyRound className="mr-1.5 h-3.5 w-3.5" /> Offline PIN
+            </Button>
+          )}
+          {canManage && active && (
+            <Button size="sm" variant="outline" onClick={() => setMessageOpen(true)}>
+              <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Send message
             </Button>
           )}
           {canManage && contract && (
@@ -265,6 +278,17 @@ export default function PayTriggerDeviceDetail() {
 
       {pinOpen && <PinDialog deviceId={device.id} needsKeyCode={device.needsKeyCode} customer={customer} onClose={() => setPinOpen(false)} onIssued={load} />}
 
+      {messageOpen && (
+        <MessageDialog
+          deviceId={device.id}
+          customer={customer}
+          used={detail.messagesToday || { POPUP: 0, PUSH: 0 }}
+          limit={detail.messageLimit ?? 3}
+          onClose={() => setMessageOpen(false)}
+          onSent={load}
+        />
+      )}
+
       {releaseOpen && (
         <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setReleaseOpen(false)} />
@@ -290,6 +314,88 @@ export default function PayTriggerDeviceDetail() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** A one-off pop-up or notification. PayTrigger takes 3 of each per phone in 24 hours. */
+function MessageDialog({
+  deviceId,
+  customer,
+  used,
+  limit,
+  onClose,
+  onSent,
+}: {
+  deviceId: string;
+  customer: string | null;
+  used: { POPUP: number; PUSH: number };
+  limit: number;
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const { toast } = useToast();
+  const [channel, setChannel] = useState<'POPUP' | 'PUSH'>('POPUP');
+  const [title, setTitle] = useState('');
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const left = Math.max(0, limit - used[channel]);
+
+  const send = async () => {
+    setSending(true);
+    setError(null);
+    try {
+      const { data } = await api.post(`/paytrigger/devices/${deviceId}/message`, { channel, title, text });
+      toast({ title: data.dryRun ? 'Simulated (dry run) — not sent to the phone' : 'Message sent', description: data.text });
+      onSent();
+      onClose();
+    } catch (err) {
+      setError(errorText(err, 'Message not sent'));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md space-y-3 rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Send a message to this phone</h2>
+            {customer && <p className="text-xs text-gray-500">{customer}</p>}
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex gap-2">
+          {([
+            ['POPUP', 'Pop-up'],
+            ['PUSH', 'Notification'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setChannel(value)}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${channel === value ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-600'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className={`text-xs ${left === 0 ? 'text-red-600' : 'text-gray-500'}`}>
+          {left} of {limit} left for this phone today (PayTrigger&apos;s limit per 24 hours). The phone needs data to receive it.
+        </p>
+        <Input maxLength={80} placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Textarea rows={4} maxLength={500} placeholder="Message. {firstName}, {amount} and {dueDate} are filled in from the contract." value={text} onChange={(e) => setText(e.target.value)} />
+        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-700" disabled={sending || left === 0 || !title.trim() || !text.trim()} onClick={send}>
+          {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+          Send
+        </Button>
+      </div>
     </div>
   );
 }
