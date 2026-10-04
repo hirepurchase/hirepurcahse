@@ -35,6 +35,8 @@ interface Issues {
   unenforceable: IssueRow[];
   failing: IssueRow[];
   stale: IssueRow[];
+  soldNotEnrolled?: Array<{ inventoryItemId: string; imei: string; contractId: string | null; contractNumber: string | null; contractStatus: string | null; customer: string | null; customerPhone: string | null; enrolment: string | null }>;
+  callbackErrors?: Array<{ id: string; imei: string; notifyType: string; error: string | null; createdAt: string }>;
   sweep: { lastSweepAt: string | null; late: boolean };
 }
 
@@ -134,6 +136,47 @@ export default function PayTriggerIssues() {
               <li key={c.contractId} className="py-2 text-sm">
                 <Link href={`/admin/contracts/${c.contractId}`} className="font-medium text-blue-600 hover:underline">{c.contractNumber}</Link>
                 <span className="ml-2 text-xs text-gray-500">approved {formatDateTime(c.approvedAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {(issues.soldNotEnrolled?.length ?? 0) > 0 && (
+        <Section
+          title={`Sold but not enrolled (${issues.soldNotEnrolled!.length})`}
+          subtitle="These phones are on a contract but PayTrigger does not hold them, so nothing can lock them. Enrol each one from Inventory; it only takes effect when the phone is next set up or reset."
+        >
+          <ul className="divide-y divide-gray-100">
+            {issues.soldNotEnrolled!.map((r) => (
+              <li key={r.inventoryItemId} className="py-2.5">
+                <p className="text-sm font-semibold text-gray-900">{r.customer || r.imei}</p>
+                <p className="text-xs text-gray-500">
+                  {r.contractId ? (
+                    <Link href={`/admin/contracts/${r.contractId}`} className="font-medium text-blue-600 hover:underline">{r.contractNumber}</Link>
+                  ) : (
+                    'No contract'
+                  )}{' '}
+                  · IMEI {r.imei} · {r.enrolment === 'FAILED' ? 'enrolment failed' : r.enrolment === 'CANCELLED' ? 'enrolment cancelled' : 'never enrolled'}
+                </p>
+                {r.customerPhone && <PhoneLink number={r.customerPhone} />}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {(issues.callbackErrors?.length ?? 0) > 0 && (
+        <Section
+          title={`Messages from PayTrigger we could not use (${issues.callbackErrors!.length})`}
+          subtitle="Usually a phone active on our PayTrigger account that is not in our inventory. Last 14 days."
+        >
+          <ul className="divide-y divide-gray-100">
+            {issues.callbackErrors!.map((e) => (
+              <li key={e.id} className="py-2 text-sm">
+                <span className="font-medium text-gray-900">IMEI {e.imei || 'unknown'}</span>
+                <span className="ml-2 text-xs text-gray-500">{formatDateTime(e.createdAt)}</span>
+                {e.error && <p className="text-xs text-red-700">{e.error}</p>}
               </li>
             ))}
           </ul>

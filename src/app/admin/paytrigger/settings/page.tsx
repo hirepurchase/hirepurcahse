@@ -27,6 +27,7 @@ interface Settings {
   reminderEnabled: boolean;
   reminderDaysBefore: string;
   reminderChannel: 'POPUP' | 'PUSH' | 'BOTH';
+  reminderIncludeDaily: boolean;
   reminderTitle: string;
   reminderText: string;
   operatorOfflineTimerHours: number;
@@ -151,6 +152,12 @@ export default function PayTriggerSettingsPage() {
             <span className="block text-xs text-gray-500">Separate with commas. 0 is the due day itself. Example: 3,1,0</span>
             <Input className="mt-1 w-40" value={s.reminderDaysBefore} onChange={(e) => set('reminderDaysBefore', e.target.value.replace(/[^0-9,\s]/g, ''))} />
           </label>
+          <Toggle
+            label="Also remind daily-collection customers"
+            help="Off by default: something is due every day on a daily contract, so they would get a reminder every morning."
+            checked={s.reminderIncludeDaily}
+            onChange={(v) => set('reminderIncludeDaily', v)}
+          />
           <div>
             <span className="block text-sm text-gray-800">Show it as</span>
             <div className="mt-1.5 flex flex-wrap gap-2">
