@@ -40,6 +40,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ImeiScanButton } from '@/components/shared/ImeiScanner';
+import { imeiWarning, isValidImei } from '@/lib/imei';
+
+type LockProvider = "KNOX" | "PAYTRIGGER" | "NONE";
+const LOCK_LABEL: Record<LockProvider, string> = { KNOX: "Knox Guard", PAYTRIGGER: "PayTrigger", NONE: "No lock" };
+const LOCK_HINT: Record<LockProvider, string> = {
+  KNOX: "Samsung phones",
+  PAYTRIGGER: "TECNO, Infinix, itel",
+  NONE: "TVs, fridges and other goods",
+};
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -941,11 +951,40 @@ function InventoryForm({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registerWithKnox, setRegisterWithKnox] = useState(true);
+  // Which lock system the new item goes into. Suggested from the product
+  // (and, failing that, PayTrigger's own IMEI lookup); the user can override.
+  const [lockChoice, setLockChoice] = useState<LockProvider>("NONE");
+  const [lockChosenByUser, setLockChosenByUser] = useState(false);
+  const [detected, setDetected] = useState<{ provider: LockProvider; reason: string; productMarked: boolean } | null>(null);
   const [lockOnUpload, setLockOnUpload] = useState(false);
+  const [markProduct, setMarkProduct] = useState(true);
   const [assignedAgentId, setAssignedAgentId] = useState("");
   const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string; role?: { name: string } }[]>([]);
   const { toast } = useToast();
+
+  // Suggest the lock when the product is chosen, and again once a full IMEI
+  // is in (PayTrigger can recognise a Transsion phone from its IMEI).
+  const imeiForDetection = isValidImei(formData.serialNumber) ? formData.serialNumber : "";
+  useEffect(() => {
+    if (!canManageKnox || !formData.productId) return;
+    let alive = true;
+    const t = setTimeout(() => {
+      api
+        .get("/paytrigger/lock-provider", { params: { productId: formData.productId, imei: imeiForDetection || undefined } })
+        .then(({ data }) => {
+          if (!alive) return;
+          setDetected(data);
+          if (!lockChosenByUser) setLockChoice(data.provider);
+        })
+        .catch(() => {
+          if (alive) setDetected(null);
+        });
+    }, 250);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [canManageKnox, formData.productId, imeiForDetection, lockChosenByUser]);
 
   useEffect(() => {
     api.get("/admin-users", { params: { roleName: "CLUSTER_AGENT,AGENT", limit: 200, isActive: "true" } })
@@ -988,6 +1027,8 @@ function InventoryForm({
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
+    setLockChosenByUser(false);
+    setDetected(null);
     setFormData({ ...formData, productId: product.id });
     setSearchQuery("");
   };
@@ -1000,7 +1041,23 @@ function InventoryForm({
       const res = await api.post("/products/inventory", { ...formData, assignedAgentId: assignedAgentId || null });
       const newItemId: string | undefined = res.data?.id ?? res.data?.item?.id;
 
-      if (canManageKnox && registerWithKnox && newItemId) {
+      if (canManageKnox && lockChoice === "PAYTRIGGER" && newItemId) {
+        try {
+          const { data } = await api.post("/paytrigger/enrolment", {
+            inventoryItemIds: [newItemId],
+            markProducts: !detected?.productMarked && markProduct,
+          });
+          const r = data.results?.[0];
+          toast(
+            r?.ok
+              ? { title: "Item added & enrolled with PayTrigger", description: `${formData.serialNumber}: ${r.message}`.trim() }
+              : { title: "Item added — PayTrigger enrolment failed", description: r?.message || "Enrol it from PayTrigger → Enrol.", variant: "destructive" },
+          );
+        } catch (err) {
+          const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+          toast({ title: "Item added — PayTrigger enrolment failed", description: message || "Enrol it from PayTrigger → Enrol.", variant: "destructive" });
+        }
+      } else if (canManageKnox && lockChoice === "KNOX" && newItemId) {
         try {
           const knoxRes = await api.post("/knox-guard/upload/retry", { inventoryItemIds: [newItemId] });
           const { uploaded, dryRun } = knoxRes.data;
@@ -1136,19 +1193,32 @@ function InventoryForm({
                   <label className="block text-sm font-medium mb-2">
                     Serial Number / IMEI *
                   </label>
-                  <Input
-                    required
-                    placeholder="e.g., IMEI123456789 or Serial Number"
-                    value={formData.serialNumber}
-                    onChange={(e) =>
-                      setFormData({ ...formData, serialNumber: e.target.value })
-                    }
-                    autoFocus
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter the unique serial number or IMEI for this specific
-                    item
-                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      required
+                      placeholder="Scan or type the 15-digit IMEI"
+                      value={formData.serialNumber}
+                      onChange={(e) =>
+                        setFormData({ ...formData, serialNumber: e.target.value.trim() })
+                      }
+                      inputMode="numeric"
+                      className="min-w-0 font-mono tracking-tight"
+                      autoFocus
+                    />
+                    <ImeiScanButton
+                      onScan={(imei) => setFormData((prev) => ({ ...prev, serialNumber: imei }))}
+                    />
+                  </div>
+                  {imeiWarning(formData.serialNumber) ? (
+                    <p className="text-xs text-amber-700 mt-1">{imeiWarning(formData.serialNumber)}</p>
+                  ) : isValidImei(formData.serialNumber) ? (
+                    <p className="text-xs text-emerald-700 mt-1">Valid IMEI</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Scan the IMEI barcode on the box with the camera, or type it.
+                      Serial numbers with letters are accepted for items without an IMEI.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1217,26 +1287,54 @@ function InventoryForm({
               </div>
             )}
 
-            {/* Knox Guard registration */}
+            {/* Device lock: suggested from the product, can be changed */}
             {canManageKnox && selectedProduct && (
-              <div className="border border-blue-100 bg-blue-50 px-4 py-3 space-y-3">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="registerWithKnox"
-                    checked={registerWithKnox}
-                    onChange={(e) => {
-                      setRegisterWithKnox(e.target.checked);
-                      if (!e.target.checked) setLockOnUpload(false);
-                    }}
-                    className="mt-0.5 h-4 w-4 accent-blue-600"
-                  />
-                  <label htmlFor="registerWithKnox" className="text-sm cursor-pointer">
-                    <span className="font-medium text-blue-800">Register with Knox Guard</span>
-                    <p className="text-xs text-blue-600 mt-0.5">Upload this device's IMEI/Serial to the Samsung Devices API immediately after saving.</p>
-                  </label>
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Device lock</p>
+                  {detected ? (
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      Suggested: <span className="font-semibold">{LOCK_LABEL[detected.provider]}</span> — {detected.reason}
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-xs text-slate-500">Checking which lock this product uses…</p>
+                  )}
                 </div>
-                {registerWithKnox && (
+                <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Device lock">
+                  {(["KNOX", "PAYTRIGGER", "NONE"] as LockProvider[]).map((p) => (
+                    <label
+                      key={p}
+                      className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+                        lockChoice === p ? "border-blue-500 bg-white ring-1 ring-blue-500" : "border-slate-200 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="lockChoice"
+                        value={p}
+                        checked={lockChoice === p}
+                        onChange={() => {
+                          setLockChoice(p);
+                          setLockChosenByUser(true);
+                          if (p !== "KNOX") setLockOnUpload(false);
+                        }}
+                        className="mt-0.5 accent-blue-600"
+                      />
+                      <span>
+                        <span className="block font-medium text-slate-900">{LOCK_LABEL[p]}</span>
+                        <span className="block text-xs text-slate-500">{LOCK_HINT[p]}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {detected && lockChoice !== detected.provider && (
+                  <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    This differs from the suggestion ({LOCK_LABEL[detected.provider]}). A lock system that does not support the phone cannot lock it.
+                  </p>
+                )}
+
+                {lockChoice === "KNOX" && (
                   <div className="flex items-start gap-3 pl-1">
                     <input
                       type="checkbox"
@@ -1249,6 +1347,24 @@ function InventoryForm({
                       <span className="font-medium text-blue-700">Lock device after upload</span>
                       <p className="text-xs text-blue-500 mt-0.5">Enroll and lock the device via Knox Guard immediately after a successful upload.</p>
                     </label>
+                  </div>
+                )}
+
+                {lockChoice === "PAYTRIGGER" && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-600">
+                      The phone locks itself the first time it is switched on with data, and stays locked until the sale is approved and the agent has
+                      remitted the deposit. No PayTrigger licence is used until then.
+                    </p>
+                    {detected && !detected.productMarked && (
+                      <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-700">
+                        <input type="checkbox" checked={markProduct} onChange={(e) => setMarkProduct(e.target.checked)} className="mt-0.5 accent-blue-600" />
+                        <span>
+                          Also mark <span className="font-semibold">{selectedProduct.name}</span> as a PayTrigger product, so Knox Guard leaves it alone and
+                          future stock is suggested correctly.
+                        </span>
+                      </label>
+                    )}
                   </div>
                 )}
               </div>
