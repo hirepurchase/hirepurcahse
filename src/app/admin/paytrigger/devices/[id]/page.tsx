@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, KeyRound, Loader2, PauseCircle, PlayCircle, RefreshCw, Unlock } from 'lucide-react';
+import { ArrowLeft, KeyRound, Loader2, PauseCircle, PlayCircle, RefreshCw, ShieldCheck, Unlock } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,7 @@ const ACTION_LABEL: Record<string, string> = {
   LOCK: 'Told to lock',
   SYNC: 'Lock-screen text updated',
   STATUS_READ: 'Status read',
+  VERIFY: 'Checked with PayTrigger',
   PIN: 'Offline PIN issued',
   RELEASE: 'Released — lock removed',
   RELEASE_SCHEDULED: 'Release scheduled',
@@ -119,7 +120,7 @@ export default function PayTriggerDeviceDetail() {
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <EnrolmentBadge status={device.enrollmentStatus} />
+            <EnrolmentBadge status={device.enrollmentStatus} simulated={device.enrollmentStatus === 'QUEUED' && device.enrolledLive === false} />
             {active && <PhoneStateBadge device={device} />}
           </div>
         </div>
@@ -150,6 +151,46 @@ export default function PayTriggerDeviceDetail() {
           {canRelease && active && contract?.status === 'COMPLETED' && (
             <Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" onClick={() => setReleaseOpen(true)}>
               <Unlock className="mr-1.5 h-3.5 w-3.5" /> Release now
+            </Button>
+          )}
+          {canManage && ['QUEUED', 'ACTIVE', 'FAILED'].includes(device.enrollmentStatus) && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy === 'verify'}
+              onClick={async () => {
+                setBusy('verify');
+                try {
+                  const { data } = await api.post(`/paytrigger/devices/${id}/verify`);
+                  const good = ['ACTIVE', 'WAITING', 'REMOVED'].includes(data?.status);
+                  toast({ title: good ? 'Verified with PayTrigger' : 'Not verified', description: data?.message, variant: good ? undefined : 'destructive' });
+                  load();
+                } catch (err) {
+                  toast({ title: 'Not verified', description: errorText(err, 'Request failed'), variant: 'destructive' });
+                } finally {
+                  setBusy(null);
+                }
+              }}
+            >
+              {busy === 'verify' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />}
+              Verify
+            </Button>
+          )}
+          {canManage && device.needsEnrolment && device.inventoryItemId && (
+            <Button
+              size="sm"
+              className="bg-indigo-600 text-white hover:bg-indigo-700"
+              disabled={busy === 'enrol'}
+              onClick={() =>
+                act('enrol', async () => {
+                  const { data } = await api.post('/paytrigger/enrolment', { inventoryItemIds: [device.inventoryItemId] });
+                  const r = data.results?.[0];
+                  if (!r?.ok) throw { response: { data: { error: r?.message || 'Enrolment failed' } } };
+                }, 'Enrolled with PayTrigger')
+              }
+            >
+              {busy === 'enrol' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+              Enrol again
             </Button>
           )}
           {canManage && device.enrollmentStatus === 'QUEUED' && (

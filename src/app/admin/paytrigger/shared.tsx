@@ -15,7 +15,12 @@ export interface PtDevice {
   imei: string;
   deviceTag: string | null;
   contractId: string | null;
-  enrollmentStatus: 'QUEUED' | 'ACTIVE' | 'UNENFORCEABLE' | 'CANCELLED' | 'REMOVED';
+  inventoryItemId?: string;
+  enrollmentStatus: 'QUEUED' | 'ACTIVE' | 'UNENFORCEABLE' | 'CANCELLED' | 'REMOVED' | 'FAILED';
+  /** A live (not dry-run) enrolment or check has confirmed PayTrigger holds it. */
+  enrolledLive?: boolean;
+  /** Never sent, failed, cancelled or only simulated: offer "Enrol again". */
+  needsEnrolment?: boolean;
   committedState: 'LOCKED' | 'UNLOCKED' | 'PENDING' | 'UNKNOWN';
   scheduleExpiresAt: string | null;
   providerExpiresAt: string | null;
@@ -45,6 +50,7 @@ const ENROL_TONE: Record<string, string> = {
   UNENFORCEABLE: 'bg-red-50 text-red-700',
   CANCELLED: 'bg-gray-100 text-gray-500',
   REMOVED: 'bg-gray-100 text-gray-500',
+  FAILED: 'bg-red-50 text-red-700',
 };
 const ENROL_LABEL: Record<string, string> = {
   QUEUED: 'Waiting to activate',
@@ -52,9 +58,18 @@ const ENROL_LABEL: Record<string, string> = {
   UNENFORCEABLE: 'Cannot enforce',
   CANCELLED: 'Cancelled',
   REMOVED: 'Released',
+  FAILED: 'Enrolment failed',
 };
 
-export function EnrolmentBadge({ status }: { status: string }) {
+export function EnrolmentBadge({ status, simulated }: { status: string; simulated?: boolean }) {
+  // Enrolled only in dry run: PayTrigger has never received it.
+  if (status === 'QUEUED' && simulated) {
+    return (
+      <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800" title="Enrolled in dry run — PayTrigger has not received this phone">
+        Simulated only
+      </span>
+    );
+  }
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold', ENROL_TONE[status] || 'bg-gray-100 text-gray-600')}>
       {ENROL_LABEL[status] || status}

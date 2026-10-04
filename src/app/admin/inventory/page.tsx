@@ -273,12 +273,17 @@ export default function InventoryPage() {
     }
   };
 
-  const handlePtAction = async (item: PtRow, action: "reconcile" | "cancel-enrolment", done: string) => {
+  const handlePtAction = async (item: PtRow, action: "reconcile" | "cancel-enrolment" | "verify", done: string) => {
     setPtBusyId(item.id);
     try {
       if (!item.payTrigger) return;
-      await api.post(`/paytrigger/devices/${item.payTrigger.id}/${action}`);
-      toast({ title: done });
+      const { data } = await api.post(`/paytrigger/devices/${item.payTrigger.id}/${action}`);
+      if (action === "verify") {
+        const good = data?.status === "ACTIVE" || data?.status === "WAITING" || data?.status === "REMOVED";
+        toast({ title: good ? "Verified with PayTrigger" : "Not verified", description: data?.message, variant: good ? undefined : "destructive" });
+      } else {
+        toast({ title: done });
+      }
       loadInventory();
     } catch (error) {
       const message = (error as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -661,6 +666,7 @@ export default function InventoryPage() {
                             onReconcile={() => handlePtAction(item, "reconcile", "Phone brought in line with the contract")}
                             onCancel={() => handlePtAction(item, "cancel-enrolment", "Enrolment cancelled — licence kept")}
                             onPin={() => setPtPinFor(item)}
+                            onVerify={() => handlePtAction(item, "verify", "Verified")}
                           />
                         )}
                         {canManageKnox && !isPayTriggerItem(item) && item.knoxUploadStatus !== 'UPLOADED' && item.knoxUploadStatus !== 'DELETE_PENDING' && (
@@ -808,6 +814,7 @@ export default function InventoryPage() {
                                   onReconcile={() => handlePtAction(item, "reconcile", "Phone brought in line with the contract")}
                                   onCancel={() => handlePtAction(item, "cancel-enrolment", "Enrolment cancelled — licence kept")}
                                   onPin={() => setPtPinFor(item)}
+                                  onVerify={() => handlePtAction(item, "verify", "Verified")}
                                 />
                               )}
                               {canManageKnox && !isPayTriggerItem(item) && (
@@ -1022,6 +1029,7 @@ interface PtRow {
   lockProvider?: "PAYTRIGGER" | "KNOX";
   product?: { name?: string } | null;
   payTrigger?: (PtDevice & { contractId: string | null; needsKeyCode?: boolean }) | null;
+  needsEnrolment?: boolean;
 }
 
 /** Transsion phones (TECNO / Infinix / itel) are locked through PayTrigger, not Knox. */
@@ -1029,9 +1037,11 @@ function isPayTriggerItem(item: PtRow): boolean {
   return item?.lockProvider === "PAYTRIGGER";
 }
 
-/** Not enrolled yet, or enrolled and cancelled: can be (re-)enrolled. */
+/** Not enrolled, failed, cancelled, or only simulated in dry run: can be (re-)enrolled. */
 function ptCanEnrol(item: PtRow): boolean {
-  return isPayTriggerItem(item) && (!item.payTrigger || item.payTrigger.enrollmentStatus === "CANCELLED");
+  if (!isPayTriggerItem(item)) return false;
+  if (!item.payTrigger) return true;
+  return item.needsEnrolment ?? ["CANCELLED", "FAILED"].includes(item.payTrigger.enrollmentStatus);
 }
 
 function PayTriggerEnrolment({ item }: { item: PtRow }) {
@@ -1039,7 +1049,12 @@ function PayTriggerEnrolment({ item }: { item: PtRow }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">PayTrigger</span>
-      {d ? <EnrolmentBadge status={d.enrollmentStatus} /> : <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Not enrolled</span>}
+      {d ? (
+        <EnrolmentBadge status={d.enrollmentStatus} simulated={d.enrollmentStatus === "QUEUED" && d.enrolledLive === false} />
+      ) : (
+        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Not enrolled</span>
+      )}
+      {d?.lastError && <span className="block w-full text-[11px] text-red-700">{d.lastError}</span>}
     </span>
   );
 }
@@ -1060,22 +1075,34 @@ function PayTriggerStatus({ item }: { item: PtRow }) {
 }
 
 function PayTriggerActions({
-  item, busy, onEnrol, onReconcile, onCancel, onPin,
+  item, busy, onEnrol, onReconcile, onCancel, onPin, onVerify,
 }: {
-  item: PtRow; busy: boolean; onEnrol: () => void; onReconcile: () => void; onCancel: () => void; onPin: () => void;
+  item: PtRow; busy: boolean; onEnrol: () => void; onReconcile: () => void; onCancel: () => void; onPin: () => void; onVerify: () => void;
 }) {
   const { user } = useAuth();
   const canPin = ["ADMIN", "SUPER_ADMIN"].includes((user as { role?: string } | null)?.role ?? "");
   const d = item.payTrigger;
-  if (ptCanEnrol(item) || !d) {
-    return (
-      <Button variant="ghost" size="sm" onClick={onEnrol} disabled={busy} title="Enrol with PayTrigger" className="text-indigo-600 hover:bg-indigo-50">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <TabletSmartphone className="h-4 w-4" />}
-      </Button>
-    );
-  }
+  const enrolButton = (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onEnrol}
+      disabled={busy}
+      title={d ? "Enrol again with PayTrigger" : "Enrol with PayTrigger"}
+      className="text-indigo-600 hover:bg-indigo-50"
+    >
+      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <TabletSmartphone className="h-4 w-4" />}
+    </Button>
+  );
+  if (!d) return enrolButton;
   return (
     <>
+      {ptCanEnrol(item) && enrolButton}
+      {["QUEUED", "ACTIVE", "FAILED"].includes(d.enrollmentStatus) && (
+        <Button variant="ghost" size="sm" onClick={onVerify} disabled={busy} title="Verify with PayTrigger" className="text-violet-600 hover:bg-violet-50">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+        </Button>
+      )}
       <Link href={`/admin/paytrigger/devices/${d.id}`} title="Open in PayTrigger" className="inline-flex h-9 items-center rounded-md px-3 text-indigo-600 hover:bg-indigo-50">
         <ExternalLink className="h-4 w-4" />
       </Link>
