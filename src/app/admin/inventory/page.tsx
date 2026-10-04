@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock, ShieldCheck, TabletSmartphone, ExternalLink, RefreshCw, KeyRound, XCircle } from "lucide-react";
 import Link from "next/link";
 import { EnrolmentBadge, PhoneStateBadge, PinDialog, type PtDevice } from "@/app/admin/paytrigger/shared";
+import KnoxPinDialog from "@/components/admin/KnoxPinDialog";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
@@ -87,6 +88,7 @@ export default function InventoryPage() {
   // PayTrigger (TECNO / Infinix / itel) items have their own actions.
   const [ptBusyId, setPtBusyId] = useState<string | null>(null);
   const [ptPinFor, setPtPinFor] = useState<PtRow | null>(null);
+  const [knoxPinFor, setKnoxPinFor] = useState<{ contractId: string; label: string } | null>(null);
   const [knoxConfirm, setKnoxConfirm] = useState<{
     item: any;
     newStatus: 'LOCKED' | 'UNLOCKED';
@@ -713,6 +715,9 @@ export default function InventoryPage() {
                             }
                           </Button>
                         )}
+                        {canManageKnox && !isPayTriggerItem(item) && (
+                          <KnoxPinButton item={item} onPin={(contractId, label) => setKnoxPinFor({ contractId, label })} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -857,6 +862,7 @@ export default function InventoryPage() {
                                       : <ShieldCheck className="h-4 w-4" />
                                     }
                                   </Button>
+                                  <KnoxPinButton item={item} onPin={(contractId, label) => setKnoxPinFor({ contractId, label })} />
                                 </>
                               )}
                             </div>
@@ -880,6 +886,8 @@ export default function InventoryPage() {
           />
         )}
       </Card>
+
+      {knoxPinFor && <KnoxPinDialog contractId={knoxPinFor.contractId} customer={knoxPinFor.label} onClose={() => setKnoxPinFor(null)} />}
 
       {ptPinFor?.payTrigger && (
         <PinDialog
@@ -1122,6 +1130,36 @@ function PayTriggerActions({
         </Button>
       )}
     </>
+  );
+}
+
+/**
+ * Offline unlock PIN for a sold Samsung phone that Knox Guard manages — the
+ * same key button a PayTrigger phone has. Admins and Super Admins only; the
+ * server checks the role and the contract again.
+ */
+function KnoxPinButton({
+  item,
+  onPin,
+}: {
+  item: { serialNumber?: string; contractId?: string | null; contract?: { id?: string; contractNumber?: string } | null; managedDevice?: { isActive?: boolean; actualState?: string | null } | null };
+  onPin: (contractId: string, label: string) => void;
+}) {
+  const { user } = useAuth();
+  const canPin = ["ADMIN", "SUPER_ADMIN"].includes((user as { role?: string } | null)?.role ?? "");
+  const contractId = item.contract?.id || item.contractId;
+  if (!canPin || !contractId || !item.managedDevice?.isActive) return null;
+  const locked = item.managedDevice.actualState === "LOCKED";
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => onPin(contractId, [item.contract?.contractNumber, item.serialNumber].filter(Boolean).join(" · "))}
+      title="Knox offline unlock PIN"
+      className={locked ? "text-red-600 hover:bg-red-50" : "text-indigo-600 hover:bg-indigo-50"}
+    >
+      <KeyRound className="h-4 w-4" />
+    </Button>
   );
 }
 
