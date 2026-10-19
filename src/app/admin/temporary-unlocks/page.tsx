@@ -10,6 +10,7 @@ import {
   Search,
   ShieldAlert,
   Phone,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,8 @@ type UnlockRequest = {
   resolvedAt: string | null;
   createdAt: string;
   daysRemaining: number | null;
+  extensionCount?: number;
+  canExtend?: boolean;
 };
 
 type EligibleContract = {
@@ -100,6 +103,41 @@ export default function TemporaryUnlocksPage() {
 
   const canApprove = adminHasPermission(adminUser, PERMISSIONS.APPROVE_TEMPORARY_UNLOCK);
   const canRequest = adminHasPermission(adminUser, PERMISSIONS.REQUEST_TEMPORARY_UNLOCK);
+  const canChangeSettings = adminHasPermission(adminUser, PERMISSIONS.MANAGE_SETTINGS);
+
+  // Whether a defaulted unlock stops the selling agent from creating contracts.
+  const [blocksSales, setBlocksSales] = useState<boolean | null>(null);
+  const [maxWeeks, setMaxWeeks] = useState(4);
+  const [savingSetting, setSavingSetting] = useState(false);
+  useEffect(() => {
+    api
+      .get("/temporary-unlocks/settings")
+      .then(({ data }) => {
+        setBlocksSales(Boolean(data.defaultBlocksSales));
+        if (data.maxWeeks) setMaxWeeks(Number(data.maxWeeks));
+      })
+      .catch(() => setBlocksSales(null));
+  }, []);
+  const toggleBlocksSales = async () => {
+    if (blocksSales === null) return;
+    const next = !blocksSales;
+    setSavingSetting(true);
+    try {
+      const { data } = await api.put("/temporary-unlocks/settings", { defaultBlocksSales: next });
+      setBlocksSales(Boolean(data.defaultBlocksSales));
+      toast({
+        title: next ? "Sales block turned on" : "Sales block turned off",
+        description: next
+          ? "Agents whose customer's unlock ran out unpaid cannot create contracts until that customer clears their arrears."
+          : "Agents can create contracts even while a customer's unlock has defaulted.",
+      });
+    } catch (err) {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast({ title: "Setting not changed", description: message || "Request failed", variant: "destructive" });
+    } finally {
+      setSavingSetting(false);
+    }
+  };
 
   const [requests, setRequests] = useState<UnlockRequest[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -253,6 +291,39 @@ export default function TemporaryUnlocksPage() {
     }
   };
 
+  // Extend a window that ran out with the customer still behind.
+  const [extendTarget, setExtendTarget] = useState<UnlockRequest | null>(null);
+  const [extendWeeks, setExtendWeeks] = useState("1");
+  const [extendNote, setExtendNote] = useState("");
+  const openExtend = (request: UnlockRequest) => {
+    setExtendTarget(request);
+    setExtendWeeks("1");
+    setExtendNote("");
+  };
+  const extend = async () => {
+    if (!extendTarget) return;
+    setBusyId(extendTarget.id);
+    try {
+      const { data } = await api.post(`/temporary-unlocks/${extendTarget.id}/extend`, {
+        weeks: Number(extendWeeks),
+        note: extendNote.trim(),
+      });
+      const warning = data?.device?.warning;
+      toast({
+        title: warning ? "Extended — but check the phone" : "Unlock extended",
+        description: warning || `${extendTarget.customerName}'s phone is open until ${formatDate(data.request.expiresAt)}.`,
+        variant: warning ? "destructive" : undefined,
+      });
+      setExtendTarget(null);
+      await load();
+    } catch (err) {
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      toast({ title: "Not extended", description: message || "Request failed", variant: "destructive" });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const revoke = async (request: UnlockRequest) => {
     // Ending a live window relocks a customer's phone, so it asks why and the
     // reason goes to the requester and into the audit trail.
@@ -346,6 +417,39 @@ export default function TemporaryUnlocksPage() {
         </Card>
       </div>
 
+      {blocksSales !== null && (canApprove || canChangeSettings) && (
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">Block sales after an unpaid unlock</p>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {blocksSales
+                  ? "On: when an unlock ends with the customer still behind, the agent who sold to them cannot create new contracts until that customer clears their arrears."
+                  : "Off: agents can keep creating contracts even when a customer's unlock has ended unpaid."}
+              </p>
+            </div>
+            {canChangeSettings ? (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={blocksSales}
+                aria-label="Block sales after an unpaid unlock"
+                disabled={savingSetting}
+                onClick={toggleBlocksSales}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-60 ${
+                  blocksSales ? "bg-red-600" : "bg-gray-300"
+                }`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${blocksSales ? "translate-x-6" : "translate-x-1"}`} />
+                {savingSetting && <Loader2 className="absolute -right-6 h-4 w-4 animate-spin text-gray-400" />}
+              </button>
+            ) : (
+              <Badge variant="outline" className="shrink-0">{blocksSales ? "On" : "Off"}</Badge>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
@@ -390,6 +494,11 @@ export default function TemporaryUnlocksPage() {
                       <Badge className={STATUS_TONE[request.status] ?? "bg-gray-100 text-gray-700"}>
                         {STATUS_LABEL[request.status] ?? request.status}
                       </Badge>
+                      {(request.extensionCount ?? 0) > 0 && (
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                          Extended {request.extensionCount === 1 ? "once" : `${request.extensionCount}×`}
+                        </span>
+                      )}
                       {request.status === "APPROVED" && request.daysRemaining !== null && (
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -477,7 +586,13 @@ export default function TemporaryUnlocksPage() {
                         Withdraw
                       </Button>
                     )}
-                    {request.status === "APPROVED" && canApprove && (
+                    {request.canExtend && canApprove && (
+                      <Button size="sm" disabled={busyId === request.id} onClick={() => openExtend(request)}>
+                        <Clock className="mr-1.5 h-4 w-4" />
+                        Extend
+                      </Button>
+                    )}
+                    {request.status === "APPROVED" && !request.canExtend && canApprove && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -649,6 +764,75 @@ export default function TemporaryUnlocksPage() {
       </Dialog>
 
       {/* Review dialog */}
+      {/* Extend dialog */}
+      <Dialog open={Boolean(extendTarget)} onOpenChange={(open) => !open && setExtendTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Extend temporary unlock</DialogTitle>
+          </DialogHeader>
+          {extendTarget && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                <p className="font-medium text-gray-900">{extendTarget.customerName}</p>
+                <p className="text-xs text-gray-500">
+                  {extendTarget.contractNumber} · sold by {extendTarget.agentName || "—"} · window ended{" "}
+                  {extendTarget.resolvedAt || extendTarget.expiresAt ? formatDate((extendTarget.resolvedAt || extendTarget.expiresAt) as string) : "—"}
+                </p>
+                <p className="mt-2 text-gray-700">
+                  The window ran out with the customer still behind
+                  {extendTarget.arrearsAtApproval ? ` (they owed ${formatCurrency(extendTarget.arrearsAtApproval)} when it was granted)` : ""}.
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="extendWeeks">Extend by (weeks)</Label>
+                <Input
+                  id="extendWeeks"
+                  type="number"
+                  min={1}
+                  max={maxWeeks}
+                  value={extendWeeks}
+                  onChange={(e) => setExtendWeeks(e.target.value)}
+                  className="mt-1.5"
+                />
+                <p className="mt-1 text-xs text-gray-500">From today, up to {maxWeeks} week{maxWeeks === 1 ? "" : "s"}.</p>
+              </div>
+              <div>
+                <Label htmlFor="extendNote">Why extend?</Label>
+                <Textarea
+                  id="extendNote"
+                  rows={2}
+                  placeholder="What the customer has promised, and why you expect them to pay this time."
+                  value={extendNote}
+                  onChange={(e) => setExtendNote(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+              <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-blue-900">
+                <Unlock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Extending opens the phone again and lifts the block on the selling agent until the new date. If the
+                  customer is still behind then, the phone relocks and the agent is warned again.
+                </span>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setExtendTarget(null)}>Cancel</Button>
+                <Button
+                  disabled={
+                    busyId === extendTarget.id ||
+                    extendNote.trim().length < 5 ||
+                    !(Number(extendWeeks) >= 1 && Number(extendWeeks) <= maxWeeks && Number.isInteger(Number(extendWeeks)))
+                  }
+                  onClick={extend}
+                >
+                  <Clock className="mr-1.5 h-4 w-4" />
+                  {busyId === extendTarget.id ? "Working…" : "Extend & open phone"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={Boolean(reviewTarget)} onOpenChange={(open) => !open && setReviewTarget(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
