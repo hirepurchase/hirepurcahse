@@ -245,7 +245,7 @@ export default function KnoxSettingsPage() {
             type="tel"
             value={form.supportPhone ?? ''}
             onChange={(e) => set('supportPhone', e.target.value || null)}
-            placeholder="e.g. 0246462398"
+            placeholder="e.g. 024XXXXXXX"
             className={inputCls}
           />
         </Field>

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/useToast';
+import DeveloperCredit from '@/components/shared/DeveloperCredit';
 
 export default function CustomerActivationPage() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function CustomerActivationPage() {
             </Button>
           </CardContent>
         </Card>
+        <DeveloperCredit className="mt-4" />
       </div>
     </div>
   );

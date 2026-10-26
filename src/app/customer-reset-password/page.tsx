@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, ArrowLeft, KeyRound } from "lucide-react";
+import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
 export default function CustomerResetPasswordPage() {
   const router = useRouter();
@@ -124,7 +125,7 @@ export default function CustomerResetPasswordPage() {
                     onChange={(e) => setPhone(e.target.value)}
                     required
                     disabled={isLoading}
-                    placeholder="0246462398"
+                    placeholder="024XXXXXXX"
                     className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
@@ -147,7 +148,7 @@ export default function CustomerResetPasswordPage() {
                     onChange={(e) => setPhone(e.target.value)}
                     required
                     disabled={isLoading}
-                    placeholder="0246462398"
+                    placeholder="024XXXXXXX"
                     className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
@@ -200,6 +201,7 @@ export default function CustomerResetPasswordPage() {
             )}
           </CardContent>
         </Card>
+        <DeveloperCredit className="mt-4" />
       </div>
     </div>
   );

@@ -185,7 +185,7 @@ export default function CustomerLoginPage() {
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   disabled={isLoading}
-                  placeholder="0246462398"
+                  placeholder="024XXXXXXX"
                   className="w-full h-11 px-3.5 border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition disabled:opacity-50"
                 />
               </div>
