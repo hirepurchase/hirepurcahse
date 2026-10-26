@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import CustomerSidebar from '@/components/CustomerSidebar';
+import FloatingPayButton from '@/components/customer/FloatingPayButton';
 
 export default function CustomerLayout({
   children,
@@ -34,12 +35,13 @@ export default function CustomerLayout({
   return (
     <div className="flex h-screen bg-transparent surface-grid">
       <CustomerSidebar />
-      {/* pb-16 reserves space for the mobile bottom tab bar */}
-      <main className="flex-1 overflow-auto pb-16 lg:pb-0">
+      {/* pb-32 reserves space for the mobile bottom tab bar and the pay button */}
+      <main className="flex-1 overflow-auto pb-32 lg:pb-24">
         <div className="page-shell p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>
+      <FloatingPayButton />
     </div>
   );
 }

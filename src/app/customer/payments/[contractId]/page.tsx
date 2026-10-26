@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Banknote, Smartphone, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Smartphone, CheckCircle, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -16,27 +15,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import api from '@/lib/api';
-import { formatCurrency, formatDate, roundMoney } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, roundMoney } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
-
-interface Installment {
-  id: string;
-  installmentNo: number;
-  amount: number;
-  paidAmount: number;
-  dueDate: string;
-  status: string;
-}
+import {
+  DueInstallment,
+  summariseDue,
+  quickAmounts,
+  describeCoverage,
+  guessNetwork,
+  unpaidInstallments,
+  isInstallmentOverdue,
+} from '@/lib/paymentDue';
 
 interface Contract {
   id: string;
@@ -45,6 +36,9 @@ interface Contract {
   totalPrice: number;
   totalPaid: number;
   outstandingBalance: number;
+  penaltyOutstanding?: number;
+  totalDue?: number;
+  mobileMoneyNumber?: string | null;
   customer: {
     firstName: string;
     lastName: string;
@@ -57,16 +51,17 @@ interface Contract {
     };
     serialNumber: string;
   };
-  installments: Installment[];
+  installments: DueInstallment[];
 }
 
-interface SelectedInstallment {
-  id: string;
-  installmentNo: number;
-  amount: number;
-  paidAmount: number;
-  paymentAmount: number;
-  isPartial: boolean;
+// A daily contract can have hundreds of rows; the schedule opens on the
+// next few, and the rest are one tap away.
+const SCHEDULE_PREVIEW = 6;
+
+function errorMessage(error: unknown): string | undefined {
+  return typeof error === 'object' && error !== null
+    ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+    : undefined;
 }
 
 export default function CustomerContractPaymentPage() {
@@ -77,42 +72,42 @@ export default function CustomerContractPaymentPage() {
 
   const [contract, setContract] = useState<Contract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedInstallments, setSelectedInstallments] = useState<Map<string, SelectedInstallment>>(
-    new Map()
-  );
+  const [amount, setAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [network, setNetwork] = useState('MTN');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [transactionRef, setTransactionRef] = useState('');
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
+
+  const summary = useMemo(() => (contract ? summariseDue(contract) : null), [contract]);
+  const options = useMemo(() => (summary ? quickAmounts(summary) : []), [summary]);
 
   useEffect(() => {
     if (contractId) {
-      loadContract();
+      loadContract(true);
     }
   }, [contractId]);
 
-  useEffect(() => {
-    // Auto-fill phone number from contract
-    if (contract?.customer?.phone) {
-      setPhoneNumber(contract.customer.phone);
-    }
-  }, [contract]);
-
-  const loadContract = async () => {
+  const loadContract = async (firstLoad = false) => {
     try {
-      setIsLoading(true);
+      if (firstLoad) setIsLoading(true);
       const response = await api.get(`/customers/me/contracts/${contractId}`);
-      setContract(response.data);
+      const data: Contract = response.data;
+      setContract(data);
+      if (firstLoad) {
+        const phone = data.mobileMoneyNumber || data.customer?.phone || '';
+        setPhoneNumber(phone);
+        setNetwork(guessNetwork(phone) || 'MTN');
+        // Start on what clears the arrears, or the next payment.
+        const first = quickAmounts(summariseDue(data))[0];
+        if (first) setAmount(first.amount.toFixed(2));
+      }
     } catch (error: unknown) {
-      const message =
-        typeof error === 'object' && error !== null
-          ? (error as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
-          : undefined;
       toast({
         title: 'Error',
-        description: message || 'Failed to load contract',
+        description: errorMessage(error) || 'Failed to load contract',
         variant: 'destructive',
       });
     } finally {
@@ -120,117 +115,42 @@ export default function CustomerContractPaymentPage() {
     }
   };
 
-  const getInstallmentStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'OVERDUE':
-        return 'bg-red-100 text-red-800';
-      case 'PARTIAL':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    const guessed = guessNetwork(value);
+    if (guessed) setNetwork(guessed);
   };
 
-  const handleInstallmentToggle = (installment: Installment, checked: boolean) => {
-    if (contract?.status !== 'ACTIVE') {
-      return;
-    }
+  const paymentAmount = roundMoney(parseFloat(amount) || 0);
 
-    const newSelected = new Map(selectedInstallments);
+  const handlePayment = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!contract || !summary) return;
 
-    if (checked) {
-      const remainingAmount = roundMoney(installment.amount - installment.paidAmount);
-      newSelected.set(installment.id, {
-        id: installment.id,
-        installmentNo: installment.installmentNo,
-        amount: installment.amount,
-        paidAmount: installment.paidAmount,
-        paymentAmount: remainingAmount,
-        isPartial: false,
-      });
-    } else {
-      newSelected.delete(installment.id);
-    }
-
-    setSelectedInstallments(newSelected);
-  };
-
-  const handlePaymentAmountChange = (installmentId: string, value: string) => {
-    if (contract?.status !== 'ACTIVE') {
-      return;
-    }
-
-    const amount = parseFloat(value) || 0;
-    const newSelected = new Map(selectedInstallments);
-    const selected = newSelected.get(installmentId);
-
-    if (selected) {
-      const remainingAmount = roundMoney(selected.amount - selected.paidAmount);
-      const roundedAmount = roundMoney(amount);
-      const isPartial = roundedAmount < remainingAmount;
-
-      newSelected.set(installmentId, {
-        ...selected,
-        paymentAmount: Math.min(roundedAmount, remainingAmount),
-        isPartial,
-      });
-
-      setSelectedInstallments(newSelected);
-    }
-  };
-
-  const getTotalPaymentAmount = () => {
-    return roundMoney(
-      Array.from(selectedInstallments.values()).reduce(
-        (sum, item) => sum + item.paymentAmount,
-        0
-      )
-    );
-  };
-
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (contract?.status !== 'ACTIVE') {
+    if (contract.status !== 'ACTIVE') {
       toast({
         title: 'Payment Unavailable',
-        description: contract?.status === 'PENDING_APPROVAL'
+        description: contract.status === 'PENDING_APPROVAL'
           ? 'This contract is still awaiting approval.'
           : 'This contract is not approved for payments yet.',
         variant: 'destructive',
       });
       return;
     }
-
-    if (selectedInstallments.size === 0) {
+    if (paymentAmount <= 0) {
+      toast({ title: 'Enter an amount', description: 'Choose or type how much to pay.', variant: 'destructive' });
+      return;
+    }
+    if (paymentAmount > summary.totalDue + 0.005) {
       toast({
-        title: 'Error',
-        description: 'Please select at least one installment to pay',
+        title: 'Amount too high',
+        description: `The most you can pay on this contract is ${formatCurrency(summary.totalDue)}.`,
         variant: 'destructive',
       });
       return;
     }
-
-    const totalAmount = getTotalPaymentAmount();
-    if (totalAmount <= 0) {
-      toast({
-        title: 'Error',
-        description: 'Total payment amount must be greater than zero',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast({
-        title: 'Error',
-        description: 'Please enter a valid mobile money number',
-        variant: 'destructive',
-      });
+    if (!phoneNumber || phoneNumber.replace(/\D/g, '').length < 10) {
+      toast({ title: 'Error', description: 'Please enter a valid mobile money number', variant: 'destructive' });
       return;
     }
 
@@ -239,39 +159,31 @@ export default function CustomerContractPaymentPage() {
 
     try {
       const response = await api.post('/payments/hubtel/initiate', {
-        contractId: contract?.id,
-        amount: totalAmount,
+        contractId: contract.id,
+        amount: paymentAmount,
         phoneNumber,
         network,
       });
 
       setTransactionRef(response.data.transactionRef);
-
       toast({
         title: 'Payment Initiated',
         description: 'Please check your phone and approve the payment prompt',
       });
-
-      // Start polling for payment status
-      pollPaymentStatus(response.data.transactionRef);
+      pollPaymentStatus(response.data.transactionRef, paymentAmount);
     } catch (error: unknown) {
-      const message =
-        typeof error === 'object' && error !== null
-          ? (error as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
-          : undefined;
       console.error('Payment error:', error);
       setPaymentStatus('failed');
       toast({
         title: 'Payment Failed',
-        description: message || 'Failed to initiate payment',
+        description: errorMessage(error) || 'Failed to initiate payment',
         variant: 'destructive',
       });
       setIsProcessing(false);
     }
   };
 
-  const pollPaymentStatus = async (txnRef: string) => {
+  const pollPaymentStatus = async (txnRef: string, paid: number) => {
     let attempts = 0;
     const maxAttempts = 60; // Poll for up to 2 minutes
 
@@ -285,15 +197,12 @@ export default function CustomerContractPaymentPage() {
           setIsProcessing(false);
           toast({
             title: 'Payment Successful!',
-            description: `Payment of ${formatCurrency(getTotalPaymentAmount())} has been processed`,
+            description: `Payment of ${formatCurrency(paid)} has been processed`,
           });
-
-          // Reload contract data
           setTimeout(() => {
             loadContract();
-            setSelectedInstallments(new Map());
+            setAmount('');
           }, 2000);
-
           return;
         } else if (status === 'FAILED') {
           setPaymentStatus('failed');
@@ -305,35 +214,19 @@ export default function CustomerContractPaymentPage() {
           });
           return;
         }
-
-        // Still pending, continue polling
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 2000); // Poll every 2 seconds
-        } else {
-          setPaymentStatus('idle');
-          setIsProcessing(false);
-          toast({
-            title: 'Payment Pending',
-            description: 'Payment verification timed out. Please check your payment history later.',
-            variant: 'default',
-          });
-        }
-      } catch (error) {
-        // Silently continue polling if status check fails
-        // This is expected when Hubtel hasn't registered the payment yet
-        attempts++;
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 2000);
-        } else {
-          setPaymentStatus('idle');
-          setIsProcessing(false);
-          toast({
-            title: 'Payment Pending',
-            description: 'Payment verification timed out. Please check your payment history later.',
-            variant: 'default',
-          });
-        }
+      } catch {
+        // Expected while Hubtel has not registered the payment yet.
+      }
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(poll, 2000);
+      } else {
+        setPaymentStatus('idle');
+        setIsProcessing(false);
+        toast({
+          title: 'Payment Pending',
+          description: 'Payment verification timed out. Please check your payment history later.',
+        });
       }
     };
 
@@ -343,14 +236,14 @@ export default function CustomerContractPaymentPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
 
-  if (!contract) {
+  if (!contract || !summary) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <p className="text-gray-600 mb-4">Contract not found</p>
         <Button onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -360,28 +253,40 @@ export default function CustomerContractPaymentPage() {
     );
   }
 
-  const pendingInstallments = contract.installments.filter(
-    (i) => i.status === 'PENDING' || i.status === 'PARTIAL' || i.status === 'OVERDUE'
-  );
-  const canMakePayment = contract.status === 'ACTIVE' && contract.outstandingBalance > 0;
+  const canMakePayment = contract.status === 'ACTIVE' && summary.totalDue > 0;
   const paymentBlockedMessage =
     contract.status === 'PENDING_APPROVAL'
       ? 'This contract is awaiting approval. Payments will unlock once an approver activates it.'
       : contract.status === 'REVISION_REQUESTED'
         ? 'This contract is currently under revision and cannot receive payments until it is approved.'
-        : 'This contract is not available for payment.';
+        : summary.totalDue <= 0
+          ? 'This contract is fully paid. Thank you!'
+          : 'This contract is not available for payment.';
+  const coverage = describeCoverage(contract, paymentAmount);
+  const unpaid = unpaidInstallments(contract.installments);
+  const scheduleRows = showAllRows ? unpaid : unpaid.slice(0, SCHEDULE_PREVIEW);
+  const payDisabled = !canMakePayment || isProcessing || paymentAmount <= 0;
+
+  const payButtonLabel = isProcessing ? (
+    <><Clock className="h-4 w-4 mr-2 animate-spin" />Waiting for approval…</>
+  ) : (
+    <><Smartphone className="h-4 w-4 mr-2" />Pay {formatCurrency(paymentAmount)}</>
+  );
 
   return (
-    <div className="space-y-5">
+    // Room at the bottom on phones for the pay bar.
+    <div className="space-y-4 pb-28 lg:pb-0">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 sm:mr-2" />
           <span className="hidden sm:inline">Back</span>
         </Button>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Make Payment</h1>
-          <p className="text-xs sm:text-sm text-gray-500">Contract #{contract.contractNumber}</p>
+          <p className="text-xs sm:text-sm text-gray-500 truncate">
+            {contract.inventoryItem?.product?.name} · #{contract.contractNumber}
+          </p>
         </div>
       </div>
 
@@ -390,7 +295,7 @@ export default function CustomerContractPaymentPage() {
         <Alert className="border-blue-500 bg-blue-50">
           <Clock className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-900 text-sm">
-            Waiting for approval on your phone. Ref: <strong>{transactionRef}</strong>
+            Check your phone and enter your Mobile Money PIN to approve. Ref: <strong>{transactionRef}</strong>
           </AlertDescription>
         </Alert>
       )}
@@ -413,172 +318,187 @@ export default function CustomerContractPaymentPage() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left Column - Installments */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Select Installments to Pay</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {pendingInstallments.length === 0 ? (
-                <div className="text-center py-12">
-                  <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-3" />
-                  <p className="text-gray-600 text-sm">All installments are paid!</p>
-                </div>
-              ) : (
-                <>
-                  {/* Mobile */}
-                  <div className="sm:hidden divide-y divide-gray-100">
-                    {pendingInstallments.map((installment) => {
-                      const isSelected = selectedInstallments.has(installment.id);
-                      const selected = selectedInstallments.get(installment.id);
-                      const remainingAmount = roundMoney(installment.amount - installment.paidAmount);
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
+        <div className="lg:col-span-2 space-y-4">
+          {/* What is owed */}
+          <div className="rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 p-5 text-white shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-teal-100">
+              {summary.dueNow > 0 ? 'Due now' : 'Next payment'}
+            </p>
+            <p className="mt-1 text-3xl font-bold">
+              {formatCurrency(summary.dueNow > 0 ? summary.dueNow : summary.next ? roundMoney(summary.next.amount - summary.next.paidAmount) : 0)}
+            </p>
+            <p className="mt-1 text-sm text-teal-50">
+              {summary.dueNow > 0
+                ? `${summary.overdue.length} overdue installment${summary.overdue.length === 1 ? '' : 's'}${summary.penaltyOutstanding > 0 ? ` + ${formatCurrency(summary.penaltyOutstanding)} late charges` : ''}`
+                : summary.next
+                  ? `Due ${formatDate(summary.next.dueDate)}`
+                  : 'Nothing due'}
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-3 text-sm">
+              <div>
+                <p className="text-teal-100 text-xs">Balance</p>
+                <p className="font-semibold">{formatCurrency(summary.totalDue)}</p>
+              </div>
+              <div>
+                <p className="text-teal-100 text-xs">Paid so far</p>
+                <p className="font-semibold">{formatCurrency(contract.totalPaid)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* How much */}
+          {canMakePayment && (
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold">How much do you want to pay?</Label>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {options.map((option) => {
+                      const selected = Math.abs(option.amount - paymentAmount) < 0.005;
                       return (
-                        <div key={installment.id} className={`px-4 py-3 ${isSelected ? 'bg-blue-50' : ''}`}>
-                          <div className="flex items-start gap-3">
-                            <Checkbox checked={isSelected} onCheckedChange={(checked) => handleInstallmentToggle(installment, checked as boolean)} className="mt-0.5 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold">#{installment.installmentNo}</span>
-                                  <Badge className={`text-xs ${getInstallmentStatusColor(installment.status)}`}>{installment.status}</Badge>
-                                </div>
-                                <span className="text-sm font-bold text-orange-600">{formatCurrency(remainingAmount)}</span>
-                              </div>
-                              <p className="text-xs text-gray-500 mt-0.5">Due: {formatDate(installment.dueDate)}</p>
-                              {installment.paidAmount > 0 && <p className="text-xs text-green-600">{formatCurrency(installment.paidAmount)} paid</p>}
-                              {isSelected && (
-                                <div className="mt-2 flex items-center gap-2">
-                                  <Label className="text-xs shrink-0">Pay:</Label>
-                                  <Input type="number" step="0.01" min="0" max={remainingAmount} value={selected?.paymentAmount || 0} onChange={(e) => handlePaymentAmountChange(installment.id, e.target.value)} className="h-8 text-sm" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => setAmount(option.amount.toFixed(2))}
+                          disabled={isProcessing}
+                          className={cn(
+                            'flex items-center justify-between sm:flex-col sm:items-start rounded-xl border px-3 py-2.5 text-left transition',
+                            selected ? 'border-teal-600 bg-teal-50 ring-1 ring-teal-600' : 'border-gray-200 hover:border-teal-300',
+                          )}
+                        >
+                          <span className="text-xs text-gray-600">{option.label}</span>
+                          <span className="font-bold text-gray-900">{formatCurrency(option.amount)}</span>
+                        </button>
                       );
                     })}
                   </div>
-                  {/* Desktop */}
-                  <div className="hidden sm:block overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12"></TableHead>
-                          <TableHead>#</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Paid</TableHead>
-                          <TableHead>Balance</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Pay Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingInstallments.map((installment) => {
-                          const isSelected = selectedInstallments.has(installment.id);
-                          const selected = selectedInstallments.get(installment.id);
-                          const remainingAmount = roundMoney(installment.amount - installment.paidAmount);
-                          return (
-                            <TableRow key={installment.id} className={isSelected ? 'bg-blue-50' : ''}>
-                              <TableCell>
-                                <Checkbox checked={isSelected} onCheckedChange={(checked) => handleInstallmentToggle(installment, checked as boolean)} />
-                              </TableCell>
-                              <TableCell>{installment.installmentNo}</TableCell>
-                              <TableCell>{formatDate(installment.dueDate)}</TableCell>
-                              <TableCell>{formatCurrency(installment.amount)}</TableCell>
-                              <TableCell className="text-green-600">{formatCurrency(installment.paidAmount)}</TableCell>
-                              <TableCell className="font-semibold text-orange-600">{formatCurrency(remainingAmount)}</TableCell>
-                              <TableCell><Badge className={getInstallmentStatusColor(installment.status)}>{installment.status}</Badge></TableCell>
-                              <TableCell>
-                                {isSelected ? (
-                                  <Input type="number" step="0.01" min="0" max={remainingAmount} value={selected?.paymentAmount || 0} onChange={(e) => handlePaymentAmountChange(installment.id, e.target.value)} className="w-28" />
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column - Payment Form */}
-        <div>
-          <Card className="lg:sticky lg:top-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Payment Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePayment} className="space-y-4">
-                <div className="bg-gray-50 p-3 rounded-lg text-sm">
-                  <p className="text-xs text-gray-500">Product</p>
-                  <p className="font-semibold">{contract.inventoryItem.product.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Serial: {contract.inventoryItem.serialNumber}</p>
                 </div>
-
-                <div className="space-y-1.5 text-sm border-t pt-3">
-                  <div className="flex justify-between"><span className="text-gray-500">Total Price:</span><span className="font-medium">{formatCurrency(contract.totalPrice)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Paid:</span><span className="text-green-600">{formatCurrency(contract.totalPaid)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Outstanding:</span><span className="text-orange-600 font-semibold">{formatCurrency(contract.outstandingBalance)}</span></div>
+                <div>
+                  <Label htmlFor="amount" className="text-xs text-gray-600">Or enter another amount (GHS)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    max={summary.totalDue}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    disabled={isProcessing}
+                    className="mt-1 h-11 text-lg font-semibold"
+                    placeholder="0.00"
+                  />
+                  {coverage && <p className="mt-1 text-xs text-teal-700">{coverage}</p>}
+                  {paymentAmount > summary.totalDue + 0.005 && (
+                    <p className="mt-1 text-xs text-red-600">More than you owe ({formatCurrency(summary.totalDue)}).</p>
+                  )}
                 </div>
-
-                {selectedInstallments.size > 0 && (
-                  <div className="border-t pt-3 space-y-1.5 text-sm">
-                    {Array.from(selectedInstallments.values()).map((item) => (
-                      <div key={item.id} className="flex justify-between">
-                        <span className="text-gray-500">Inst. #{item.installmentNo}{item.isPartial ? ' (Partial)' : ''}</span>
-                        <span className="font-medium">{formatCurrency(item.paymentAmount)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between font-bold text-base pt-1 border-t">
-                      <span>Total:</span>
-                      <span className="text-blue-600">{formatCurrency(getTotalPaymentAmount())}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3 border-t pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="phoneNumber">Mobile Money Number</Label>
-                    <Input id="phoneNumber" type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="0244123456" required disabled={isProcessing} />
+                    <Label htmlFor="phoneNumber" className="text-xs text-gray-600">Mobile Money number</Label>
+                    <Input id="phoneNumber" type="tel" inputMode="tel" value={phoneNumber} onChange={(e) => handlePhoneChange(e.target.value)} placeholder="0244123456" disabled={isProcessing} className="mt-1 h-11" />
                   </div>
                   <div>
-                    <Label htmlFor="network">Network</Label>
+                    <Label htmlFor="network" className="text-xs text-gray-600">Network</Label>
                     <Select value={network} onValueChange={setNetwork} disabled={isProcessing}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="network" className="mt-1 h-11"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="MTN">MTN Mobile Money</SelectItem>
-                        <SelectItem value="VODAFONE">Vodafone Cash</SelectItem>
+                        <SelectItem value="VODAFONE">Telecel Cash</SelectItem>
                         <SelectItem value="AIRTELTIGO">AirtelTigo Money</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500">
+                  <AlertCircle className="h-3 w-3 inline mr-1" />
+                  You will get a prompt on this phone. Enter your PIN to approve. Payments clear overdue installments first.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-                <Button type="submit" className="w-full" disabled={!canMakePayment || isProcessing || selectedInstallments.size === 0}>
-                  {isProcessing ? (
-                    <><Clock className="h-4 w-4 mr-2 animate-spin" />Processing...</>
-                  ) : (
-                    <><Smartphone className="h-4 w-4 mr-2" />Pay {formatCurrency(getTotalPaymentAmount())}</>
+          {/* Schedule, collapsed */}
+          {unpaid.length > 0 && (
+            <Card>
+              <button
+                type="button"
+                onClick={() => setShowSchedule((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <span className="text-sm font-semibold text-gray-800">
+                  Unpaid installments <span className="text-gray-400 font-normal">({unpaid.length})</span>
+                </span>
+                {showSchedule ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+              </button>
+              {showSchedule && (
+                <div className="border-t divide-y divide-gray-100">
+                  {scheduleRows.map((inst) => {
+                    const overdue = isInstallmentOverdue(inst);
+                    return (
+                      <div key={inst.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold">#{inst.installmentNo}</span>
+                            {overdue && <Badge className="bg-red-100 text-red-800 text-[10px]">OVERDUE</Badge>}
+                            {inst.status === 'PARTIAL' && <Badge className="bg-orange-100 text-orange-800 text-[10px]">PART PAID</Badge>}
+                          </div>
+                          <p className="text-xs text-gray-500">{formatDate(inst.dueDate)}</p>
+                        </div>
+                        <p className={cn('text-sm font-semibold', overdue ? 'text-red-600' : 'text-gray-800')}>
+                          {formatCurrency(roundMoney(inst.amount - inst.paidAmount))}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  {unpaid.length > SCHEDULE_PREVIEW && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllRows((v) => !v)}
+                      className="w-full px-4 py-2.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+                    >
+                      {showAllRows ? 'Show fewer' : `Show all ${unpaid.length}`}
+                    </button>
                   )}
-                </Button>
-
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-xs text-blue-900"><AlertCircle className="h-3 w-3 inline mr-1" />You will receive a prompt on your phone to approve this payment.</p>
                 </div>
-              </form>
+              )}
+            </Card>
+          )}
+        </div>
+
+        {/* Desktop: pay card stays in view */}
+        <div className="hidden lg:block">
+          <Card className="lg:sticky lg:top-4">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex justify-between text-sm"><span className="text-gray-500">You are paying</span><span className="font-bold text-lg">{formatCurrency(paymentAmount)}</span></div>
+              {coverage && <p className="text-xs text-teal-700">{coverage}</p>}
+              <div className="flex justify-between text-sm"><span className="text-gray-500">From</span><span className="font-medium">{phoneNumber || '—'}</span></div>
+              <Button className="w-full h-11 bg-teal-600 hover:bg-teal-700" disabled={payDisabled} onClick={() => handlePayment()}>
+                {payButtonLabel}
+              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Phones: pay bar pinned above the bottom tabs */}
+      {canMakePayment && (
+        <div
+          className="lg:hidden fixed inset-x-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+          style={{ bottom: 'calc(4rem + 2px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-gray-500">You are paying</p>
+              <p className="text-lg font-bold leading-tight">{formatCurrency(paymentAmount)}</p>
+            </div>
+            <Button className="h-11 px-5 bg-teal-600 hover:bg-teal-700" disabled={payDisabled} onClick={() => handlePayment()}>
+              {payButtonLabel}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

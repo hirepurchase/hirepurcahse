@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isInstallmentOverdue } from '@/lib/paymentDue';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Download, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,15 @@ import { cn, formatCurrency, formatDate, formatDateTime, getStatusColor, calcula
 import { useToast } from '@/hooks/useToast';
 import type { HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
 
+const SCHEDULE_PREVIEW = 6;
+
 export default function CustomerContractDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [contract, setContract] = useState<HirePurchaseContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPaidRows, setShowPaidRows] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -109,6 +114,13 @@ export default function CustomerContractDetailPage() {
           ? 'This contract has no outstanding balance.'
           : null;
 
+  // Daily contracts run to hundreds of rows. Paid ones are hidden and the
+  // unpaid list opens on the next few, so the page stays short.
+  const allInstallments = contract.installments || [];
+  const paidCount = allInstallments.filter((i) => i.status === 'PAID').length;
+  const shownInstallments = allInstallments.filter((i) => showPaidRows || i.status !== 'PAID');
+  const visibleInstallments = showAllRows ? shownInstallments : shownInstallments.slice(0, SCHEDULE_PREVIEW);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -165,18 +177,23 @@ export default function CustomerContractDetailPage() {
 
           {/* Installment Schedule */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Installment Schedule</CardTitle>
+              {paidCount > 0 && (
+                <button type="button" onClick={() => setShowPaidRows((v) => !v)} className="text-xs font-medium text-teal-700 hover:underline">
+                  {showPaidRows ? 'Hide paid' : `Show paid (${paidCount})`}
+                </button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               {/* Mobile */}
               <div className="sm:hidden divide-y divide-gray-100">
-                {contract.installments?.map((inst: InstallmentSchedule) => (
+                {visibleInstallments.map((inst: InstallmentSchedule) => (
                   <div key={inst.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold">#{inst.installmentNo}</span>
-                        <Badge className={`text-xs ${getStatusColor(inst.status)}`}>{inst.status}</Badge>
+                        <Badge className={`text-xs ${getStatusColor(inst.status !== 'PAID' && isInstallmentOverdue(inst) ? 'OVERDUE' : inst.status)}`}>{inst.status !== 'PAID' && isInstallmentOverdue(inst) ? 'OVERDUE' : inst.status}</Badge>
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">Due: {formatDate(inst.dueDate)}</p>
                     </div>
@@ -200,7 +217,7 @@ export default function CustomerContractDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {contract.installments?.map((inst: InstallmentSchedule) => (
+                    {visibleInstallments.map((inst: InstallmentSchedule) => (
                       <TableRow key={inst.id}>
                         <TableCell>{inst.installmentNo}</TableCell>
                         <TableCell>{formatDate(inst.dueDate)}</TableCell>
@@ -212,6 +229,18 @@ export default function CustomerContractDetailPage() {
                   </TableBody>
                 </Table>
               </div>
+              {shownInstallments.length > SCHEDULE_PREVIEW && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllRows((v) => !v)}
+                  className="w-full border-t px-4 py-2.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+                >
+                  {showAllRows ? 'Show fewer' : `Show all ${shownInstallments.length}`}
+                </button>
+              )}
+              {shownInstallments.length === 0 && (
+                <p className="px-4 py-6 text-center text-sm text-gray-500">All installments are paid.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -298,7 +327,7 @@ export default function CustomerContractDetailPage() {
                 Download Statement
               </Button>
               {canMakePayment ? (
-                <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => router.push('/customer/payments')}>
+                <Button className="w-full bg-green-600 hover:bg-green-700" onClick={() => router.push(`/customer/payments/${contract.id}`)}>
                   <CreditCard className="mr-2 h-4 w-4" />
                   Make Payment
                 </Button>
