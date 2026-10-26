@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PhoneCheckBadge } from "@/components/admin/PhoneCheck";
 import api from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
@@ -74,6 +75,10 @@ interface PendingContract {
     photoUrl?: string | null;
     guarantorName?: string | null;
     guarantorPhone?: string | null;
+    phoneVerificationStatus?: string | null;
+    phoneRegisteredName?: string | null;
+    guarantorVerificationStatus?: string | null;
+    guarantorRegisteredName?: string | null;
   };
   inventoryItem: {
     serialNumber: string;
@@ -225,9 +230,15 @@ function ContractPreviewModal({
                   <p className="text-gray-400">Membership ID</p>
                   <p className="font-semibold text-gray-900">{contract.customer.membershipId}</p>
                 </div>
-                <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
-                  <Phone className="h-3 w-3 text-gray-400" />
-                  <p className="font-medium text-gray-700">{contract.customer.phone}</p>
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="flex items-center gap-1">
+                    <Phone className="h-3 w-3 text-gray-400" />
+                    <p className="font-medium text-gray-700">{contract.customer.phone}</p>
+                  </div>
+                  <PhoneCheckBadge
+                    status={contract.customer.phoneVerificationStatus}
+                    registeredName={contract.customer.phoneRegisteredName}
+                  />
                 </div>
                 {contract.customer.email && (
                   <div className="col-span-2 sm:col-span-1">
@@ -268,6 +279,10 @@ function ContractPreviewModal({
                   <div>
                     <p className="text-gray-400">Phone</p>
                     <p className="font-semibold text-gray-800">{contract.customer.guarantorPhone}</p>
+                    <PhoneCheckBadge
+                      status={contract.customer.guarantorVerificationStatus}
+                      registeredName={contract.customer.guarantorRegisteredName}
+                    />
                   </div>
                 )}
               </div>

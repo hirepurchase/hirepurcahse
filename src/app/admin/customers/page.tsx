@@ -22,6 +22,7 @@ import { formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/permissions";
+import { LivePhoneCheck } from "@/components/admin/PhoneCheck";
 
 const MINIMUM_CUSTOMER_AGE_YEARS = 20;
 
@@ -758,6 +759,7 @@ function CustomerRegistrationForm({
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
+                  <LivePhoneCheck phone={formData.phone} name={`${formData.firstName} ${formData.lastName}`} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Email</label>
@@ -822,6 +824,7 @@ function CustomerRegistrationForm({
                     value={formData.guarantorPhone}
                     onChange={(e) => setFormData({ ...formData, guarantorPhone: e.target.value })}
                   />
+                  <LivePhoneCheck phone={formData.guarantorPhone} name={formData.guarantorName} />
                 </div>
               </div>
             </div>
@@ -1044,6 +1047,11 @@ function CustomerEditForm({
                   className={!canEditPhone ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : undefined}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
+                <LivePhoneCheck
+                  phone={formData.phone}
+                  name={`${formData.firstName} ${formData.lastName}`}
+                  enabled={formData.phone !== (customer.phone || "")}
+                />
                 {!canEditPhone && (
                   <p className="mt-1 text-xs text-gray-500">
                     Only an admin or customer service can change a phone number.
@@ -1082,6 +1090,11 @@ function CustomerEditForm({
                     placeholder="0200000000"
                     value={formData.guarantorPhone}
                     onChange={(e) => setFormData({ ...formData, guarantorPhone: e.target.value })}
+                  />
+                  <LivePhoneCheck
+                    phone={formData.guarantorPhone}
+                    name={formData.guarantorName}
+                    enabled={formData.guarantorPhone !== (customer.guarantorPhone || "") || formData.guarantorName !== (customer.guarantorName || "")}
                   />
                 </div>
               </div>

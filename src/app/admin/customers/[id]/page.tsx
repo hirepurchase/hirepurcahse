@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { cn, formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import LogCallModal from '@/components/admin/LogCallModal';
+import { PhoneCheckBadge } from '@/components/admin/PhoneCheck';
 
 export default function CustomerStatementPage() {
   const params = useParams();
@@ -24,6 +25,7 @@ export default function CustomerStatementPage() {
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [contactAttempts, setContactAttempts] = useState<any[]>([]);
   const [showLogCall, setShowLogCall] = useState(false);
+  const [isCheckingPhones, setIsCheckingPhones] = useState(false);
 
   useEffect(() => {
     loadStatement();
@@ -37,6 +39,24 @@ export default function CustomerStatementPage() {
     } catch {
       // Contact history is supplementary — a failure here should not blank the page
       setContactAttempts([]);
+    }
+  };
+
+  const recheckPhones = async () => {
+    setIsCheckingPhones(true);
+    try {
+      const response = await api.post(`/customers/${params.id}/verify-phones`);
+      setStatement((prev: any) => (prev ? { ...prev, customer: { ...prev.customer, ...response.data } } : prev));
+      const unavailable = response.data.phoneVerificationStatus === 'UNAVAILABLE';
+      toast({
+        title: unavailable ? 'Could not reach the network' : 'Numbers checked',
+        description: unavailable ? response.data.reasons?.customer || 'Try again later.' : undefined,
+        variant: unavailable ? 'destructive' : undefined,
+      });
+    } catch (error: any) {
+      toast({ title: 'Check failed', description: error.response?.data?.error || 'Try again later.', variant: 'destructive' });
+    } finally {
+      setIsCheckingPhones(false);
     }
   };
 
@@ -218,6 +238,19 @@ export default function CustomerStatementPage() {
               <div>
                 <p className="text-sm text-gray-600">Phone</p>
                 <p className="font-semibold">{customer.phone}</p>
+                <PhoneCheckBadge status={customer.phoneVerificationStatus} registeredName={customer.phoneRegisteredName} />
+                <button
+                  type="button"
+                  onClick={recheckPhones}
+                  disabled={isCheckingPhones}
+                  className="block mt-1 text-xs text-blue-600 hover:underline disabled:text-gray-400"
+                >
+                  {isCheckingPhones
+                    ? 'Checking…'
+                    : customer.phoneVerificationStatus
+                      ? 'Re-check numbers with the network'
+                      : 'Check numbers with the network'}
+                </button>
               </div>
             </div>
             {customer.email && (
@@ -258,6 +291,9 @@ export default function CustomerStatementPage() {
                   >
                     {customer.guarantorPhone}
                   </a>
+                  <div>
+                    <PhoneCheckBadge status={customer.guarantorVerificationStatus} registeredName={customer.guarantorRegisteredName} />
+                  </div>
                 </div>
               </div>
             )}
