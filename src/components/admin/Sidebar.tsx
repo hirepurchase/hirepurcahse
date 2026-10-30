@@ -44,6 +44,7 @@ import {
   Unlock,
   ShieldCheck,
   ShieldAlert,
+  Target,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -110,6 +111,7 @@ const navGroups: NavGroup[] = [
       { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
     ],
   },
@@ -125,6 +127,7 @@ const navGroups: NavGroup[] = [
       { name: "Due Tomorrow", href: "/admin/agent/upcoming", icon: CalendarClock, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
     ],
   },
@@ -133,6 +136,7 @@ const navGroups: NavGroup[] = [
     roles: ["CUSTOMER_SERVICE"],
     items: [
       { name: "Dashboard", href: "/admin/customer-service/dashboard", icon: LayoutDashboard },
+      { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
       {
         name: "Verification",
         href: "/admin/customer-service/verification",
@@ -209,6 +213,7 @@ const navGroups: NavGroup[] = [
       { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
       { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", icon: ShieldAlert, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", icon: Medal, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
+      { name: "KPIs", href: "/admin/kpi", icon: Target, permissions: [PERMISSIONS.VIEW_REPORTS] },
     ],
   },
   {
@@ -273,6 +278,7 @@ const MORE_GROUPS: Array<{
       { name: "Dashboard",     href: "/admin/agent/dashboard",  emoji: "🏠", permissions: [] as PermissionName[] },
       { name: "My Contracts",  href: "/admin/agent/contracts",  emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",   emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "My KPIs",       href: "/admin/kpi",              emoji: "🎯", permissions: [] as PermissionName[] },
       { name: "Price Chart",   href: "/admin/price-chart",      emoji: "🏷️", permissions: [] as PermissionName[] },
     ],
   },
@@ -288,6 +294,7 @@ const MORE_GROUPS: Array<{
       { name: "Due Tomorrow",  href: "/admin/agent/upcoming",    emoji: "📅", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "My Contracts",  href: "/admin/agent/contracts",   emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger",href: "/admin/agent/deposits",    emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "My KPIs",       href: "/admin/kpi",               emoji: "🎯", permissions: [] as PermissionName[] },
       { name: "Price Chart",   href: "/admin/price-chart",       emoji: "🏷️", permissions: [] as PermissionName[] },
     ],
   },
@@ -296,6 +303,7 @@ const MORE_GROUPS: Array<{
     roles: ["CUSTOMER_SERVICE"],
     links: [
       { name: "Dashboard",    href: "/admin/customer-service/dashboard",    emoji: "🏠", permissions: [] as PermissionName[] },
+      { name: "My KPIs",      href: "/admin/kpi",                           emoji: "🎯", permissions: [] as PermissionName[] },
       { name: "Verification", href: "/admin/customer-service/verification", emoji: "✅", permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
       { name: "Call Queue",   href: "/admin/customer-service/call-queue",   emoji: "📞", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Follow-ups",   href: "/admin/customer-service/follow-ups",   emoji: "📅", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
@@ -337,6 +345,7 @@ const MORE_GROUPS: Array<{
       { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: [PERMISSIONS.VIEW_REPORTS] },
       { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", emoji: "🏅", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
+      { name: "KPIs", href: "/admin/kpi", emoji: "🎯", permissions: [PERMISSIONS.VIEW_REPORTS] },
     ],
   },
   {
