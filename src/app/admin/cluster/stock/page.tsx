@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRightLeft, Box, History, MapPin, Search, Package } from "lucide-react";
+import { ArrowRightLeft, Box, History, MapPin, Search, Package, ShieldAlert } from "lucide-react";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { formatDate } from "@/lib/utils";
@@ -30,6 +30,13 @@ interface AgentStock {
   isSelf: boolean;
   inStock: number;
   sold: number;
+  /** Below sales or quality target last month: no new devices. */
+  stockBlock: { blocked: boolean; reasons: string[]; exempt: string | null } | null;
+}
+interface StockGate {
+  month: string;
+  active: boolean;
+  canOverride: boolean;
 }
 interface Transfer {
   id: string; serialNumber: string | null; product: string | null;
@@ -55,6 +62,9 @@ export default function ClusterStockPage() {
   const [toAgentId, setToAgentId] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [gate, setGate] = useState<StockGate | null>(null);
+  const [belowOnly, setBelowOnly] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<Transfer[]>([]);
 
@@ -65,6 +75,7 @@ export default function ClusterStockPage() {
       setSummary(res.data.summary ?? null);
       setPool(res.data.pool ?? null);
       setScope(res.data.scope ?? "cluster");
+      setGate(res.data.stockGate ?? null);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -122,12 +133,14 @@ export default function ClusterStockPage() {
         inventoryItemIds: [...selected],
         toAgentId,
         reason: reason.trim() || undefined,
+        overrideReason: recipientBlocked ? overrideReason.trim() || undefined : undefined,
       });
       toast({ title: "Transferred", description: res.data.message });
       setTransferOpen(false);
       setSelected(new Set());
       setToAgentId("");
       setReason("");
+      setOverrideReason("");
       // Both ends of the move are stale now.
       setItems({});
       await load();
@@ -145,17 +158,23 @@ export default function ClusterStockPage() {
     }
   };
 
+  const isBlocked = (a: AgentStock) => !!a.stockBlock?.blocked;
+  const belowCount = agents.filter(isBlocked).length;
+  const recipient = agents.find((a) => a.id === toAgentId);
+  const recipientBlocked = !!recipient && isBlocked(recipient);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return agents;
-    return agents.filter(
+    const shown = belowOnly ? agents.filter((a) => a.stockBlock?.blocked) : agents;
+    if (!term) return shown;
+    return shown.filter(
       (a) =>
         a.name.toLowerCase().includes(term) ||
         (a.area ?? "").toLowerCase().includes(term) ||
         (a.district ?? "").toLowerCase().includes(term) ||
         (items[a.id] ?? []).some((i) => i.serialNumber.toLowerCase().includes(term))
     );
-  }, [agents, search, items]);
+  }, [agents, search, items, belowOnly]);
 
   if (loading) {
     return (
@@ -214,6 +233,19 @@ export default function ClusterStockPage() {
         />
       </div>
 
+      {gate?.active && belowCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+          <ShieldAlert className="h-4 w-4 shrink-0 text-red-700" />
+          <p className="min-w-0 flex-1 text-sm text-red-900">
+            <strong>{belowCount}</strong> agent{belowCount === 1 ? " was" : "s were"} below target last month and cannot be given devices.
+            Move their unsold stock to an agent who is selling.
+          </p>
+          <Button variant={belowOnly ? "default" : "outline"} size="sm" onClick={() => setBelowOnly(!belowOnly)}>
+            {belowOnly ? "Show everyone" : "Show only them"}
+          </Button>
+        </div>
+      )}
+
       {selected.size > 0 && (
         <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
           <p className="text-sm text-blue-900">
@@ -252,6 +284,11 @@ export default function ClusterStockPage() {
                         You
                       </span>
                     )}
+                    {agent.stockBlock?.blocked && (
+                      <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-800">
+                        Below target
+                      </span>
+                    )}
                     {agent.role === "CLUSTER_AGENT" && !agent.isSelf && (
                       <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-800">
                         Cluster agent
@@ -278,6 +315,12 @@ export default function ClusterStockPage() {
 
               {expanded === agent.id && (
                 <div className="border-t border-gray-100 p-3">
+                  {agent.stockBlock?.blocked && (
+                    <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+                      Below target last month — no new devices. {agent.stockBlock.reasons.join(" ")} Select their unsold devices
+                      to move them to another agent.
+                    </p>
+                  )}
                   {itemsLoading === agent.id ? (
                     <p className="py-4 text-center text-xs text-gray-400">Loading devices…</p>
                   ) : (items[agent.id] ?? []).length === 0 ? (
@@ -333,7 +376,10 @@ export default function ClusterStockPage() {
                 options={agents.map((a) => ({
                   value: a.id,
                   label: a.isSelf ? `${a.name} (you)` : a.name,
-                  sublabel: [a.area, a.district].filter(Boolean).join(", ") || "Location not recorded",
+                  sublabel: isBlocked(a)
+                    ? "Below target last month — cannot receive devices"
+                    : [a.area, a.district].filter(Boolean).join(", ") || "Location not recorded",
+                  disabled: isBlocked(a) && !gate?.canOverride,
                 }))}
                 value={toAgentId}
                 onChange={setToAgentId}
@@ -341,6 +387,20 @@ export default function ClusterStockPage() {
                 searchPlaceholder="Search by name or area…"
               />
             </div>
+            {recipientBlocked && (
+              <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <p className="text-xs text-red-800">
+                  {recipient?.name} was below target last month. {recipient?.stockBlock?.reasons.join(" ")}
+                </p>
+                <Textarea
+                  rows={2}
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Reason for sending devices anyway (required, recorded in the audit log)"
+                  className="bg-white"
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="reason">Reason (optional)</Label>
               <Textarea
@@ -359,7 +419,7 @@ export default function ClusterStockPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTransferOpen(false)}>Cancel</Button>
-            <Button onClick={transfer} disabled={submitting || !toAgentId}>
+            <Button onClick={transfer} disabled={submitting || !toAgentId || (recipientBlocked && (!gate?.canOverride || !overrideReason.trim()))}>
               {submitting ? "Transferring…" : "Transfer"}
             </Button>
           </DialogFooter>

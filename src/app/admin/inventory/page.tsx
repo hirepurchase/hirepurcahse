@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ImeiScanButton } from '@/components/shared/ImeiScanner';
 import { imeiWarning, isValidImei } from '@/lib/imei';
+import { BELOW_TARGET_LABEL, StockGateNotice, stockGateStops, useStockGate } from '@/components/admin/StockGateNotice';
 
 type LockProvider = "KNOX" | "PAYTRIGGER" | "NONE";
 const LOCK_LABEL: Record<LockProvider, string> = { KNOX: "Knox Guard", PAYTRIGGER: "PayTrigger", NONE: "No lock" };
@@ -1209,6 +1210,8 @@ function InventoryForm({
   const [markProduct, setMarkProduct] = useState(true);
   const [assignedAgentId, setAssignedAgentId] = useState("");
   const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string; role?: { name: string } }[]>([]);
+  const stockGate = useStockGate();
+  const [overrideReason, setOverrideReason] = useState("");
   const { toast } = useToast();
 
   // Suggest the lock when the product is chosen, and again once a full IMEI
@@ -1287,7 +1290,11 @@ function InventoryForm({
     setIsSubmitting(true);
 
     try {
-      const res = await api.post("/products/inventory", { ...formData, assignedAgentId: assignedAgentId || null });
+      const res = await api.post("/products/inventory", {
+        ...formData,
+        assignedAgentId: assignedAgentId || null,
+        overrideReason: overrideReason.trim() || undefined,
+      });
       const newItemId: string | undefined = res.data?.id ?? res.data?.item?.id;
 
       if (canManageKnox && lockChoice === "PAYTRIGGER" && newItemId) {
@@ -1520,7 +1527,10 @@ function InventoryForm({
                   options={agents.map((a) => ({
                     value: a.id,
                     label: `${a.firstName} ${a.lastName}`,
-                    sublabel: a.role?.name === "CLUSTER_AGENT" ? `Cluster agent · ${a.email}` : a.email,
+                    sublabel: stockGate?.blocked[a.id]
+                      ? `${BELOW_TARGET_LABEL} · ${a.email}`
+                      : a.role?.name === "CLUSTER_AGENT" ? `Cluster agent · ${a.email}` : a.email,
+                    disabled: !!stockGate?.blocked[a.id] && !stockGate.canOverride,
                   }))}
                   value={assignedAgentId}
                   onChange={setAssignedAgentId}
@@ -1530,6 +1540,7 @@ function InventoryForm({
                   allowClear
                   clearLabel="— No assignment (any agent can use) —"
                 />
+                <StockGateNotice gate={stockGate} agentId={assignedAgentId} reason={overrideReason} onReasonChange={setOverrideReason} />
                 <p className="text-xs text-gray-500 mt-1">
                   Only the assigned agent will be allowed to create a contract with this device.
                 </p>
@@ -1622,7 +1633,7 @@ function InventoryForm({
             <div className="flex gap-4 pt-4">
               <Button
                 type="submit"
-                disabled={isSubmitting || !selectedProduct}
+                disabled={isSubmitting || !selectedProduct || stockGateStops(stockGate, assignedAgentId, overrideReason)}
                 className="flex-1"
               >
                 {isSubmitting ? "Adding..." : "Add Inventory Item"}
@@ -1658,6 +1669,10 @@ function EditInventoryForm({
     registeredUnder: item.registeredUnder || "",
     assignedAgentId: item.assignedAgent?.id || "",
   });
+  const stockGate = useStockGate();
+  const [overrideReason, setOverrideReason] = useState("");
+  // Only a move to a different agent is limited; the current holder keeps their device.
+  const movingTo = formData.assignedAgentId && formData.assignedAgentId !== (item.assignedAgent?.id || "") ? formData.assignedAgentId : "";
   const [products, setProducts] = useState<Product[]>([]);
   const [agents, setAgents] = useState<{ id: string; firstName: string; lastName: string; email: string; role?: { name: string } }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1712,7 +1727,7 @@ function EditInventoryForm({
     setIsSubmitting(true);
 
     try {
-      await api.put(`/products/inventory/${item.id}`, formData);
+      await api.put(`/products/inventory/${item.id}`, { ...formData, overrideReason: movingTo ? overrideReason.trim() || undefined : undefined });
       toast({
         title: "Success",
         description: "Inventory item updated successfully",
@@ -1889,7 +1904,10 @@ function EditInventoryForm({
               label: `${a.firstName} ${a.lastName}`,
               // Cluster agents are named as such: stock normally goes to one of
               // them first, who then distributes it to their own agents.
-              sublabel: a.role?.name === "CLUSTER_AGENT" ? `Cluster agent · ${a.email}` : a.email,
+              sublabel: stockGate?.blocked[a.id]
+                ? `${BELOW_TARGET_LABEL} · ${a.email}`
+                : a.role?.name === "CLUSTER_AGENT" ? `Cluster agent · ${a.email}` : a.email,
+              disabled: !!stockGate?.blocked[a.id] && !stockGate.canOverride && a.id !== item.assignedAgent?.id,
             }))}
             value={formData.assignedAgentId}
             onChange={(v) => setFormData({ ...formData, assignedAgentId: v })}
@@ -1899,6 +1917,7 @@ function EditInventoryForm({
             allowClear
             clearLabel="— No assignment (any agent can use) —"
           />
+          <StockGateNotice gate={stockGate} agentId={movingTo} reason={overrideReason} onReasonChange={setOverrideReason} />
           <p className="text-xs text-gray-500 mt-1">
             Only the assigned agent will be allowed to create a contract with this device.
           </p>
@@ -1914,7 +1933,7 @@ function EditInventoryForm({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting || !selectedProduct}>
+        <Button type="submit" disabled={isSubmitting || !selectedProduct || stockGateStops(stockGate, movingTo, overrideReason)}>
           {isSubmitting ? "Updating..." : "Update Inventory"}
         </Button>
       </div>
