@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, SlidersHorizontal, Target } from 'lucide-react';
+import { CalendarDays, SlidersHorizontal, Target } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ExportButtons } from '@/components/admin/ExportButtons';
 import type { ExportOptions } from '@/lib/exportUtils';
 import { cn } from '@/lib/utils';
-import { errorText, formatValue, monthLabel, shiftMonth, thisMonth } from '../cluster-scorecard/types';
+import { errorText, formatValue, monthLabel, thisMonth } from '../cluster-scorecard/types';
 import { OwnCard, PersonRow, TargetsDialog } from './components';
 import { GROUP_LABEL, KpiCard, KpiGroup, MonthMeta, MyKpis, PeopleKpis, ROLE_LABEL, STATUS_STYLE } from './types';
 
@@ -55,25 +56,54 @@ export default function KpiPage() {
   );
 }
 
+/** Data goes back to the first imported contracts; earlier years would be empty. */
+const FIRST_YEAR = 2024;
+const MONTH_NAMES = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString('en-GB', { month: 'long' }));
+
 function MonthPicker({ month, onChange, meta }: { month: string; onChange: (m: string) => void; meta: MonthMeta | null }) {
+  const [year, mon] = month.split('-').map(Number);
+  const current = thisMonth();
+  const [currentYear, currentMon] = current.split('-').map(Number);
+  const years = Array.from({ length: currentYear - FIRST_YEAR + 1 }, (_, i) => currentYear - i);
+  // A month that has not started has nothing to show, so moving to this year keeps the month in range.
+  const pick = (y: number, m: number) => onChange(`${y}-${String(y === currentYear ? Math.min(m, currentMon) : m).padStart(2, '0')}`);
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-2 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" onClick={() => onChange(shiftMonth(month, -1))} aria-label="Previous month">
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <p className="text-base font-semibold text-gray-900">{monthLabel(month)}</p>
-        <button
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
-          onClick={() => onChange(shiftMonth(month, 1))}
-          disabled={month >= thisMonth()}
-          aria-label="Next month"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
+    <div className="rounded-xl border border-gray-200 bg-white p-3">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="hidden h-5 w-5 shrink-0 text-gray-400 sm:block" />
+        <Select value={String(mon)} onValueChange={(v) => pick(year, Number(v))}>
+          <SelectTrigger aria-label="Month" className="min-w-0 flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MONTH_NAMES.map((name, i) => (
+              <SelectItem key={name} value={String(i + 1)} disabled={year === currentYear && i + 1 > currentMon}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={String(year)} onValueChange={(v) => pick(Number(v), mon)}>
+          <SelectTrigger aria-label="Year" className="w-24 shrink-0 sm:w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {month !== current && (
+          <Button variant="outline" size="sm" className="shrink-0" onClick={() => onChange(current)}>
+            This month
+          </Button>
+        )}
       </div>
       {meta?.inProgress && (
-        <p className="px-2 pb-1 text-center text-xs text-gray-500">
+        <p className="pt-2 text-center text-xs text-gray-500">
           {Math.round(meta.elapsed * 100)}% of the month gone. Sales, collections and calls are judged against the share of the target due by today.
         </p>
       )}
