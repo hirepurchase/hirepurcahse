@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, SlidersHorizontal, Target } from 'lucide-react';
+import { CalendarDays, Search, SlidersHorizontal, Target, X } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -130,12 +130,51 @@ function Tabs<T extends string>({ value, options, onChange }: { value: T; option
   );
 }
 
-function PeopleList({ people, group }: { people: KpiCard[]; group: KpiGroup }) {
+const SEARCH_PLACEHOLDER: Record<KpiGroup, string> = {
+  AGENT: 'Search agents by name or phone…',
+  TEAM: 'Search cluster leaders by name or phone…',
+  CSO: 'Search officers by name or phone…',
+};
+
+/** Name or phone; a phone matches with or without spaces and the leading 0 / 233. */
+function matches(card: KpiCard, term: string): boolean {
+  const t = term.trim().toLowerCase();
+  if (!t) return true;
+  if (card.name.toLowerCase().includes(t)) return true;
+  const digits = t.replace(/\D/g, '').replace(/^(233|0)/, '');
+  return digits.length >= 3 && (card.phone ?? '').replace(/\D/g, '').includes(digits);
+}
+
+function SearchBox({ value, onChange, group }: { value: string; onChange: (v: string) => void; group: KpiGroup }) {
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={SEARCH_PLACEHOLDER[group]}
+        aria-label={SEARCH_PLACEHOLDER[group]}
+        className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-9 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:bg-gray-100" onClick={() => onChange('')} aria-label="Clear search">
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Ranked people, narrowed by the search. Everyone keeps their place in the full ranking. */
+function PeopleList({ people, group, search = '' }: { people: KpiCard[]; group: KpiGroup; search?: string }) {
   if (!people.length) return <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">Nobody to show for this month.</p>;
+  const shown = people.map((p, i) => ({ p, rank: i + 1 })).filter(({ p }) => matches(p, search));
+  if (!shown.length) return <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">No one matches “{search.trim()}”.</p>;
   return (
     <ul className="space-y-2">
-      {people.map((p, i) => (
-        <PersonRow key={p.userId} card={p} rank={i + 1} headline={HEADLINE[group]} />
+      {shown.map(({ p, rank }) => (
+        <PersonRow key={p.userId} card={p} rank={rank} headline={HEADLINE[group]} />
       ))}
     </ul>
   );
@@ -145,6 +184,7 @@ function PeopleList({ people, group }: { people: KpiCard[]; group: KpiGroup }) {
 
 function PersonalView({ me, month }: { me: MyKpis; month: string }) {
   const [tab, setTab] = useState<'own' | 'team' | 'agents'>('own');
+  const [search, setSearch] = useState('');
 
   if (me.kind === 'NONE' || !me.own) {
     return <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">There are no KPIs for your role.</p>;
@@ -166,8 +206,9 @@ function PersonalView({ me, month }: { me: MyKpis; month: string }) {
         {tab === 'agents' && (
           <>
             <p className="text-xs text-gray-500">Ranked by share of targets met, then collections. Open an agent to see every figure.</p>
-            <PeopleList people={me.agents ?? []} group="AGENT" />
-            {(me.agents?.length ?? 0) > 0 && <ExportPeople people={me.agents!} group="AGENT" month={month} />}
+            {(me.agents?.length ?? 0) > 0 && <SearchBox value={search} onChange={setSearch} group="AGENT" />}
+            <PeopleList people={me.agents ?? []} group="AGENT" search={search} />
+            {(me.agents?.length ?? 0) > 0 && <ExportPeople people={me.agents!} group="AGENT" month={month} search={search} />}
           </>
         )}
       </div>
@@ -180,6 +221,7 @@ function PersonalView({ me, month }: { me: MyKpis; month: string }) {
 
 function EveryoneView({ month, me }: { month: string; me: MyKpis }) {
   const [group, setGroup] = useState<KpiGroup>('AGENT');
+  const [search, setSearch] = useState('');
   const key = `${group}|${month}`;
   const [loaded, setLoaded] = useState<{ key: string; data?: PeopleKpis; error?: string } | null>(null);
   const [reload, setReload] = useState(0);
@@ -214,18 +256,20 @@ function EveryoneView({ month, me }: { month: string; me: MyKpis }) {
     const scored = data.people.filter((p) => p.score.percent !== null);
     return {
       people: data.people.length,
+      matching: data.people.filter((p) => matches(p, search)).length,
       onTarget: scored.filter((p) => (p.score.percent ?? 0) >= 75).length,
       scored: scored.length,
     };
-  }, [data]);
+  }, [data, search]);
 
   return (
     <div className="space-y-3">
-      <Tabs value={group} onChange={setGroup} options={(['AGENT', 'TEAM', 'CSO'] as KpiGroup[]).map((g) => ({ value: g, label: GROUP_LABEL[g] }))} />
+      <Tabs value={group} onChange={(g) => { setGroup(g); setSearch(''); }} options={(['AGENT', 'TEAM', 'CSO'] as KpiGroup[]).map((g) => ({ value: g, label: GROUP_LABEL[g] }))} />
 
       <div className="flex flex-wrap items-center gap-2">
         {summary && (
           <p className="text-sm text-gray-600">
+            {search.trim() ? `${summary.matching} of ` : ''}
             {summary.people} {summary.people === 1 ? 'person' : 'people'}
             {summary.scored > 0 && <> · <span className="font-semibold text-emerald-700">{summary.onTarget}</span> meeting 3 in 4 targets or more</>}
           </p>
@@ -236,7 +280,7 @@ function EveryoneView({ month, me }: { month: string; me: MyKpis }) {
               <SlidersHorizontal className="mr-2 h-4 w-4" /> Targets
             </Button>
           )}
-          {data && data.people.length > 0 && <ExportPeople people={data.people} group={group} month={month} />}
+          {data && data.people.length > 0 && <ExportPeople people={data.people} group={group} month={month} search={search} />}
         </div>
       </div>
 
@@ -252,7 +296,8 @@ function EveryoneView({ month, me }: { month: string; me: MyKpis }) {
           )}
         </div>
       )}
-      {data && <PeopleList people={data.people} group={group} />}
+      {data && data.people.length > 0 && <SearchBox value={search} onChange={setSearch} group={group} />}
+      {data && <PeopleList people={data.people} group={group} search={search} />}
 
       {editing && (
         <TargetsDialog
@@ -270,13 +315,17 @@ function EveryoneView({ month, me }: { month: string; me: MyKpis }) {
   );
 }
 
-function ExportPeople({ people, group, month }: { people: KpiCard[]; group: KpiGroup; month: string }) {
+function ExportPeople({ people, group, month, search = '' }: { people: KpiCard[]; group: KpiGroup; month: string; search?: string }) {
   const options = useMemo(() => {
     const lines = people[0]?.lines ?? [];
+    const shown = people.filter((p) => matches(p, search));
     return {
       title: `KPIs — ${GROUP_LABEL[group]} — ${monthLabel(month)}`,
       filename: `kpi-${group.toLowerCase()}-${month}`,
-      summary: [{ label: 'People', value: people.length }],
+      summary: [
+        { label: 'People', value: shown.length },
+        ...(search.trim() ? [{ label: 'Search', value: search.trim() }] : []),
+      ],
       columns: [
         { header: '#', accessor: (r: KpiCard) => people.indexOf(r) + 1 },
         { header: 'Name', accessor: (r: KpiCard) => r.name },
@@ -292,8 +341,8 @@ function ExportPeople({ people, group, month }: { people: KpiCard[]; group: KpiG
           },
         })),
       ],
-      data: people,
+      data: shown,
     };
-  }, [people, group, month]);
+  }, [people, group, month, search]);
   return <ExportButtons exportOptions={options as unknown as ExportOptions} showPrint={false} />;
 }
