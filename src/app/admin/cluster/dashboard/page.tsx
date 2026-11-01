@@ -132,7 +132,7 @@ export default function ClusterDashboardPage() {
         {officers.length > 0 && (
           <div className="mt-4 border-t border-gray-100 pt-3">
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Your customer service {officers.length === 1 ? "officer" : "officers"}
+              Your welcome-call {officers.length === 1 ? "officer" : "officers"}
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               {officers.map((o) => (

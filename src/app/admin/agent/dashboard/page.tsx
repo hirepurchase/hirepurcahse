@@ -297,7 +297,7 @@ export default function AgentDashboardPage() {
         {officers.length > 0 && (
           <div className="mt-5 pt-4 border-t border-gray-100">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
-              Your customer service {officers.length === 1 ? 'officer' : 'officers'}
+              Your welcome-call {officers.length === 1 ? 'officer' : 'officers'}
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               {officers.map((o) => (
