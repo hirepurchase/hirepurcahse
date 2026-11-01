@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
-interface Person { id: string; name: string; email: string; area?: string | null; district?: string | null }
+interface Person { id: string; name: string; email?: string; role?: string | null; area?: string | null; district?: string | null }
 interface AgentRow {
   id: string;
   name: string;
@@ -35,6 +35,15 @@ interface Settings {
 }
 
 type Filter = "all" | "no-cluster" | "no-cso" | "over-par";
+
+const ROLE_NAMES: Record<string, string> = {
+  CUSTOMER_SERVICE: "Customer service",
+  ADMIN: "Admin",
+  SUPER_ADMIN: "Super admin",
+  CLUSTER_AGENT: "Cluster leader",
+  AGENT: "Agent",
+};
+const roleLabel = (role?: string | null) => (role ? ROLE_NAMES[role] ?? role.replace(/_/g, " ").toLowerCase() : "");
 
 export default function AgentSupervisionPage() {
   const { toast } = useToast();
@@ -223,7 +232,7 @@ export default function AgentSupervisionPage() {
           <p className={`mt-1 text-2xl font-bold ${noCluster ? "text-amber-600" : "text-emerald-600"}`}>{noCluster}</p>
         </div>
         <div className="rounded-xl border border-gray-100 bg-white p-4">
-          <p className="text-xs text-gray-600">No officer</p>
+          <p className="text-xs text-gray-600">No welcome calls</p>
           <p className={`mt-1 text-2xl font-bold ${noCso ? "text-amber-600" : "text-emerald-600"}`}>{noCso}</p>
         </div>
       </div>
@@ -260,8 +269,8 @@ export default function AgentSupervisionPage() {
             onChange={(v) => toggleRule("requireClusterAgent", v)}
           />
           <RuleToggle
-            label="Must be assigned to a customer service officer"
-            hint="Without an officer, this agent's contracts sit in a verification queue no one can see."
+            label="Must have someone for welcome calls"
+            hint="Without a welcome-call person, this agent's new contracts sit in a verification queue no one can see."
             checked={settings?.requireCso ?? false}
             blockedBy={noCso}
             onChange={(v) => toggleRule("requireCso", v)}
@@ -343,7 +352,7 @@ export default function AgentSupervisionPage() {
         <div className="flex gap-2">
           {([
             ["no-cluster", `Needs cluster (${noCluster})`],
-            ["no-cso", `Needs officer (${noCso})`],
+            ["no-cso", `Needs welcome calls (${noCso})`],
             ["over-par", `Over PAR limit (${summary?.overParLimit ?? 0})`],
             ["all", `All (${summary?.total ?? 0})`],
           ] as [Filter, string][]).map(([key, label]) => (
@@ -402,7 +411,7 @@ export default function AgentSupervisionPage() {
             {filter === "no-cluster" && noCluster === 0
               ? "Every agent has a cluster agent"
               : filter === "no-cso" && noCso === 0
-                ? "Every agent has an officer"
+                ? "Every agent has someone for welcome calls"
                 : "No agent matches"}
           </p>
         </div>
@@ -498,14 +507,14 @@ export default function AgentSupervisionPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Customer service officer</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Welcome calls by</label>
                   <SearchableSelect
-                    options={officers.map((c) => ({ value: c.id, label: c.name, sublabel: c.email }))}
+                    options={officers.map((c) => ({ value: c.id, label: c.name, sublabel: roleLabel(c.role) }))}
                     value={agent.csoIds[0] ?? ""}
                     onChange={(v) => save(agent, { csoIds: v ? [v] : [] })}
                     placeholder="Not assigned"
-                    searchPlaceholder="Search officers…"
-                    emptyText="No officers match"
+                    searchPlaceholder="Search people…"
+                    emptyText="Nobody matches"
                     allowClear
                     clearLabel="Not assigned"
                     disabled={savingId === agent.id}
@@ -585,20 +594,20 @@ export default function AgentSupervisionPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-600">
-                  Customer service officer
+                  Welcome calls by
                 </label>
                 <SearchableSelect
-                  options={officers.map((c) => ({ value: c.id, label: c.name, sublabel: c.email }))}
+                  options={officers.map((c) => ({ value: c.id, label: c.name, sublabel: roleLabel(c.role) }))}
                   value={bulkCso}
                   onChange={setBulkCso}
                   placeholder="Leave unchanged"
-                  searchPlaceholder="Search officers…"
+                  searchPlaceholder="Search people…"
                   allowClear
                   clearLabel="Leave unchanged"
                 />
               </div>
               <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                Assigning an officer replaces whoever covers these agents now.
+                Choosing someone for welcome calls replaces whoever makes these agents’ welcome calls now.
               </p>
             </div>
 

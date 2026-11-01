@@ -45,6 +45,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Target,
+  PhoneIncoming,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -83,6 +84,8 @@ interface NavItem {
   badge?: (paymentCount: number, approvalCount: number, temporaryUnlockCount: number) => number | null;
   badgeColor?: "red" | "amber";
   permissions?: readonly PermissionName[];
+  /** Roles that reach this page from their own menu, so it is not listed twice. */
+  hideForRoles?: string[];
 }
 
 interface NavGroup {
@@ -102,6 +105,7 @@ const navGroups: NavGroup[] = [
       { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
       { name: "Cluster Coverage", href: "/admin/cluster-chart", icon: Users, permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
       { name: "Agent Supervision", href: "/admin/agent-supervision", icon: ShieldCheck, permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
+      { name: "Welcome Call Assignments", href: "/admin/welcome-calls", icon: PhoneIncoming, permissions: [PERMISSIONS.MANAGE_CSO_ASSIGNMENTS] },
     ],
   },
   {
@@ -138,7 +142,7 @@ const navGroups: NavGroup[] = [
       { name: "Dashboard", href: "/admin/customer-service/dashboard", icon: LayoutDashboard },
       { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
       {
-        name: "Verification",
+        name: "Welcome Calls",
         href: "/admin/customer-service/verification",
         icon: UserCheck,
         // A contract cannot go live until it is verified, so a waiting one is
@@ -175,6 +179,8 @@ const navGroups: NavGroup[] = [
         badgeColor: "amber",
         permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
       },
+      // Anyone given welcome calls; customer service have it in their own menu.
+      { name: "Welcome Calls", href: "/admin/customer-service/verification", icon: PhoneIncoming, permissions: [PERMISSIONS.VERIFY_CUSTOMER], hideForRoles: ["CUSTOMER_SERVICE"] },
       {
         name: "Payments",
         href: "/admin/payments",
@@ -260,7 +266,7 @@ const MORE_GROUPS: Array<{
   label: string;
   permissions?: readonly PermissionName[];
   roles?: string[];
-  links: { name: string; href: string; emoji: string; permissions: readonly PermissionName[] }[];
+  links: { name: string; href: string; emoji: string; permissions: readonly PermissionName[]; hideForRoles?: string[] }[];
 }> = [
   {
     label: "Directory",
@@ -269,6 +275,7 @@ const MORE_GROUPS: Array<{
       { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
       { name: "Cluster Coverage", href: "/admin/cluster-chart", emoji: "🗺️", permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
       { name: "Agent Supervision", href: "/admin/agent-supervision", emoji: "🧭", permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
+      { name: "Welcome Call Assignments", href: "/admin/welcome-calls", emoji: "📲", permissions: [PERMISSIONS.MANAGE_CSO_ASSIGNMENTS] },
     ],
   },
   {
@@ -304,7 +311,7 @@ const MORE_GROUPS: Array<{
     links: [
       { name: "Dashboard",    href: "/admin/customer-service/dashboard",    emoji: "🏠", permissions: [] as PermissionName[] },
       { name: "My KPIs",      href: "/admin/kpi",                           emoji: "🎯", permissions: [] as PermissionName[] },
-      { name: "Verification", href: "/admin/customer-service/verification", emoji: "✅", permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
+      { name: "Welcome Calls", href: "/admin/customer-service/verification", emoji: "✅", permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
       { name: "Call Queue",   href: "/admin/customer-service/call-queue",   emoji: "📞", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Follow-ups",   href: "/admin/customer-service/follow-ups",   emoji: "📅", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "My Agents",    href: "/admin/customer-service/my-agents",    emoji: "💼", permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
@@ -329,6 +336,7 @@ const MORE_GROUPS: Array<{
     permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
     links: [
       { name: "Approvals", href: "/admin/contract-approvals", emoji: "📋", permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS },
+      { name: "Welcome Calls", href: "/admin/customer-service/verification", emoji: "📞", permissions: [PERMISSIONS.VERIFY_CUSTOMER], hideForRoles: ["CUSTOMER_SERVICE"] },
     ],
   },
   {
@@ -400,7 +408,7 @@ function SidebarNav({
   const userRole = adminUser?.role ?? "";
 
   const visibleGroups = navGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.permissions?.length || hasAnyPermission(i.permissions)) }))
+    .map((g) => ({ ...g, items: g.items.filter((i) => (!i.permissions?.length || hasAnyPermission(i.permissions)) && !i.hideForRoles?.includes(userRole)) }))
     .filter((g) =>
       g.items.length > 0 &&
       (!g.permissions?.length || hasAnyPermission(g.permissions)) &&
@@ -648,7 +656,7 @@ function MoreBottomSheet({
   const visibleGroups = MORE_GROUPS
     .map((g) => ({
       ...g,
-      links: g.links.filter((l) => !l.permissions.length || hasAnyPermission(l.permissions)),
+      links: g.links.filter((l) => (!l.permissions.length || hasAnyPermission(l.permissions)) && !l.hideForRoles?.includes(userRole)),
     }))
     .filter((g) =>
       g.links.length > 0 &&

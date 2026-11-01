@@ -42,6 +42,8 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  // Welcome / activation calls, given to this user on top of their role.
+  const [welcomeCalls, setWelcomeCalls] = useState<{ granted: boolean; fromRole: boolean; initial: boolean } | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pagination, setPagination] = useState({
@@ -205,6 +207,11 @@ export default function UsersPage() {
 
     try {
       await api.put(`/admin-users/${selectedUser.id}`, editFormData);
+      if (welcomeCalls && welcomeCalls.granted !== welcomeCalls.initial) {
+        await api.put(`/admin-users/${selectedUser.id}/extra-permissions`, {
+          permissions: welcomeCalls.granted ? ['VERIFY_CUSTOMER'] : [],
+        });
+      }
 
       toast({
         title: 'Success',
@@ -324,6 +331,15 @@ export default function UsersPage() {
     });
     setAssignableAgents([]);
     setAssignedAgentIds(new Set());
+    setWelcomeCalls(null);
+    api
+      .get(`/admin-users/${user.id}/extra-permissions`)
+      .then(({ data }) => {
+        const item = (data.available || []).find((a: { permission: string }) => a.permission === 'VERIFY_CUSTOMER');
+        const granted = (data.granted || []).includes('VERIFY_CUSTOMER');
+        setWelcomeCalls({ granted, fromRole: !!item?.fromRole, initial: granted });
+      })
+      .catch(() => setWelcomeCalls(null));
     if (user.role.name === 'CUSTOMER_SERVICE' || user.role.name === 'CLUSTER_AGENT') {
       loadAssignedAgents(user.id, user.role.name as 'CUSTOMER_SERVICE' | 'CLUSTER_AGENT');
     }
@@ -702,6 +718,29 @@ export default function UsersPage() {
               <Label htmlFor="editIsActive">Active</Label>
             </div>
 
+            {welcomeCalls && (
+              <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2.5">
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="editWelcomeCalls"
+                    checked={welcomeCalls.fromRole || welcomeCalls.granted}
+                    disabled={welcomeCalls.fromRole}
+                    onChange={(e) => setWelcomeCalls({ ...welcomeCalls, granted: e.target.checked })}
+                    className="mt-0.5 h-4 w-4"
+                  />
+                  <div>
+                    <Label htmlFor="editWelcomeCalls">Welcome / activation calls</Label>
+                    <p className="text-xs text-gray-600">
+                      {welcomeCalls.fromRole
+                        ? 'Already part of this user’s role.'
+                        : 'Lets this user be given agents on the Welcome Calls page: they call those agents’ new customers, verify them and approve the contracts.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {(selectedUser?.role.name === 'CUSTOMER_SERVICE' ||
               selectedUser?.role.name === 'CLUSTER_AGENT') && (
               <div className="border-t pt-4">
@@ -711,7 +750,7 @@ export default function UsersPage() {
                 <p className="text-xs text-gray-500 mt-1 mb-2">
                   {selectedUser?.role.name === 'CLUSTER_AGENT'
                     ? 'This cluster agent supervises the agents selected here and sees their customers and contracts alongside their own. An agent reports to only one cluster agent.'
-                    : 'This officer sees only the customers and contracts created by the agents selected here. With none selected they see nothing.'}
+                    : 'This person makes the welcome calls for the agents selected here, and approves their contracts. An agent has one welcome-call person; to move agents between people use the Welcome Calls page.'}
                 </p>
 
                 {isLoadingAssignments ? (

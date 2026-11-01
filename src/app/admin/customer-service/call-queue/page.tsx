@@ -52,6 +52,28 @@ interface QueueCustomer {
   urgentReason: string | null;
   temporaryUnlock: { expiresAt: string; daysRemaining: number; arrearsAtApproval: number | null } | null;
   contracts: OverdueContract[];
+  /** Customer service: why this customer was shared to them this morning. */
+  allocation?: { kind: "RECOVERY" | "PROMISE" | "FOLLOW_UP" | "REMINDER"; reason: string | null; called: boolean };
+}
+
+const KIND_TAG: Record<string, { label: string; className: string }> = {
+  RECOVERY: { label: "Recovery", className: "bg-red-50 text-red-700" },
+  PROMISE: { label: "Promise due", className: "bg-indigo-50 text-indigo-700" },
+  FOLLOW_UP: { label: "Follow-up", className: "bg-indigo-50 text-indigo-700" },
+  REMINDER: { label: "Reminder", className: "bg-sky-50 text-sky-700" },
+};
+
+/** Why a shared customer is on today's list, and whether they have been called. */
+function AllocationTag({ allocation }: { allocation?: QueueCustomer["allocation"] }) {
+  if (!allocation) return null;
+  const tag = KIND_TAG[allocation.kind] ?? KIND_TAG.RECOVERY;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", tag.className)}>{tag.label}</span>
+      {allocation.called && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Called today</span>}
+      {allocation.reason && <span className="text-[11px] text-gray-500">{allocation.reason}</span>}
+    </div>
+  );
 }
 
 // Matches the agent overdue page so the same ageing reads the same everywhere.
@@ -74,6 +96,8 @@ export default function CallQueuePage() {
   const { toast } = useToast();
   const [rows, setRows] = useState<QueueCustomer[]>([]);
   const [totals, setTotals] = useState({ customers: 0, installments: 0, amount: 0 });
+  // Set for customer service, whose list is this morning's share.
+  const [shared, setShared] = useState<{ day: string | null; called: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [callTarget, setCallTarget] = useState<QueueCustomer | null>(null);
@@ -96,6 +120,7 @@ export default function CallQueuePage() {
         installments: res.data.overdueInstallmentCount || 0,
         amount: res.data.totalOverdueAmount || 0,
       });
+      setShared(res.data.mode === "SHARED" ? { day: res.data.day ?? null, called: res.data.calledCount || 0 } : null);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -114,7 +139,7 @@ export default function CallQueuePage() {
       (r) =>
         r.customer.name.toLowerCase().includes(q) ||
         r.customer.phone.includes(q) ||
-        r.customer.membershipId.toLowerCase().includes(q) ||
+        (r.customer.membershipId || "").toLowerCase().includes(q) ||
         r.contracts.some((c) => c.contractNumber.toLowerCase().includes(q))
     );
   }, [rows, search]);
@@ -140,7 +165,9 @@ export default function CallQueuePage() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold">Call Queue</h1>
         <p className="text-sm text-gray-500">
-          One row per customer, longest overdue first
+          {shared
+            ? `Your share of today’s recovery and reminder calls — ${shared.called} of ${totals.customers} called. Most important first.`
+            : "One row per customer, longest overdue first"}
         </p>
       </div>
 
@@ -190,7 +217,11 @@ export default function CallQueuePage() {
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-500 py-12 text-sm">
-              {rows.length === 0 ? "No overdue payments — nothing to chase." : "No matches."}
+              {rows.length === 0
+                ? shared
+                  ? "No calls have been shared to you today."
+                  : "No overdue payments — nothing to chase."
+                : "No matches."}
             </p>
           ) : (
             <>
@@ -221,6 +252,7 @@ export default function CallQueuePage() {
                         <a href={`tel:${r.customer.phone}`} className="text-sm text-blue-600">
                           {r.customer.phone}
                         </a>
+                        <AllocationTag allocation={r.allocation} />
                       </div>
                       {r.daysOverdue > 0 && (
                         <span
@@ -333,6 +365,7 @@ export default function CallQueuePage() {
                             ) : null}
                             <p className="font-medium">{r.customer.name}</p>
                             <p className="text-xs text-gray-400">{r.customer.membershipId}</p>
+                            <AllocationTag allocation={r.allocation} />
                           </TableCell>
                           <TableCell>
                             <a href={`tel:${r.customer.phone}`} className="text-blue-600 hover:underline">

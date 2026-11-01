@@ -19,6 +19,8 @@ interface CsoDashboard {
     oldestWaitingHours: number;
   };
   collections: { contractsOverdue: number; totalOverdueAmount: number };
+  /** This morning's share of recovery and reminder calls (customer service). */
+  todaysCalls?: { day: string | null; total: number; called: number; byKind: Record<string, number> } | null;
   activity: { callsLoggedToday: number; promisesDueToday: number };
 }
 
@@ -172,12 +174,23 @@ export default function CustomerServiceDashboardPage() {
                 <Phone className="h-4 w-4" />
                 Customers to call
               </div>
-              <p className="text-3xl font-bold mt-2 text-red-600">
-                {data.collections.contractsOverdue}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {formatCurrency(data.collections.totalOverdueAmount)} overdue
-              </p>
+              {data.todaysCalls ? (
+                <>
+                  <p className="text-3xl font-bold mt-2 text-red-600">{data.todaysCalls.total - data.todaysCalls.called}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {data.todaysCalls.called} of {data.todaysCalls.total} shared to you today called
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold mt-2 text-red-600">
+                    {data.collections.contractsOverdue}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formatCurrency(data.collections.totalOverdueAmount)} overdue
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </button>

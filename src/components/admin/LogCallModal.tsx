@@ -52,7 +52,8 @@ export default function LogCallModal({
 }: LogCallModalProps) {
   const [purpose, setPurpose] = useState<CallPurpose>(defaultPurpose);
   const [outcome, setOutcome] = useState("REACHED");
-  const [verificationResult, setVerificationResult] = useState("VERIFIED");
+  // No result is chosen for the officer: a call nobody answered must not be saved as verified.
+  const [verificationResult, setVerificationResult] = useState("");
   const [notes, setNotes] = useState("");
   const [promiseToPayDate, setPromiseToPayDate] = useState("");
   const [promiseToPayAmount, setPromiseToPayAmount] = useState("");
@@ -62,7 +63,7 @@ export default function LogCallModal({
 
   const isPromise = outcome === "PROMISE_TO_PAY";
   const isVerification = purpose === "VERIFICATION";
-  const canSubmit = !isSubmitting && (!isPromise || !!promiseToPayDate);
+  const canSubmit = !isSubmitting && (!isPromise || !!promiseToPayDate) && (!isVerification || !!verificationResult);
 
   const handleSubmit = async () => {
     try {
@@ -160,6 +161,9 @@ export default function LogCallModal({
                 value={verificationResult}
                 onChange={(e) => setVerificationResult(e.target.value)}
               >
+                <option value="" disabled>
+                  Choose the result…
+                </option>
                 {VERIFICATION_RESULTS.map((v) => (
                   <option key={v.value} value={v.value}>
                     {v.label}

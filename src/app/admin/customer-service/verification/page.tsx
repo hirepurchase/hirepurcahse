@@ -131,9 +131,9 @@ export default function VerificationQueuePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Verification Queue</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Welcome Calls</h1>
         <p className="text-sm text-gray-500">
-          Call each customer to confirm their details before approving the contract
+          Call each new customer of your agents to welcome them and confirm their details, then approve the contract
         </p>
       </div>
 
