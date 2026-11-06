@@ -53,7 +53,7 @@ interface QueueCustomer {
   temporaryUnlock: { expiresAt: string; daysRemaining: number; arrearsAtApproval: number | null } | null;
   contracts: OverdueContract[];
   /** Customer service: why this customer was shared to them this morning. */
-  allocation?: { kind: "RECOVERY" | "PROMISE" | "FOLLOW_UP" | "REMINDER"; reason: string | null; called: boolean };
+  allocation?: { kind: "RECOVERY" | "PROMISE" | "FOLLOW_UP" | "REMINDER"; reason: string | null; retry?: boolean };
 }
 
 const KIND_TAG: Record<string, { label: string; className: string }> = {
@@ -63,14 +63,14 @@ const KIND_TAG: Record<string, { label: string; className: string }> = {
   REMINDER: { label: "Reminder", className: "bg-sky-50 text-sky-700" },
 };
 
-/** Why a shared customer is on today's list, and whether they have been called. */
+/** Why a shared customer is on today's list. */
 function AllocationTag({ allocation }: { allocation?: QueueCustomer["allocation"] }) {
   if (!allocation) return null;
   const tag = KIND_TAG[allocation.kind] ?? KIND_TAG.RECOVERY;
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1.5">
       <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", tag.className)}>{tag.label}</span>
-      {allocation.called && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Called today</span>}
+      {allocation.retry && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">No answer — try again</span>}
       {allocation.reason && <span className="text-[11px] text-gray-500">{allocation.reason}</span>}
     </div>
   );
@@ -97,7 +97,7 @@ export default function CallQueuePage() {
   const [rows, setRows] = useState<QueueCustomer[]>([]);
   const [totals, setTotals] = useState({ customers: 0, installments: 0, amount: 0 });
   // Set for customer service, whose list is this morning's share.
-  const [shared, setShared] = useState<{ day: string | null; called: number } | null>(null);
+  const [shared, setShared] = useState<{ day: string | null; called: number; total: number; retry: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [callTarget, setCallTarget] = useState<QueueCustomer | null>(null);
@@ -120,7 +120,7 @@ export default function CallQueuePage() {
         installments: res.data.overdueInstallmentCount || 0,
         amount: res.data.totalOverdueAmount || 0,
       });
-      setShared(res.data.mode === "SHARED" ? { day: res.data.day ?? null, called: res.data.calledCount || 0 } : null);
+      setShared(res.data.mode === "SHARED" ? { day: res.data.day ?? null, called: res.data.calledCount || 0, total: res.data.sharedCount || 0, retry: res.data.retryCount || 0 } : null);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -166,7 +166,7 @@ export default function CallQueuePage() {
         <h1 className="text-2xl sm:text-3xl font-bold">Call Queue</h1>
         <p className="text-sm text-gray-500">
           {shared
-            ? `Your share of today’s recovery and reminder calls — ${shared.called} of ${totals.customers} called. Most important first.`
+            ? `Your share of today’s recovery and reminder calls — ${shared.called} of ${shared.total} called${shared.retry ? `, ${shared.retry} to try again at the bottom` : ""}. Most important first.`
             : "One row per customer, longest overdue first"}
         </p>
       </div>
@@ -219,7 +219,9 @@ export default function CallQueuePage() {
             <p className="text-center text-gray-500 py-12 text-sm">
               {rows.length === 0
                 ? shared
-                  ? "No calls have been shared to you today."
+                  ? shared.total > 0
+                    ? "All done — every call on today’s list has been logged."
+                    : "No calls have been shared to you today."
                   : "No overdue payments — nothing to chase."
                 : "No matches."}
             </p>

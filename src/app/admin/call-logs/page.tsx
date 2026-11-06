@@ -44,6 +44,54 @@ function outcomeClass(outcome: string): string {
   return "bg-gray-100 text-gray-700";
 }
 
+/** yyyy-mm-dd in the viewer's own day, as date inputs and the API use it. */
+function dayString(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+type Period = { key: string; label: string; range: () => { from: string; to: string } };
+
+const PERIODS: Period[] = [
+  { key: "ALL", label: "All time", range: () => ({ from: "", to: "" }) },
+  {
+    key: "TODAY",
+    label: "Today",
+    range: () => {
+      const t = dayString(new Date());
+      return { from: t, to: t };
+    },
+  },
+  {
+    key: "YESTERDAY",
+    label: "Yesterday",
+    range: () => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      const y = dayString(d);
+      return { from: y, to: y };
+    },
+  },
+  {
+    key: "WEEK",
+    label: "This week",
+    range: () => {
+      // Monday to today.
+      const now = new Date();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      return { from: dayString(monday), to: dayString(now) };
+    },
+  },
+  {
+    key: "MONTH",
+    label: "This month",
+    range: () => {
+      const now = new Date();
+      return { from: dayString(new Date(now.getFullYear(), now.getMonth(), 1)), to: dayString(now) };
+    },
+  },
+];
+
 export default function CallLogsPage() {
   const { toast } = useToast();
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -104,6 +152,18 @@ export default function CallLogsPage() {
   };
 
   const reached = (summary.REACHED || 0) + (summary.PROMISE_TO_PAY || 0);
+
+  // The button lit is whichever period the dates match; other dates are a custom range.
+  const activePeriod = PERIODS.find((p) => {
+    const r = p.range();
+    return r.from === from && r.to === to;
+  })?.key;
+  const choosePeriod = (period: Period) => {
+    const r = period.range();
+    setFrom(r.from);
+    setTo(r.to);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-5">
@@ -166,12 +226,31 @@ export default function CallLogsPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => choosePeriod(p)}
+                aria-pressed={activePeriod === p.key}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-sm font-medium",
+                  activePeriod === p.key
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
             <SearchableSelect
-              options={officers.map((o: any) => ({
+              options={officers.map((o) => ({
                 value: o.id,
-                label: `${o.firstName} ${o.lastName}`,
-                sublabel: o.email,
+                label: o.name,
+                sublabel: `${o.role.replace(/_/g, " ").toLowerCase()} · ${o.calls} call${o.calls === 1 ? "" : "s"}`,
               }))}
               value={officerId}
               onChange={(v) => {
@@ -200,7 +279,7 @@ export default function CallLogsPage() {
             </select>
 
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              className="col-span-2 lg:col-span-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
               value={outcome}
               onChange={(e) => {
                 setOutcome(e.target.value);
@@ -214,23 +293,33 @@ export default function CallLogsPage() {
                 </option>
               ))}
             </select>
+          </div>
 
-            <Input
-              type="date"
-              value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
-                setPage(1);
-              }}
-            />
-            <Input
-              type="date"
-              value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
-                setPage(1);
-              }}
-            />
+          <div className="grid grid-cols-2 gap-2 lg:max-w-md">
+            <label className="block min-w-0">
+              <span className="mb-1 block text-xs text-gray-500">From date</span>
+              <Input
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => {
+                  setFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className="block min-w-0">
+              <span className="mb-1 block text-xs text-gray-500">To date</span>
+              <Input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
           </div>
         </CardHeader>
 
@@ -240,7 +329,9 @@ export default function CallLogsPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             </div>
           ) : attempts.length === 0 ? (
-            <p className="text-center text-gray-500 py-12 text-sm">No calls logged yet.</p>
+            <p className="text-center text-gray-500 py-12 text-sm">
+              {from || to || purpose || outcome || officerId || search ? "No calls match these filters." : "No calls logged yet."}
+            </p>
           ) : (
             <>
               {/* Mobile */}
