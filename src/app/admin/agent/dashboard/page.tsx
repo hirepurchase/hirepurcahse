@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { AdminUser } from '@/types';
+import { PaymentPinCard } from '@/components/admin/PaymentPinCard';
 import OwingAfterUnlockCard from '@/components/admin/OwingAfterUnlockCard';
 
 interface Portfolio {
@@ -318,6 +319,8 @@ export default function AgentDashboardPage() {
       </div>
 
       <OwingAfterUnlockCard />
+
+      <PaymentPinCard />
 
       {/* ── ALERTS ── */}
       {hasAlerts && (

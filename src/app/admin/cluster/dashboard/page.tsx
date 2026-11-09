@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/useToast";
 import { useAuthStore } from "@/store/authStore";
 import { AdminUser } from "@/types";
 import MyScorecardCard from "@/components/admin/MyScorecardCard";
+import { PaymentPinCard } from "@/components/admin/PaymentPinCard";
 import OwingAfterUnlockCard from "@/components/admin/OwingAfterUnlockCard";
 
 type ClusterAgent = {
@@ -148,6 +149,8 @@ export default function ClusterDashboardPage() {
           </div>
         )}
       </div>
+
+      <PaymentPinCard />
 
       <OwingAfterUnlockCard showAgent />
 

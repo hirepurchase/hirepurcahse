@@ -508,7 +508,7 @@ export default function CustomerProfilePage() {
                 {profile.payments.slice(0, 20).map((payment: ProfilePayment) => (
                   <div key={payment.id} className="px-4 py-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
+                      <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}
                       <span className="text-xs text-gray-400">{formatDateTime(payment.createdAt)}</span>
                     </div>
                     <p className="text-xs text-gray-500">{payment.contract?.contractNumber || '-'} · {payment.contract?.inventoryItem?.product?.name || '-'}</p>
@@ -539,7 +539,7 @@ export default function CustomerProfilePage() {
                         <TableCell className="font-mono text-sm">{payment.contract?.contractNumber || '-'}</TableCell>
                         <TableCell>{payment.contract?.inventoryItem?.product?.name || '-'}</TableCell>
                         <TableCell><Badge variant="outline">{payment.paymentMethod}</Badge></TableCell>
-                        <TableCell className="text-right font-medium text-green-600">{formatCurrency(payment.amount)}</TableCell>
+                        <TableCell className="text-right font-medium text-green-600">{formatCurrency(payment.amount)}{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}</TableCell>
                         <TableCell><Badge variant={payment.paymentType === 'INSTALLMENT' ? 'default' : 'secondary'}>{payment.paymentType}</Badge></TableCell>
                       </TableRow>
                     ))}

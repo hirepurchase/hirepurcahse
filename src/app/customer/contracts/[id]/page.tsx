@@ -259,7 +259,7 @@ export default function CustomerContractDetailPage() {
                     {contract.payments?.map((payment: PaymentTransaction) => (
                       <div key={payment.id} className="px-4 py-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
+                          <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}
                           <Badge className={`text-xs ${getStatusColor(payment.status)}`}>{payment.status}</Badge>
                         </div>
                         <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
@@ -283,7 +283,7 @@ export default function CustomerContractDetailPage() {
                         {contract.payments?.map((payment: PaymentTransaction) => (
                           <TableRow key={payment.id}>
                             <TableCell className="font-mono text-sm">{payment.transactionRef}</TableCell>
-                            <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                            <TableCell>{formatCurrency(payment.amount)}{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}</TableCell>
                             <TableCell>{payment.paymentMethod}</TableCell>
                             <TableCell>{formatDateTime(payment.paymentDate)}</TableCell>
                             <TableCell><Badge className={getStatusColor(payment.status)}>{payment.status}</Badge></TableCell>

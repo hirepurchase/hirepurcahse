@@ -34,6 +34,36 @@ interface LedgerEntry {
   outstandingBalance: number;
   status: 'PENDING' | 'PAID';
   createdAt: string;
+  // The latest charges against this sale, newest first (portal, short code or office).
+  payments?: Array<{ status: 'PENDING' | 'SUCCESS' | 'FAILED'; amount: number; channel?: string; createdAt: string }>;
+}
+
+/**
+ * How the latest Mobile Money charge on a sale stands. Money waiting is still
+ * counted as outstanding until it arrives.
+ */
+function chargeNote(entry: LedgerEntry): { label: string; detail: string; cls: string } | null {
+  const payments = entry.payments ?? [];
+  const waiting = payments.filter((p) => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0);
+  if (waiting > 0) {
+    return { label: 'WAITING FOR PAYMENT', detail: `${formatCurrency(waiting)} on its way`, cls: 'bg-blue-50 text-blue-700 border-blue-200' };
+  }
+  const latest = payments[0];
+  if (entry.status === 'PENDING' && latest?.status === 'FAILED') {
+    return { label: 'NOT PAID', detail: `Last attempt of ${formatCurrency(latest.amount)} did not go through`, cls: 'bg-red-50 text-red-700 border-red-200' };
+  }
+  return null;
+}
+
+function ChargeNote({ entry }: { entry: LedgerEntry }) {
+  const note = chargeNote(entry);
+  if (!note) return null;
+  return (
+    <span className={`mt-1 inline-flex flex-col rounded-md border px-2 py-1 text-[11px] leading-tight ${note.cls}`}>
+      <span className="font-semibold">{note.label}</span>
+      <span>{note.detail}</span>
+    </span>
+  );
 }
 
 interface Summary {
@@ -282,10 +312,11 @@ export default function AgentDepositsPage() {
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(entry.status)}`}>
                       {entry.status}
                     </span>
+                    <div><ChargeNote entry={entry} /></div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5">
-                      {entry.status === 'PENDING' && entry.outstandingBalance > 0 && (
+                      {entry.status === 'PENDING' && entry.outstandingBalance > 0 && chargeNote(entry)?.label !== 'WAITING FOR PAYMENT' && (
                         <button
                           onClick={() => openPayModal(entry)}
                           className="flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
@@ -330,6 +361,7 @@ export default function AgentDepositsPage() {
                 </span>
               </div>
               <p className="text-sm text-gray-900 font-medium mb-2">{entry.customerName}</p>
+              {chargeNote(entry) && <div className="mb-2"><ChargeNote entry={entry} /></div>}
               <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-3">
                 <span>Deposit: <strong>{formatCurrency(entry.depositAmount)}</strong></span>
                 <span>Commission: <strong className="text-emerald-600">{formatCurrency(entry.commissionAmount)}</strong></span>
@@ -345,7 +377,7 @@ export default function AgentDepositsPage() {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">{formatDate(entry.createdAt)}</span>
-                {entry.status === 'PENDING' && entry.outstandingBalance > 0 && (
+                {entry.status === 'PENDING' && entry.outstandingBalance > 0 && chargeNote(entry)?.label !== 'WAITING FOR PAYMENT' && (
                   <button
                     onClick={() => openPayModal(entry)}
                     className="flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg"

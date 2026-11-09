@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 import { adminHasAnyPermission, PERMISSIONS } from '@/lib/permissions';
 import type { AdminUser } from '@/types';
+import { TemporaryUnlockCard } from '@/components/admin/TemporaryUnlockCard';
 
 interface KnoxEnrollmentDefaults {
   disclosureVersion: string;
@@ -84,6 +85,10 @@ export default function ContractDetailsPage() {
   const canWriteOff = adminHasAnyPermission(adminUser, [PERMISSIONS.WRITE_OFF_CONTRACT]);
   const canEditContractValues = adminHasAnyPermission(adminUser, [PERMISSIONS.EDIT_CONTRACT_VALUES]);
   const canNullify = adminHasAnyPermission(adminUser, [PERMISSIONS.NULLIFY_CONTRACT]);
+  // Office cash for a paid temporary unlock. Never an agent: cash they hold
+  // keeps the phone locked until it is paid in.
+  const canTakeUnlockCash =
+    adminHasAnyPermission(adminUser, [PERMISSIONS.RECORD_PAYMENT]) && !['AGENT', 'CLUSTER_AGENT'].includes(adminUser?.role || '');
   const [contract, setContract] = useState<any>(null);
   const [knoxContract, setKnoxContract] = useState<any>(null);
   const [knoxDefaults, setKnoxDefaults] = useState<KnoxEnrollmentDefaults | null>(null);
@@ -859,6 +864,8 @@ export default function ContractDetailsPage() {
         </Card>
       </div>
 
+      {canTakeUnlockCash && <TemporaryUnlockCard contractId={String(params.id)} onPaid={() => void loadContract()} />}
+
       {canViewDeviceControl && (
         <Card>
           <CardHeader>
@@ -1366,7 +1373,7 @@ export default function ContractDetailsPage() {
                   <div key={payment.id} className="px-4 py-3 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>
+                        <span className="text-sm font-semibold text-green-700">{formatCurrency(payment.amount)}</span>{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}
                         <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">{payment.paymentDate ? formatDateTime(payment.paymentDate) : formatDateTime(payment.createdAt)}</p>
@@ -1409,7 +1416,7 @@ export default function ContractDetailsPage() {
                         <TableCell>{payment.paymentDate ? formatDateTime(payment.paymentDate) : formatDateTime(payment.createdAt)}</TableCell>
                         <TableCell className="font-mono text-xs">{payment.transactionRef}</TableCell>
                         <TableCell>{payment.paymentMethod?.replace(/_/g, ' ')}</TableCell>
-                        <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}</TableCell>
+                        <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}</TableCell>
                         <TableCell><Badge className={getStatusColor(payment.status)}>{payment.status}</Badge></TableCell>
                         <TableCell>
                           {isManual ? (

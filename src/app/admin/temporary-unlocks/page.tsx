@@ -109,12 +109,19 @@ export default function TemporaryUnlocksPage() {
   const [blocksSales, setBlocksSales] = useState<boolean | null>(null);
   const [maxWeeks, setMaxWeeks] = useState(4);
   const [savingSetting, setSavingSetting] = useState(false);
+  // Requests are retired in favour of paid temporary unlocks; what is still
+  // running can be ended here, history stays readable.
+  const [retired, setRetired] = useState(false);
+  const [retiredMessage, setRetiredMessage] = useState("");
+  const [endingAll, setEndingAll] = useState(false);
   useEffect(() => {
     api
       .get("/temporary-unlocks/settings")
       .then(({ data }) => {
         setBlocksSales(Boolean(data.defaultBlocksSales));
         if (data.maxWeeks) setMaxWeeks(Number(data.maxWeeks));
+        setRetired(Boolean(data.retired));
+        setRetiredMessage(data.retiredMessage || "");
       })
       .catch(() => setBlocksSales(null));
   }, []);
@@ -356,6 +363,36 @@ export default function TemporaryUnlocksPage() {
     }
   };
 
+  const endAll = async (count: number) => {
+    const reason = window.prompt(
+      `End all ${count} temporary unlock${count === 1 ? "" : "s"} still running? Every customer who is still behind will have their phone locked again.\n\nReason (recorded, and sent to the cluster leaders who asked):`,
+      "Temporary unlock requests have ended; replaced by paid temporary unlock."
+    );
+    if (reason === null) return;
+    if (reason.trim().length < 5) {
+      toast({ title: "Reason too short", description: "Give at least 5 characters", variant: "destructive" });
+      return;
+    }
+    setEndingAll(true);
+    try {
+      const { data } = await api.post("/temporary-unlocks/end-all", { reason: reason.trim() });
+      toast({
+        title: `${data.revoked + data.fulfilled} window${data.revoked + data.fulfilled === 1 ? "" : "s"} ended`,
+        description:
+          `${data.locked} phone${data.locked === 1 ? "" : "s"} locked now` +
+          (data.noDeviceChange ? `, ${data.noDeviceChange} already locked or offline (they lock when they reconnect)` : "") +
+          (data.fulfilled ? `, ${data.fulfilled} closed as paid up (phone stays open)` : "") +
+          (data.pendingRejected ? `, ${data.pendingRejected} pending request${data.pendingRejected === 1 ? "" : "s"} rejected` : "") +
+          ".",
+      });
+      await load();
+    } catch (error: any) {
+      toast({ title: "Failed", description: error.response?.data?.error || "Could not end the windows", variant: "destructive" });
+    } finally {
+      setEndingAll(false);
+    }
+  };
+
   const withdraw = async (request: UnlockRequest) => {
     setBusyId(request.id);
     try {
@@ -383,18 +420,44 @@ export default function TemporaryUnlocksPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Temporary Unlocks</h1>
           <p className="mt-0.5 text-sm text-gray-500">
-            {canApprove
+            {retired
+              ? "Past requests. New requests have ended: customers now pay part of their arrears to open the phone."
+              : canApprove
               ? "Requests to open a locked phone for a fixed period so the customer can clear their arrears"
               : "Ask for a customer's phone to be opened while they clear what they owe"}
           </p>
         </div>
-        {canRequest && (
+        {canRequest && !retired && (
           <Button onClick={openRequestDialog} className="shrink-0">
             <Unlock className="mr-2 h-4 w-4" />
             Request unlock
           </Button>
         )}
       </div>
+
+      {retired && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="space-y-3 p-4">
+            <p className="text-sm font-semibold text-amber-900">Temporary unlock requests have ended</p>
+            <p className="text-sm text-amber-900">{retiredMessage}</p>
+            {canApprove && openCount > 0 && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-amber-900">
+                  {openCount} window{openCount === 1 ? " is" : "s are"} still running. Ending them locks every phone whose customer is still behind.
+                </p>
+                <Button
+                  onClick={() => void endAll(openCount)}
+                  disabled={endingAll}
+                  className="shrink-0 bg-red-600 text-white hover:bg-red-700"
+                >
+                  {endingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                  End all running windows
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
         <Card>
@@ -560,7 +623,7 @@ export default function TemporaryUnlocksPage() {
                   </div>
 
                   <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col">
-                    {request.status === "PENDING" && canApprove && (
+                    {request.status === "PENDING" && canApprove && !retired && (
                       <>
                         <Button
                           size="sm"
@@ -586,13 +649,13 @@ export default function TemporaryUnlocksPage() {
                         Withdraw
                       </Button>
                     )}
-                    {request.canExtend && canApprove && (
+                    {request.canExtend && canApprove && !retired && (
                       <Button size="sm" disabled={busyId === request.id} onClick={() => openExtend(request)}>
                         <Clock className="mr-1.5 h-4 w-4" />
                         Extend
                       </Button>
                     )}
-                    {request.status === "APPROVED" && !request.canExtend && canApprove && (
+                    {request.status === "APPROVED" && (retired || !request.canExtend) && canApprove && (
                       <Button
                         size="sm"
                         variant="outline"

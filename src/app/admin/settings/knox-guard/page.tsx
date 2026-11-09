@@ -28,7 +28,41 @@ interface KnoxGuardSettings {
   allowCustomerAppOnLockScreen: boolean;
   allowSupportOnLockScreen: boolean;
   allowPaymentUssdOnLockScreen: boolean;
+  temporaryUnlockEnabled: boolean;
+  temporaryUnlockMaxUses: number;
+  temporaryUnlockTiers: UnlockTier[];
   updatedAt: string;
+}
+
+interface UnlockTier {
+  percent: number;
+  hours: number;
+  /** The charge, as a percentage of the arrears added to the share. */
+  feePercent: number;
+}
+
+const DEFAULT_TIERS: UnlockTier[] = [
+  { percent: 25, hours: 24, feePercent: 0 },
+  { percent: 50, hours: 72, feePercent: 0 },
+  { percent: 75, hours: 120, feePercent: 0 },
+  { percent: 90, hours: 168, feePercent: 0 },
+];
+
+/** Same rules the server applies; shown as the admin types. */
+function tierProblem(tiers: UnlockTier[], maxHours: number): string | null {
+  if (tiers.length < 4 || tiers.length > 6) return 'Set between 4 and 6 tiers.';
+  for (let i = 0; i < tiers.length; i++) {
+    const { percent, hours } = tiers[i];
+    const charge = tiers[i].feePercent ?? 0;
+    if (!Number.isInteger(percent) || percent < 1 || percent > 99) return `Tier ${i + 1}: the percentage must be a whole number from 1 to 99.`;
+    if (!Number.isInteger(hours) || hours < 1) return `Tier ${i + 1}: the hours must be a whole number of at least 1.`;
+    if (hours > maxHours) return `Tier ${i + 1}: no more than ${maxHours} hours — a phone cannot be opened further ahead.`;
+    if (!Number.isInteger(charge) || charge < 0 || charge > 50) return `Tier ${i + 1}: the charge must be a whole percentage from 0 to 50.`;
+    if (percent + charge >= 100) return `Tier ${i + 1}: the share and the charge together (${percent + charge}%) must be less than 100%.`;
+    if (i > 0 && percent <= tiers[i - 1].percent) return `Tier ${i + 1} must ask for a higher percentage than tier ${i}.`;
+    if (i > 0 && hours <= tiers[i - 1].hours) return `Tier ${i + 1} must give more hours than tier ${i}.`;
+  }
+  return null;
 }
 
 function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -67,6 +101,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 const inputCls = 'w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent';
 const textareaCls = `${inputCls} resize-y`;
+const tierInputCls = 'w-full min-w-0 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent';
 
 export default function KnoxGuardSettingsPage() {
   const { toast } = useToast();
@@ -79,6 +114,8 @@ export default function KnoxGuardSettingsPage() {
   const [form, setForm] = useState<Partial<KnoxGuardSettings>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // The longest a paid unlock tier may run: PayTrigger's horizon, from the server.
+  const [maxUnlockHours, setMaxUnlockHours] = useState(45 * 24);
 
   useEffect(() => {
     if (!canManage) {
@@ -94,6 +131,7 @@ export default function KnoxGuardSettingsPage() {
       const res = await api.get('/knox-guard/settings');
       setSettings(res.data);
       setForm(res.data);
+      if (res.data.temporaryUnlockMaxHours) setMaxUnlockHours(res.data.temporaryUnlockMaxHours);
     } catch {
       toast({ title: 'Error', description: 'Failed to load Knox Guard settings', variant: 'destructive' });
     } finally {
@@ -104,7 +142,16 @@ export default function KnoxGuardSettingsPage() {
   const set = <K extends keyof KnoxGuardSettings>(key: K, value: KnoxGuardSettings[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const tiers = (form.temporaryUnlockTiers ?? DEFAULT_TIERS).map((t) => ({ ...t, feePercent: t.feePercent ?? 0 }));
+  const tiersError = tierProblem(tiers, maxUnlockHours);
+  const setTier = (i: number, key: keyof UnlockTier, value: number) =>
+    set('temporaryUnlockTiers', tiers.map((t, j) => (j === i ? { ...t, [key]: value } : t)));
+
   const handleSave = async () => {
+    if (tiersError) {
+      toast({ title: 'Check the unlock tiers', description: tiersError, variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.patch('/knox-guard/settings', form);
@@ -203,6 +250,127 @@ export default function KnoxGuardSettingsPage() {
               checked={form.blockOnUnpaidPenalties ?? false}
               onChange={(v) => set('blockOnUnpaidPenalties', v)}
             />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Paid temporary unlock ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
+        <SectionHeader
+          title="Paid temporary unlock"
+          description="A customer whose phone has locked pays part of what is overdue, on the short code, in the app or in cash at the office, and the phone opens for a while. Applies to Samsung and Transsion phones."
+        />
+        <div className="space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Offer paid temporary unlocks</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Off until switched on. A Samsung phone that is offline when its time runs out locks when it next connects.
+              </p>
+            </div>
+            <Toggle checked={form.temporaryUnlockEnabled ?? false} onChange={(v) => set('temporaryUnlockEnabled', v)} />
+          </div>
+
+          <Field
+            label="Unlocks allowed per spell of arrears"
+            hint="1 to 20. The count starts again once the customer clears everything overdue."
+          >
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={form.temporaryUnlockMaxUses ?? 2}
+              onChange={(e) => set('temporaryUnlockMaxUses', parseInt(e.target.value) || 1)}
+              className={inputCls}
+            />
+          </Field>
+
+          <div>
+            <p className="block text-sm font-medium text-gray-700 mb-1.5">Tiers</p>
+            <p className="text-xs text-gray-500 mb-3">
+              Each tier asks for a share of what is overdue and opens the phone for that many hours. 4 to 6 tiers, each
+              asking more and giving longer than the one before, up to {maxUnlockHours} hours. The charge is a further
+              percentage of the arrears added to the share — 25% with a 5% charge asks for 30% — and is kept by the
+              company: it does not pay off any of the arrears. Use 0 for no charge.
+            </p>
+            <div className="space-y-2">
+              <div className="grid grid-cols-[1.25rem_1fr_1fr_1fr_2rem] gap-2 text-xs font-medium text-gray-500">
+                <span />
+                <span>Share %</span>
+                <span>Hours</span>
+                <span>Charge %</span>
+                <span />
+              </div>
+              {tiers.map((t, i) => (
+                <div key={i} className="grid grid-cols-[1.25rem_1fr_1fr_1fr_2rem] items-center gap-2">
+                  <span className="text-sm text-gray-500">{i + 1}.</span>
+                  <label className="flex min-w-0 items-center gap-1 text-sm">
+                    <input
+                      type="number"
+                      min={1}
+                      max={99}
+                      aria-label={`Tier ${i + 1} percent`}
+                      value={t.percent}
+                      onChange={(e) => setTier(i, 'percent', parseInt(e.target.value) || 0)}
+                      className={tierInputCls}
+                    />
+                  </label>
+                  <label className="flex min-w-0 items-center gap-1 text-sm">
+                    <input
+                      type="number"
+                      min={1}
+                      max={maxUnlockHours}
+                      aria-label={`Tier ${i + 1} hours`}
+                      value={t.hours}
+                      onChange={(e) => setTier(i, 'hours', parseInt(e.target.value) || 0)}
+                      className={tierInputCls}
+                    />
+                  </label>
+                  <label className="flex min-w-0 items-center text-sm">
+                    <input
+                      type="number"
+                      min={0}
+                      max={50}
+                      aria-label={`Tier ${i + 1} charge percent`}
+                      value={t.feePercent ?? 0}
+                      onChange={(e) => setTier(i, 'feePercent', parseInt(e.target.value) || 0)}
+                      className={tierInputCls}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="h-9 w-8 rounded-lg text-lg leading-none text-red-600 hover:bg-red-50 disabled:opacity-30"
+                    disabled={tiers.length <= 4}
+                    onClick={() => set('temporaryUnlockTiers', tiers.filter((_, j) => j !== i))}
+                    aria-label={`Remove tier ${i + 1}`}
+                    title="Remove tier"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg disabled:opacity-40"
+                disabled={tiers.length >= 6}
+                onClick={() => {
+                  const last = tiers[tiers.length - 1] ?? { percent: 0, hours: 0, feePercent: 0 };
+                  set('temporaryUnlockTiers', [...tiers, { percent: Math.min(99, last.percent + 5), hours: Math.min(maxUnlockHours, last.hours + 24), feePercent: last.feePercent ?? 0 }]);
+                }}
+              >
+                Add tier
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                onClick={() => set('temporaryUnlockTiers', DEFAULT_TIERS)}
+              >
+                Use the defaults
+              </button>
+            </div>
+            {tiersError && <p className="mt-2 text-sm text-red-600">{tiersError}</p>}
           </div>
         </div>
       </div>

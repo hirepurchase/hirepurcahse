@@ -153,6 +153,8 @@ export interface InstallmentSchedule {
 export interface PaymentTransaction {
   id: string;
   transactionRef: string;
+  /** A temporary unlock's charge inside `amount`; it does not reduce what is owed. */
+  unlockFee?: number;
   contractId: string;
   customerId: string;
   amount: number;
