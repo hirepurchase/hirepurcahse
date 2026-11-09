@@ -7,6 +7,12 @@ import api from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/permissions';
+import {
+  PaidUnlockSettingsSection,
+  PaidUnlockSettingsValue,
+  normaliseTiers,
+  unlockTiersProblem,
+} from '@/components/admin/PaidUnlockSettingsSection';
 
 interface KnoxGuardSettings {
   id: string;
@@ -28,6 +34,9 @@ interface KnoxGuardSettings {
   allowCustomerAppOnLockScreen: boolean;
   allowSupportOnLockScreen: boolean;
   allowPaymentUssdOnLockScreen: boolean;
+  temporaryUnlockEnabled: boolean;
+  temporaryUnlockMaxUses: number;
+  temporaryUnlockTiers: PaidUnlockSettingsValue['temporaryUnlockTiers'];
   updatedAt: string;
 }
 
@@ -83,6 +92,8 @@ export default function KnoxSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [dryRun, setDryRun] = useState(false);
+  // The longest a paid unlock tier may run (PayTrigger's horizon), from the server.
+  const [maxUnlockHours, setMaxUnlockHours] = useState(45 * 24);
 
   useEffect(() => {
     if (!canManage) { router.replace('/admin/knox'); return; }
@@ -97,6 +108,7 @@ export default function KnoxSettingsPage() {
       const res = await api.get('/knox-guard/settings');
       setSettings(res.data);
       setForm(res.data);
+      if (res.data.temporaryUnlockMaxHours) setMaxUnlockHours(res.data.temporaryUnlockMaxHours);
     } catch {
       toast({ title: 'Error', description: 'Failed to load Knox Guard settings', variant: 'destructive' });
     } finally {
@@ -108,6 +120,11 @@ export default function KnoxSettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
+    const tierProblem = unlockTiersProblem(normaliseTiers(form.temporaryUnlockTiers), maxUnlockHours);
+    if (tierProblem) {
+      toast({ title: 'Check the unlock tiers', description: tierProblem, variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.patch('/knox-guard/settings', form);
@@ -199,6 +216,13 @@ export default function KnoxSettingsPage() {
           <Toggle checked={form.blockOnUnpaidPenalties ?? false} onChange={(v) => set('blockOnUnpaidPenalties', v)} />
         </div>
       </Section>
+
+      {/* Paid temporary unlock */}
+      <PaidUnlockSettingsSection
+        value={form}
+        maxHours={maxUnlockHours}
+        onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+      />
 
       {/* Command Scheduler */}
       <Section
