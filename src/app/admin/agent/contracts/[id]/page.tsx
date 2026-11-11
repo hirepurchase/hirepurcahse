@@ -293,7 +293,7 @@ function RevisionEditModal({
               </div>
               <div>
                 <label className={labelCls}>Penalty (%)</label>
-                <input type="number" min="0" max="100" step="0.1" className={inputCls} value={form.penaltyPercentage} onChange={(e) => set("penaltyPercentage", e.target.value)} />
+                <input type="number" min="0" max="50" step="0.1" className={inputCls} value={form.penaltyPercentage} onChange={(e) => set("penaltyPercentage", e.target.value)} />
               </div>
             </div>
 

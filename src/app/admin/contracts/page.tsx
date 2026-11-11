@@ -1025,7 +1025,7 @@ function DesktopStepContent({
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Penalty (%)</label>
-              <Input type="number" step="0.01" value={formData.penaltyPercentage} onChange={(e: any) => setFormData({ ...formData, penaltyPercentage: e.target.value })} />
+              <Input type="number" min="0" max="50" step="0.01" value={formData.penaltyPercentage} onChange={(e: any) => setFormData({ ...formData, penaltyPercentage: e.target.value })} />
             </div>
           </div>
 
@@ -1938,7 +1938,7 @@ function CreateHirePurchaseSale({
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-700">Penalty (%)</label>
-                  <Input type="number" step="0.01" className="mt-1 h-9 text-sm" value={formData.penaltyPercentage} onChange={(e) => setFormData({ ...formData, penaltyPercentage: e.target.value })} />
+                  <Input type="number" min="0" max="50" step="0.01" className="mt-1 h-9 text-sm" value={formData.penaltyPercentage} onChange={(e) => setFormData({ ...formData, penaltyPercentage: e.target.value })} />
                 </div>
               </div>
 

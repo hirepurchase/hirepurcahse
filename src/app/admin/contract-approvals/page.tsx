@@ -811,7 +811,7 @@ function EditModal({
               <input
                 type="number"
                 min="0"
-                max="100"
+                max="50"
                 step="0.1"
                 className={inputCls}
                 value={form.penaltyPercentage}

@@ -1190,6 +1190,8 @@ export default function ContractDetailsPage() {
                 <Label>Penalty Percentage (%)</Label>
                 <Input
                   type="number"
+                  min="0"
+                  max="50"
                   step="0.01"
                   value={editFormData.penaltyPercentage}
                   onChange={(e) => setEditFormData({ ...editFormData, penaltyPercentage: e.target.value })}
@@ -1641,6 +1643,8 @@ export default function ContractDetailsPage() {
                   <Label>Penalty Percentage (%)</Label>
                   <Input
                     type="number"
+                    min="0"
+                    max="50"
                     step="0.01"
                     value={amendFormData.penaltyPercentage}
                     onChange={(e) => setAmendFormData({ ...amendFormData, penaltyPercentage: e.target.value })}
