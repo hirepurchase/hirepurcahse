@@ -47,6 +47,7 @@ import {
 import { ImeiScanButton } from '@/components/shared/ImeiScanner';
 import { imeiWarning, isValidImei } from '@/lib/imei';
 import { BELOW_TARGET_LABEL, StockGateNotice, stockGateStops, useStockGate } from '@/components/admin/StockGateNotice';
+import { DeviceLicencePanel } from '@/components/admin/DeviceLicencePanel';
 
 type LockProvider = "KNOX" | "PAYTRIGGER" | "NONE";
 const LOCK_LABEL: Record<LockProvider, string> = { KNOX: "Knox Guard", PAYTRIGGER: "PayTrigger", NONE: "No lock" };
@@ -57,6 +58,8 @@ const LOCK_HINT: Record<LockProvider, string> = {
 };
 
 export default function InventoryPage() {
+  const { user: authUser } = useAuth();
+  const isSuperAdminUser = (authUser as { role?: string } | null)?.role === 'SUPER_ADMIN';
   const [inventory, setInventory] = useState<any[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -510,6 +513,9 @@ export default function InventoryPage() {
           )}
         </div>
       </div>
+
+      {/* Device-lock licences left — super admins only */}
+      {isSuperAdminUser && <DeviceLicencePanel />}
 
       {/* Product Filter Badge */}
       {filterProductId && (
