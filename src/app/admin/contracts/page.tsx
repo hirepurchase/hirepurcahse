@@ -485,8 +485,8 @@ export default function ContractsPage() {
 
                       return (
                         <TableRow key={contract.id}>
-                          <TableCell className="font-mono font-medium">{contract.contractNumber}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-mono font-medium whitespace-nowrap">{contract.contractNumber}</TableCell>
+                          <TableCell className="min-w-[180px]">
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
                                 {contract.customer?.photoUrl ? (
@@ -504,14 +504,14 @@ export default function ContractsPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="min-w-[170px]">
                             <p className="text-sm">{contract.inventoryItem?.product?.name || "—"}</p>
                             <p className="text-xs text-gray-500 font-mono">{contract.inventoryItem?.serialNumber || "—"}</p>
                           </TableCell>
-                          <TableCell>{formatCurrency(contract.totalPrice)}</TableCell>
-                          <TableCell className="text-blue-600 font-medium">{formatCurrency(contract.depositAmount)}</TableCell>
-                          <TableCell className="text-green-600 font-medium">{formatCurrency(contract.totalPaid)}</TableCell>
-                          <TableCell className="text-red-600 font-medium">{formatCurrency(contract.outstandingBalance)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(contract.totalPrice)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-slate-700">{formatCurrency(contract.depositAmount)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-emerald-700 font-medium">{formatCurrency(contract.totalPaid)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-red-600 font-semibold">{formatCurrency(contract.outstandingBalance)}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(contract.status)}>{contract.status.replace(/_/g, ' ')}</Badge>
                           </TableCell>

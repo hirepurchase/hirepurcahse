@@ -375,7 +375,7 @@ export default function AgentContractDetailPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
       </div>
     );
   }
@@ -387,7 +387,7 @@ export default function AgentContractDetailPage() {
         <p className="text-gray-500">Contract not found.</p>
         <button
           onClick={() => router.back()}
-          className="mt-4 text-sm text-cyan-600 hover:underline"
+          className="mt-4 text-sm text-blue-600 hover:underline"
         >
           Go back
         </button>
@@ -435,7 +435,7 @@ export default function AgentContractDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 px-4 py-4 pb-24 sm:px-6 sm:py-6">
+    <div className="space-y-4 pb-24">
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/admin/agent/contracts")}
@@ -455,35 +455,35 @@ export default function AgentContractDetailPage() {
         </Badge>
       </div>
 
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-cyan-900 to-cyan-700 text-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-800 text-white shadow-sm">
         <div className="space-y-5 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-[0.2em] text-cyan-100">Portfolio Snapshot</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-blue-100">Portfolio Snapshot</p>
               <p className="mt-2 text-2xl font-bold">{contract.inventoryItem?.product?.name ?? "Contract"}</p>
-              <p className="mt-1 text-sm text-cyan-50">{contract.inventoryItem?.serialNumber || "No serial attached"}</p>
+              <p className="mt-1 text-sm text-blue-50">{contract.inventoryItem?.serialNumber || "No serial attached"}</p>
             </div>
             <div className="rounded-2xl bg-white/10 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-cyan-100">Outstanding</p>
+              <p className="text-[11px] uppercase tracking-wide text-blue-100">Outstanding</p>
               <p className="mt-1 text-2xl font-bold">{formatCurrency(contract.outstandingBalance)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-2xl bg-white/10 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-cyan-100">Total Price</p>
+              <p className="text-[11px] uppercase tracking-wide text-blue-100">Total Price</p>
               <p className="mt-1 text-sm font-semibold">{formatCurrency(contract.totalPrice)}</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-cyan-100">Deposit</p>
+              <p className="text-[11px] uppercase tracking-wide text-blue-100">Deposit</p>
               <p className="mt-1 text-sm font-semibold">{formatCurrency(contract.depositAmount)}</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-cyan-100">Installments</p>
+              <p className="text-[11px] uppercase tracking-wide text-blue-100">Installments</p>
               <p className="mt-1 text-sm font-semibold">{paidInstallments} / {totalInstallments}</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-cyan-100">Payments</p>
+              <p className="text-[11px] uppercase tracking-wide text-blue-100">Payments</p>
               <p className="mt-1 text-sm font-semibold">{successPayments.length} successful</p>
             </div>
           </div>
@@ -631,15 +631,15 @@ export default function AgentContractDetailPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-cyan-100 bg-cyan-50">
+      <Card className="border-blue-100 bg-blue-50">
         <CardContent className="p-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Repayment Progress</span>
-            <span className="text-xs font-bold text-cyan-700">{progressPct}%</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-blue-700">Repayment Progress</span>
+            <span className="text-xs font-bold text-blue-700">{progressPct}%</span>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-cyan-100">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-blue-100">
             <div
-              className="h-full rounded-full bg-cyan-500 transition-all"
+              className="h-full rounded-full bg-blue-500 transition-all"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -749,7 +749,7 @@ export default function AgentContractDetailPage() {
             onClick={() => setTab("installments")}
             className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
               tab === "installments"
-                ? "bg-white text-cyan-700 shadow-sm"
+                ? "bg-white text-blue-700 shadow-sm"
                 : "text-gray-500"
             }`}
           >
@@ -759,7 +759,7 @@ export default function AgentContractDetailPage() {
             onClick={() => setTab("payments")}
             className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
               tab === "payments"
-                ? "bg-white text-cyan-700 shadow-sm"
+                ? "bg-white text-blue-700 shadow-sm"
                 : "text-gray-500"
             }`}
           >

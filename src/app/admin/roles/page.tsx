@@ -299,7 +299,7 @@ function RoleForm({
   };
 
   return (
-    <div className="p-8">
+    <div>
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle>{role ? `Edit Role: ${role.name}` : 'Create New Role'}</CardTitle>

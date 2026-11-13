@@ -315,7 +315,7 @@ export default function HubtelTestPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div>
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Hubtel Payment System Test</h1>
         <p className="text-gray-600">Test all Hubtel payment functionalities in one place</p>

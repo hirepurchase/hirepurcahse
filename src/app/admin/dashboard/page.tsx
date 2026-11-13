@@ -234,7 +234,7 @@ export default function AdminDashboard() {
                 <div className="shrink-0 text-right">
                   <p className="text-sm font-semibold text-gray-900">{formatCurrency(contract.totalPrice)}</p>
                   <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', STATUS_STYLES[contract.status] ?? 'bg-gray-100 text-gray-600')}>
-                    {contract.status}
+                    {contract.status.replace(/_/g, " ")}
                   </span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />

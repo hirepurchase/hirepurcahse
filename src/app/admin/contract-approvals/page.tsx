@@ -718,7 +718,7 @@ function EditModal({
   };
 
   const inputCls =
-    "w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500";
+    "w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500";
   const labelCls = "text-xs font-medium text-gray-600 block mb-1";
 
   return (
@@ -1015,7 +1015,7 @@ export default function ContractApprovalsPage() {
     f === "DAILY" ? "Daily" : f === "WEEKLY" ? "Weekly" : "Monthly";
 
   return (
-    <div className="px-4 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-amber-100 shrink-0">
@@ -1054,7 +1054,7 @@ export default function ContractApprovalsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="p-3 sm:p-4">
-          <div className="space-y-2 sm:space-y-0 sm:grid sm:gap-3 sm:grid-cols-[2fr,1fr,1fr,1fr,auto]">
+          <div className="space-y-2 sm:space-y-0 sm:grid sm:gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -1064,7 +1064,7 @@ export default function ContractApprovalsPage() {
                   setSearchQuery(e.target.value);
                 }}
                 placeholder="Search contract, customer, agent..."
-                className="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               />
             </div>
 
@@ -1072,7 +1072,7 @@ export default function ContractApprovalsPage() {
               <select
                 value={priorityFilter}
                 onChange={(e) => { setCurrentPage(1); setPriorityFilter(e.target.value); }}
-                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               >
                 <option value="">All priorities</option>
                 <option value="HIGH">High</option>
@@ -1083,7 +1083,7 @@ export default function ContractApprovalsPage() {
               <select
                 value={assignedFilter}
                 onChange={(e) => { setCurrentPage(1); setAssignedFilter(e.target.value); }}
-                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               >
                 <option value="">All assignments</option>
                 <option value="unassigned">Unassigned</option>
@@ -1099,7 +1099,7 @@ export default function ContractApprovalsPage() {
                   setSortBy(nextSortBy);
                   setSortOrder((nextSortOrder as "asc" | "desc") || "desc");
                 }}
-                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               >
                 <option value="age:desc">Oldest first</option>
                 <option value="priority:desc">Highest priority</option>

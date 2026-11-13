@@ -178,7 +178,7 @@ export default function FailedPaymentsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Payment Management</h1>
         <p className="text-gray-600 mt-2">

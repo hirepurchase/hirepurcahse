@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, KeyRound, ChevronDown, User, Bell, ClipboardCheck, Menu } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LogOut, KeyRound, ChevronDown, ChevronRight, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { AdminUser } from "@/types";
@@ -169,6 +171,71 @@ function UserMenu({ user, onLogout }: { user: AdminUser; onLogout: () => void })
   );
 }
 
+// ─── Breadcrumb ──────────────────────────────────────────────────────────────
+
+/** Words that read better spelled out than title-cased from the URL. */
+const SEGMENT_LABELS: Record<string, string> = {
+  kpi: "KPIs",
+  knox: "Knox Guard",
+  paytrigger: "PayTrigger",
+  sms: "SMS",
+  audit: "Audit Trail",
+  "paid-unlock": "Paid Temporary Unlock",
+  "knox-guard": "Knox Guard",
+  "contract-approvals": "Approvals",
+};
+
+function labelFor(segment: string): string {
+  if (SEGMENT_LABELS[segment]) return SEGMENT_LABELS[segment];
+  return segment
+    .split("-")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+/** Folders that group pages but are not pages themselves. */
+const NOT_A_PAGE = new Set(["/admin/agent", "/admin/cluster", "/admin/customer-service", "/admin/settings"]);
+
+/** Record ids (cuid/uuid/long numbers) are shown as "Details". */
+function looksLikeId(segment: string): boolean {
+  return (
+    /^\d+$/.test(segment) ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(segment) || // uuid
+    (/^[a-z0-9]{16,}$/i.test(segment) && /\d/.test(segment)) // cuid
+  );
+}
+
+function Breadcrumb() {
+  const pathname = usePathname() || "";
+  const parts = pathname.split("/").filter(Boolean).slice(1); // drop "admin"
+  if (parts.length === 0) return null;
+
+  const crumbs = parts.map((segment, i) => ({
+    href: "/admin/" + parts.slice(0, i + 1).join("/"),
+    label: looksLikeId(segment) ? "Details" : labelFor(segment),
+  }));
+
+  return (
+    <nav aria-label="Breadcrumb" className="hidden lg:flex items-center gap-1.5 text-sm min-w-0">
+      {crumbs.map((c, i) => {
+        const last = i === crumbs.length - 1;
+        return (
+          <span key={c.href} className="flex items-center gap-1.5 min-w-0">
+            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />}
+            {last || NOT_A_PAGE.has(c.href) ? (
+              <span className={last ? "font-semibold text-slate-900 truncate" : "text-slate-500 truncate"} aria-current={last ? "page" : undefined}>{c.label}</span>
+            ) : (
+              <Link href={c.href} className="text-slate-500 hover:text-slate-900 transition-colors truncate">
+                {c.label}
+              </Link>
+            )}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
 // ─── TopBar Export ───────────────────────────────────────────────────────────
 
 export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
@@ -176,7 +243,7 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
   const adminUser = user && "role" in user ? (user as AdminUser) : null;
 
   return (
-    <header className="h-14 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 z-30 sticky top-0">
+    <header className="h-14 shrink-0 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 z-30 sticky top-0">
       {/* Left: company branding */}
       <div className="flex items-center gap-3">
         {/* Mobile hamburger — only shown when sidebar is a drawer */}
@@ -188,8 +255,8 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
             <Menu className="h-5 w-5" />
           </button>
         )}
-        {/* Logo mark */}
-        <div className="flex items-center gap-2.5">
+        {/* Logo mark — the sidebar carries it on desktop, so the bar shows where you are instead */}
+        <div className="flex items-center gap-2.5 lg:hidden">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
             <span className="text-white text-[13px] font-extrabold tracking-tighter leading-none">AT</span>
           </div>
@@ -198,6 +265,7 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
             <span className="text-[10px] text-gray-400 font-medium tracking-wide uppercase hidden sm:block">Hire Purchase System</span>
           </div>
         </div>
+        <Breadcrumb />
       </div>
 
       {/* Right: bells + user menu */}

@@ -161,7 +161,7 @@ export default function PaymentsPage() {
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${reconciling ? 'animate-spin' : ''}`} />
             Preview
           </Button>
-          <Button size="sm" onClick={() => runReconcile(false)} disabled={reconciling} className="text-xs bg-cyan-600 hover:bg-cyan-700 text-white">
+          <Button size="sm" onClick={() => runReconcile(false)} disabled={reconciling} className="text-xs">
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${reconciling ? 'animate-spin' : ''}`} />
             Reconcile Payments
           </Button>

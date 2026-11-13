@@ -141,32 +141,22 @@ export default function AgentContractsPage() {
   const activeCount = contracts.filter((contract) => contract.status === "ACTIVE").length;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
-      <div className="rounded-3xl bg-gradient-to-br from-cyan-600 via-cyan-500 to-sky-500 p-5 text-white shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
-              <FileText className="h-5 w-5" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">My Contracts</h1>
-            <p className="mt-1 text-sm text-cyan-50">
-              Track submissions, revisions, and live repayment progress from your phone first.
-            </p>
-            {agent && (
-              <p className="mt-2 text-xs font-medium text-cyan-100">
-                Signed in as {agent.firstName} {agent.lastName}
-              </p>
-            )}
-          </div>
-          <div className="rounded-2xl bg-white/15 px-3 py-2 text-right">
-            <p className="text-[11px] uppercase tracking-wide text-cyan-100">Portfolio</p>
-            <p className="text-2xl font-bold">{totalItems}</p>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Contracts</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Your submissions, revisions and repayment progress
+            {agent ? ` · ${agent.firstName} ${agent.lastName}` : ""}
+          </p>
         </div>
+        <span className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+          {totalItems} in portfolio
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="border-cyan-100">
+        <Card className="border-blue-100">
           <CardContent className="p-4">
             <p className="text-[11px] uppercase tracking-wide text-gray-500">Visible</p>
             <p className="mt-1 text-2xl font-bold text-gray-900">{contracts.length}</p>
@@ -197,20 +187,20 @@ export default function AgentContractsPage() {
           <CardTitle className="text-base">Find Contracts</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search customer, ID, contract, product..."
-              className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr),auto,auto]">
             <select
-              className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -225,9 +215,9 @@ export default function AgentContractsPage() {
             </select>
             <button
               onClick={handleSearch}
-              className="h-11 rounded-xl bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700"
+              className="h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Apply Search
+              Search
             </button>
             <button
               onClick={() => {
@@ -248,7 +238,7 @@ export default function AgentContractsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
             </div>
           ) : contracts.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -264,7 +254,7 @@ export default function AgentContractsPage() {
                 {contracts.map((contract) => (
                   <button
                     key={contract.id}
-                    className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-cyan-200 hover:bg-cyan-50/30 active:scale-[0.99]"
+                    className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-200 hover:bg-blue-50/30 active:scale-[0.99]"
                     onClick={() => router.push(`/admin/agent/contracts/${contract.id}`)}
                   >
                     <div className="flex items-start justify-between gap-3">
