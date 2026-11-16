@@ -124,7 +124,10 @@ export default function Home() {
           <p className="mt-8 text-xs leading-5 text-slate-400">
             hirepurchase.aidootechsolutions.com
             <br />
-            &copy; {new Date().getFullYear()} Aidoo Tech Solutions
+            &copy; {new Date().getFullYear()} Aidoo Tech Solutions ·{" "}
+            <Link href="/privacy" className="underline-offset-2 hover:text-slate-600 hover:underline">
+              Privacy policy
+            </Link>
           </p>
           <DeveloperCredit align="left" className="mt-3" />
         </div>
