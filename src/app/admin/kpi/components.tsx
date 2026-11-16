@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown, Loader2, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { ChevronDown, Loader2, PackageX, X } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,6 +117,73 @@ export function OwnCard({ card, title }: { card: KpiCard; title: string }) {
   );
 }
 
+/**
+ * The switch that refuses new devices to agents below their sales or quality
+ * target last month. Off by default, so the targets can be set without
+ * blocking anyone; shows who turning it on would block, from the saved targets.
+ */
+function StockGateSwitch() {
+  const { toast } = useToast();
+  const [state, setState] = useState<{ enabled: boolean; month: string; judged: number; blocked: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get('/kpi/stock-gate', { params: { preview: 1 } });
+      setState({ enabled: data.enabled, month: data.month, judged: data.judged ?? 0, blocked: Object.keys(data.blocked ?? {}).length });
+    } catch {
+      setState(null);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (!state) return null;
+  const monthName = new Date(`${state.month}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  const toggle = async () => {
+    const enabled = !state.enabled;
+    if (enabled && !window.confirm(`Turn the stock block on? ${state.blocked} of ${state.judged} agents would be refused new devices this month, judged on ${monthName}.`)) return;
+    setBusy(true);
+    try {
+      await api.put('/kpi/stock-gate', { enabled });
+      toast({ title: enabled ? 'Stock block switched on' : 'Stock block switched off' });
+      await load();
+    } catch (err) {
+      toast({ title: 'Not changed', description: errorText(err, 'Could not change the stock block'), variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${state.enabled ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+      <div className="flex items-start gap-3">
+        <PackageX className={`mt-0.5 h-5 w-5 shrink-0 ${state.enabled ? 'text-red-600' : 'text-gray-400'}`} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-gray-900">Stock block is {state.enabled ? 'on' : 'off'}</p>
+          <p className="mt-0.5 text-xs leading-5 text-gray-600">
+            When on, agents below their New contracts or Quality contracts target last month get no new devices.
+            {' '}With the saved targets, {state.blocked} of {state.judged} agents would be refused this month (judged on {monthName}).
+            New agents and cluster leaders are never blocked; admins can still assign with a reason.
+          </p>
+        </div>
+        <button
+          role="switch"
+          aria-checked={state.enabled}
+          aria-label="Stock block"
+          disabled={busy}
+          onClick={toggle}
+          className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${state.enabled ? 'bg-red-600' : 'bg-gray-300'}`}
+        >
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${state.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Set the monthly targets for one group. An empty box removes that target. */
 export function TargetsDialog({
   group,
@@ -169,6 +236,7 @@ export function TargetsDialog({
           </button>
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+          {group === 'AGENT' && <StockGateSwitch />}
           {definitions.map((d) => (
             <label key={d.key} className="block">
               <span className="flex items-baseline justify-between gap-2">
