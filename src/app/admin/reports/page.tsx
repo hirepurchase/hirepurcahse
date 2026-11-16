@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign, Award, ShieldAlert, Medal } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign, Award, ShieldAlert, Medal, Boxes } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -51,6 +51,13 @@ export default function ReportsPage() {
       icon: Package,
       color: 'text-purple-600 bg-purple-100',
       path: '/admin/reports/inventory',
+    },
+    {
+      title: 'Agent Stock',
+      description: 'Devices each agent is holding, their value, and how long they have had them',
+      icon: Boxes,
+      color: 'text-indigo-600 bg-indigo-100',
+      path: '/admin/reports/agent-stock',
     },
     {
       title: 'Preapprovals Report',
