@@ -37,6 +37,18 @@ interface Issues {
   stale: IssueRow[];
   soldNotEnrolled?: Array<{ inventoryItemId: string; imei: string; contractId: string | null; contractNumber: string | null; contractStatus: string | null; customer: string | null; customerPhone: string | null; enrolment: string | null }>;
   callbackErrors?: Array<{ id: string; imei: string; notifyType: string; error: string | null; createdAt: string }>;
+  removedWhileOwing?: Array<{
+    deviceId: string;
+    imei: string;
+    contractId: string;
+    contractNumber: string;
+    contractStatus: string;
+    outstanding: number;
+    customer: string;
+    customerPhone: string | null;
+    lastError: string | null;
+    removedAt: string;
+  }>;
   sweep: { lastSweepAt: string | null; late: boolean };
 }
 
@@ -75,6 +87,27 @@ export default function PayTriggerIssues() {
           {issues.sweep.lastSweepAt ? ` (last ${formatDateTime(issues.sweep.lastSweepAt)})` : ''}. Overdue phones still lock themselves,
           but missed payments may not have reached their phones.
         </p>
+      )}
+
+      {(issues.removedWhileOwing?.length ?? 0) > 0 && (
+        <Section
+          title={`Lock removed while the customer still owes (${issues.removedWhileOwing!.length})`}
+          subtitle="PayTrigger no longer controls these phones and this cannot be undone here. Take each one up with Transsion and follow up with the customer."
+        >
+          <ul className="divide-y divide-gray-100">
+            {issues.removedWhileOwing!.map((r) => (
+              <li key={r.deviceId} className="py-2.5">
+                <p className="text-sm font-semibold text-red-700">{r.customer}</p>
+                <p className="text-xs text-gray-500">
+                  <Link href={`/admin/contracts/${r.contractId}`} className="font-medium text-blue-600 hover:underline">{r.contractNumber}</Link>
+                  {' '}· {r.contractStatus.replace(/_/g, ' ').toLowerCase()} · owes {formatCurrency(r.outstanding)} · IMEI {r.imei} · removed {formatDateTime(r.removedAt)}
+                </p>
+                {r.lastError && <p className="text-xs text-red-700">{r.lastError}</p>}
+                {r.customerPhone && <PhoneLink number={r.customerPhone} />}
+              </li>
+            ))}
+          </ul>
+        </Section>
       )}
 
       <Section

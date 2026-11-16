@@ -64,7 +64,10 @@ export default function PayTriggerSettingsPage() {
       const { data } = await api.put('/paytrigger/settings', editable);
       setS(data.settings);
       setDirty(false);
-      toast({ title: 'Settings saved' });
+      toast({
+        title: 'Settings saved',
+        description: data.recheckingPhones ? 'Every Transsion phone is being updated to match. This takes a few minutes.' : undefined,
+      });
     } catch (err) {
       toast({ title: 'Not saved', description: errorText(err, 'Request failed'), variant: 'destructive' });
     } finally {
