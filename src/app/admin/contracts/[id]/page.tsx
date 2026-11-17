@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2, Smartphone, Shield, Lock, Unlock, RefreshCw, Loader2, Settings } from 'lucide-react';
+import { ArrowLeft, Edit, FileText, User, Package, Calendar, Banknote, CalendarRange, Pencil, AlertTriangle, Trash2, Smartphone, Shield, Lock, Unlock, RefreshCw, Loader2, Settings, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +118,10 @@ export default function ContractDetailsPage() {
   const [showNullifyDialog, setShowNullifyDialog] = useState(false);
   const [nullifyConfirmText, setNullifyConfirmText] = useState('');
   const [isNullifying, setIsNullifying] = useState(false);
+  // Reversing a Mobile Money payment (refunded or charged back at the gateway). Super admins only.
+  const [reversingPayment, setReversingPayment] = useState<any | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
+  const [isReversing, setIsReversing] = useState(false);
   const [amendSummary, setAmendSummary] = useState<any>(null);
   const [amendFormData, setAmendFormData] = useState({
     totalPrice: '',
@@ -544,6 +548,25 @@ export default function ContractDetailsPage() {
       setContract(response.data);
     } catch (error: any) {
       toast({ title: 'Error', description: error.response?.data?.error || 'Failed to delete payment', variant: 'destructive' });
+    }
+  };
+
+  const isSuperAdmin = adminUser?.role === 'SUPER_ADMIN';
+
+  const handleReversePayment = async () => {
+    if (!reversingPayment || reverseReason.trim().length < 5) return;
+    setIsReversing(true);
+    try {
+      const res = await api.post(`/payments/${reversingPayment.id}/reverse`, { reason: reverseReason.trim() });
+      toast({ title: 'Payment reversed', description: res.data.message });
+      setReversingPayment(null);
+      setReverseReason('');
+      const response = await api.get(`/contracts/admin/${params.id}`);
+      setContract(response.data);
+    } catch (error: any) {
+      toast({ title: 'Not reversed', description: error.response?.data?.error || 'Failed to reverse the payment', variant: 'destructive' });
+    } finally {
+      setIsReversing(false);
     }
   };
 
@@ -1381,6 +1404,8 @@ export default function ContractDetailsPage() {
                       <p className="text-xs text-gray-500 mt-0.5">{payment.paymentDate ? formatDateTime(payment.paymentDate) : formatDateTime(payment.createdAt)}</p>
                       <p className="text-xs font-mono text-gray-400 truncate">{payment.transactionRef}</p>
                       <p className="text-xs text-gray-500">{payment.paymentMethod?.replace(/_/g, ' ')}</p>
+                      {meta.refundReported && payment.status === 'SUCCESS' && <p className="text-xs font-medium text-amber-700">Refund reported by Paystack</p>}
+                      {payment.status === 'REVERSED' && meta.reversal?.reason && <p className="text-xs text-gray-500">Reversed: {meta.reversal.reason}</p>}
                     </div>
                     {isManual && (
                       <div className="flex gap-1 shrink-0">
@@ -1391,6 +1416,11 @@ export default function ContractDetailsPage() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+                    )}
+                    {!isManual && isSuperAdmin && payment.status === 'SUCCESS' && (
+                      <Button variant="ghost" size="sm" className="shrink-0 text-red-600" aria-label="Reverse payment" onClick={() => { setReverseReason(''); setReversingPayment(payment); }}>
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 );
@@ -1419,13 +1449,21 @@ export default function ContractDetailsPage() {
                         <TableCell className="font-mono text-xs">{payment.transactionRef}</TableCell>
                         <TableCell>{payment.paymentMethod?.replace(/_/g, ' ')}</TableCell>
                         <TableCell className="font-semibold text-green-700">{formatCurrency(payment.amount)}{(payment.unlockFee ?? 0) > 0 && <span className="block text-xs font-normal text-gray-500">incl. {formatCurrency(payment.unlockFee ?? 0)} unlock charge</span>}</TableCell>
-                        <TableCell><Badge className={getStatusColor(payment.status)}>{payment.status}</Badge></TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(payment.status)}>{payment.status}</Badge>
+                          {meta.refundReported && payment.status === 'SUCCESS' && <span className="mt-1 block text-xs font-medium text-amber-700">Refund reported by Paystack</span>}
+                          {payment.status === 'REVERSED' && meta.reversal?.reason && <span className="mt-1 block max-w-[14rem] text-xs text-gray-500">{meta.reversal.reason}</span>}
+                        </TableCell>
                         <TableCell>
                           {isManual ? (
                             <div className="flex gap-2">
                               <Button variant="ghost" size="sm" onClick={() => openEditPaymentDialog(payment)}><Pencil className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDeletePayment(payment)}><Trash2 className="h-4 w-4" /></Button>
                             </div>
+                          ) : isSuperAdmin && payment.status === 'SUCCESS' ? (
+                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => { setReverseReason(''); setReversingPayment(payment); }}>
+                              <Undo2 className="h-4 w-4 mr-1.5" /> Reverse
+                            </Button>
                           ) : <span className="text-xs text-gray-400">Auto</span>}
                         </TableCell>
                       </TableRow>
@@ -1782,6 +1820,43 @@ export default function ContractDetailsPage() {
 
       {/* Write-Off Dialog */}
       {/* Nullify Dialog */}
+      <Dialog open={!!reversingPayment} onOpenChange={(open) => { if (!isReversing && !open) setReversingPayment(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reverse this payment?</DialogTitle>
+          </DialogHeader>
+          {reversingPayment && (
+            <div className="space-y-4 text-sm">
+              <div className="rounded-lg bg-slate-50 p-3 text-slate-700">
+                <p><span className="font-semibold">{formatCurrency(reversingPayment.amount)}</span> · {reversingPayment.paymentMethod?.replace(/_/g, ' ')}</p>
+                <p className="font-mono text-xs text-slate-500">{reversingPayment.transactionRef}</p>
+              </div>
+              <p className="text-slate-600">
+                Use this when the money was refunded or charged back at the payment gateway. The payment stops counting,
+                the contract is recalculated and the phone is judged again. No money is moved here: refund it in the
+                gateway&apos;s dashboard.
+              </p>
+              <div>
+                <Label htmlFor="reverse-reason">Reason</Label>
+                <Textarea
+                  id="reverse-reason"
+                  value={reverseReason}
+                  onChange={(e) => setReverseReason(e.target.value)}
+                  placeholder="e.g. Refunded at Paystack on 17 Nov, customer paid twice"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setReversingPayment(null)} disabled={isReversing}>Cancel</Button>
+                <Button variant="destructive" onClick={() => void handleReversePayment()} disabled={isReversing || reverseReason.trim().length < 5}>
+                  {isReversing ? 'Reversing…' : 'Reverse payment'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showNullifyDialog} onOpenChange={(open) => { if (!isNullifying) { setShowNullifyDialog(open); setNullifyConfirmText(''); } }}>
         <DialogContent>
           <DialogHeader>

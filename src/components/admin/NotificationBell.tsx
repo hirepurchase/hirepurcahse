@@ -10,6 +10,7 @@ function getPaymentMethodLabel(method: string) {
     case 'HUBTEL_DIRECT_DEBIT': return 'Direct Debit';
     case 'HUBTEL_MOMO': return 'Hubtel MoMo';
     case 'HUBTEL_REGULAR': return 'Hubtel Regular';
+    case 'PAYSTACK_MOMO': return 'Paystack MoMo';
     case 'MOBILE_MONEY': return 'Mobile Money';
     case 'CASH': return 'Cash';
     case 'BANK_TRANSFER': return 'Bank Transfer';

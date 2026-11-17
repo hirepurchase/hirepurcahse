@@ -57,6 +57,10 @@ interface IncomeStats {
       amount: number;
     };
   };
+  /** Mobile Money gateways, with the fees they kept (Paystack reports its fee; Hubtel's isn't recorded). */
+  byGateway?: {
+    [gateway: string]: { count: number; amount: number; fees: number; feesKnown: number };
+  };
   byStatus: {
     SUCCESS: number;
     PENDING: number;
@@ -183,6 +187,7 @@ export default function IncomeReportPage() {
       case 'HUBTEL_DIRECT_DEBIT':
       case 'HUBTEL_MOMO':
       case 'HUBTEL_REGULAR':
+      case 'PAYSTACK_MOMO':
       case 'MOBILE_MONEY':
         return <Smartphone className="h-4 w-4" />;
       case 'CASH':
@@ -202,6 +207,8 @@ export default function IncomeReportPage() {
         return 'Hubtel MoMo';
       case 'HUBTEL_REGULAR':
         return 'Hubtel Regular';
+      case 'PAYSTACK_MOMO':
+        return 'Paystack MoMo';
       case 'MOBILE_MONEY':
         return 'Mobile Money';
       case 'CASH':
@@ -308,6 +315,7 @@ export default function IncomeReportPage() {
                   <SelectItem value="HUBTEL_DIRECT_DEBIT">Direct Debit</SelectItem>
                   <SelectItem value="HUBTEL_MOMO">Hubtel MoMo</SelectItem>
                   <SelectItem value="HUBTEL_REGULAR">Hubtel Regular</SelectItem>
+                  <SelectItem value="PAYSTACK_MOMO">Paystack MoMo</SelectItem>
                   <SelectItem value="MOBILE_MONEY">Mobile Money</SelectItem>
                   <SelectItem value="CASH">Cash</SelectItem>
                   <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
@@ -427,6 +435,36 @@ export default function IncomeReportPage() {
                     </div>
                     <div className="text-2xl font-bold">{formatCurrency(data.amount)}</div>
                     <p className="text-xs text-gray-500 mt-1">{data.count} transactions</p>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* What each gateway took in, and what it kept */}
+      {stats?.byGateway && Object.values(stats.byGateway).some((g) => g.count > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>By Gateway</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {Object.entries(stats.byGateway)
+                .filter(([, g]) => g.count > 0)
+                .map(([gateway, g]) => (
+                  <div key={gateway} className="rounded-lg border p-4">
+                    <p className="text-sm font-medium">{gateway === 'PAYSTACK' ? 'Paystack' : gateway === 'HUBTEL' ? 'Hubtel and other' : gateway}</p>
+                    <div className="mt-1 text-2xl font-bold">{formatCurrency(g.amount)}</div>
+                    <p className="mt-1 text-xs text-gray-500">{g.count} payments</p>
+                    {g.feesKnown > 0 ? (
+                      <p className="mt-2 text-xs text-gray-600">
+                        Fees {formatCurrency(g.fees)} · to the bank {formatCurrency(g.amount - g.fees)}
+                        {g.feesKnown < g.count && <span className="block text-gray-400">Fee known for {g.feesKnown} of {g.count}</span>}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-gray-400">Fees not recorded</p>
+                    )}
                   </div>
                 ))}
             </div>

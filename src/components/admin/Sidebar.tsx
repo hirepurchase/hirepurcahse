@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,17 +10,16 @@ import {
   Warehouse,
   FileText,
   CreditCard,
+  Landmark,
   BarChart3,
   Shield,
   History,
-  Settings,
   Bell,
   LogOut,
   AlertCircle,
   MessageSquare,
   ClipboardList,
   ClipboardCheck,
-  ChevronDown,
   ChevronRight,
   KeyRound,
   Upload,
@@ -47,6 +46,23 @@ import {
   ShieldAlert,
   Target,
   PhoneIncoming,
+  Boxes,
+  UserCog,
+  Network,
+  RefreshCw,
+  CalendarX,
+  UserRound,
+  Map as MapIcon,
+  TrendingUp,
+  Headphones,
+  ShoppingCart,
+  Banknote,
+  Lock,
+  PackageOpen,
+  UsersRound,
+  ChartLine,
+  MessagesSquare,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -87,61 +103,81 @@ interface NavItem {
   permissions?: readonly PermissionName[];
   /** Roles that reach this page from their own menu, so it is not listed twice. */
   hideForRoles?: string[];
+  /** Listed only for these roles (pages the server keeps to one role). */
+  onlyForRoles?: string[];
 }
 
 interface NavGroup {
   label: string;
+  /** Shown beside the group's heading (desktop) and its title on the phone. */
+  icon?: LucideIcon;
   items: NavItem[];
   permissions?: readonly PermissionName[];
   roles?: string[];
 }
 
+// One menu for every screen size: the desktop sidebar and the phone's "More"
+// sheet both read this list. Groups follow the work, not the org chart:
+// selling, getting paid, keeping phones locked, stock, people, reports,
+// messages, and settings last. A role's own work comes first for that role.
+//
+// A group with no label is pinned at the top without a heading. A group shows
+// only when at least one of its items does.
+const DEVICE = [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL];
+const OWN_MENU_ROLES = ["AGENT", "CLUSTER_AGENT", "CUSTOMER_SERVICE"];
+
 const navGroups: NavGroup[] = [
   {
-    label: "Overview",
+    label: "",
     items: [
-      { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-      // Deliberately not shown to agents — they see their own officer on their
-      // dashboard instead of the whole directory.
-      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
-      { name: "Cluster Coverage", href: "/admin/cluster-chart", icon: Users, permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
-      { name: "Agent Supervision", href: "/admin/agent-supervision", icon: ShieldCheck, permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
-      { name: "Welcome Call Assignments", href: "/admin/welcome-calls", icon: PhoneIncoming, permissions: [PERMISSIONS.MANAGE_CSO_ASSIGNMENTS] },
+      // Agents, cluster leaders and customer service have their own dashboards in their menu.
+      { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, hideForRoles: OWN_MENU_ROLES },
     ],
   },
+
+  // ── A role's own work ─────────────────────────────────────────────────────
   {
-    label: "Agent Menu",
+    label: "My work",
+    icon: UserRound,
     roles: ["AGENT"],
     items: [
       { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
-      { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
-      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
+      { name: "My KPIs", href: "/admin/kpi", icon: Target },
+      { name: "Price Chart", href: "/admin/price-chart", icon: Tags },
     ],
   },
   {
-    label: "Cluster Menu",
+    label: "My cluster",
+    icon: MapIcon,
     roles: ["CLUSTER_AGENT"],
     items: [
       { name: "Dashboard", href: "/admin/cluster/dashboard", icon: LayoutDashboard },
-      { name: "Temporary Unlocks", href: "/admin/temporary-unlocks", icon: Unlock, permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
-      { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Package, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "Cluster Contracts", href: "/admin/contracts", icon: FileText, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "Overdue", href: "/admin/agent/overdue", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Due Tomorrow", href: "/admin/agent/upcoming", icon: CalendarClock, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
-      { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
-      { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
-      { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
-      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [] as PermissionName[] },
+      { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Boxes, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "Temporary Unlocks", href: "/admin/temporary-unlocks", icon: Unlock, permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
     ],
   },
   {
-    label: "Customer Service",
+    label: "My sales",
+    icon: TrendingUp,
+    roles: ["CLUSTER_AGENT"],
+    items: [
+      { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
+      { name: "My KPIs", href: "/admin/kpi", icon: Target },
+      { name: "Price Chart", href: "/admin/price-chart", icon: Tags },
+    ],
+  },
+  {
+    label: "Customer service",
+    icon: Headphones,
     roles: ["CUSTOMER_SERVICE"],
     items: [
       { name: "Dashboard", href: "/admin/customer-service/dashboard", icon: LayoutDashboard },
-      { name: "My KPIs", href: "/admin/kpi", icon: Target, permissions: [] as PermissionName[] },
       {
         name: "Welcome Calls",
         href: "/admin/customer-service/verification",
@@ -155,23 +191,20 @@ const navGroups: NavGroup[] = [
       { name: "Call Queue", href: "/admin/customer-service/call-queue", icon: PhoneCall, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Follow-ups", href: "/admin/customer-service/follow-ups", icon: CalendarClock, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "My Agents", href: "/admin/customer-service/my-agents", icon: Briefcase, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
-      { name: "Call Logs", href: "/admin/call-logs", icon: History, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Customers", href: "/admin/customers", icon: Users, permissions: [PERMISSIONS.VIEW_ASSIGNED_CUSTOMERS] },
+      { name: "Call Logs", href: "/admin/call-logs", icon: History, permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
       { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: [PERMISSIONS.SEND_SMS] },
+      { name: "My KPIs", href: "/admin/kpi", icon: Target },
     ],
   },
+
+  // ── The business ──────────────────────────────────────────────────────────
   {
-    label: "Customers",
-    permissions: CUSTOMER_ACCESS_PERMISSIONS,
+    label: "Sales",
+    icon: ShoppingCart,
     items: [
-      { name: "Customers", href: "/admin/customers", icon: Users, permissions: CUSTOMER_ACCESS_PERMISSIONS },
-    ],
-  },
-  {
-    label: "Contracts & Payments",
-    permissions: [...CONTRACT_ACCESS_PERMISSIONS, PERMISSIONS.VIEW_PAYMENTS, ...CONTRACT_APPROVAL_ACCESS_PERMISSIONS],
-    items: [
-      { name: "Contracts", href: "/admin/contracts", icon: FileText, permissions: CONTRACT_ACCESS_PERMISSIONS },
+      { name: "Customers", href: "/admin/customers", icon: Users, permissions: CUSTOMER_ACCESS_PERMISSIONS, hideForRoles: ["CUSTOMER_SERVICE"] },
+      { name: "Contracts", href: "/admin/contracts", icon: FileText, permissions: CONTRACT_ACCESS_PERMISSIONS, hideForRoles: ["CLUSTER_AGENT"] },
       {
         name: "Approvals",
         href: "/admin/contract-approvals",
@@ -180,8 +213,14 @@ const navGroups: NavGroup[] = [
         badgeColor: "amber",
         permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
       },
-      // Anyone given welcome calls; customer service have it in their own menu.
+      // Customer service have it in their own menu.
       { name: "Welcome Calls", href: "/admin/customer-service/verification", icon: PhoneIncoming, permissions: [PERMISSIONS.VERIFY_CUSTOMER], hideForRoles: ["CUSTOMER_SERVICE"] },
+    ],
+  },
+  {
+    label: "Payments",
+    icon: Banknote,
+    items: [
       {
         name: "Payments",
         href: "/admin/payments",
@@ -190,53 +229,17 @@ const navGroups: NavGroup[] = [
         badgeColor: "red",
         permissions: [PERMISSIONS.VIEW_PAYMENTS],
       },
-      { name: "Payment Management", href: "/admin/failed-payments", icon: AlertCircle, permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
+      { name: "Failed Payments", href: "/admin/failed-payments", icon: AlertCircle, permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
+      { name: "Agent Deposits", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
+      { name: "Completion Pay", href: "/admin/agent/completion-commissions", icon: Gift, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
     ],
   },
   {
-    label: "Inventory",
-    permissions: [PERMISSIONS.MANAGE_PRODUCTS, PERMISSIONS.MANAGE_INVENTORY],
+    label: "Device locking",
+    icon: Lock,
     items: [
-      { name: "Products", href: "/admin/products", icon: Package, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
-      { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
-      { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Package, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
-      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
-    ],
-  },
-  {
-    label: "Communications",
-    permissions: [PERMISSIONS.MANAGE_SETTINGS],
-    items: [
-      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "SMS Log", href: "/admin/sms/log", icon: ClipboardList, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Notifications", href: "/admin/settings/notifications", icon: Bell, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Retry Settings", href: "/admin/settings/retry-settings", icon: ClipboardCheck, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-    ],
-  },
-  {
-    label: "Reports",
-    permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS],
-    items: [
-      { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
-      { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", icon: ShieldAlert, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
-      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", icon: Medal, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
-      { name: "KPIs", href: "/admin/kpi", icon: Target, permissions: [PERMISSIONS.VIEW_REPORTS] },
-    ],
-  },
-  {
-    label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL, PERMISSIONS.MANAGE_AGENT_LEDGER, PERMISSIONS.MANAGE_COMMISSION_SETTINGS, PERMISSIONS.MANAGE_ANNOUNCEMENTS],
-    items: [
-      { name: "Import Data", href: "/admin/import", icon: Upload, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Announcements", href: "/admin/announcements", icon: Megaphone, permissions: [PERMISSIONS.MANAGE_ANNOUNCEMENTS] },
-      { name: "Users", href: "/admin/users", icon: Settings, permissions: [PERMISSIONS.MANAGE_USERS] },
-      { name: "Roles & Permissions", href: "/admin/roles", icon: Shield, permissions: [PERMISSIONS.MANAGE_ROLES] },
-      { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
-      { name: "Call Logs", href: "/admin/call-logs", icon: PhoneCall, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
-      { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "PayTrigger", href: "/admin/paytrigger", icon: TabletSmartphone, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "Device Control", href: "/admin/device-control", icon: Shield, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "Device Lock Issues", href: "/admin/device-issues", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Device Control", href: "/admin/device-control", icon: Shield, permissions: DEVICE },
+      { name: "Lock Issues", href: "/admin/device-issues", icon: AlertTriangle, permissions: DEVICE },
       {
         name: "Temporary Unlocks",
         href: "/admin/temporary-unlocks",
@@ -246,12 +249,67 @@ const navGroups: NavGroup[] = [
         badge: (_pc, _ac, tu) => (tu > 0 ? tu : null),
         badgeColor: "amber",
         permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS],
+        hideForRoles: ["CLUSTER_AGENT"],
       },
-      { name: "Paid Temporary Unlock", href: "/admin/paid-unlock", icon: LockOpen, permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "Agent Ledger", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
-      { name: "Completion Commissions", href: "/admin/agent/completion-commissions", icon: Gift, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
-      { name: "Commission Settings", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
-      { name: "Expiry Penalties", href: "/admin/settings/penalties", icon: AlertTriangle, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Paid Unlocks", href: "/admin/paid-unlock", icon: LockOpen, permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
+      { name: "Knox Guard", href: "/admin/knox", icon: Smartphone, permissions: DEVICE },
+      { name: "PayTrigger", href: "/admin/paytrigger", icon: TabletSmartphone, permissions: DEVICE },
+    ],
+  },
+  {
+    label: "Inventory",
+    icon: PackageOpen,
+    items: [
+      { name: "Inventory", href: "/admin/inventory", icon: Warehouse, permissions: [PERMISSIONS.MANAGE_INVENTORY] },
+      { name: "Products", href: "/admin/products", icon: Package, permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
+      { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Boxes, permissions: [PERMISSIONS.MANAGE_INVENTORY], hideForRoles: ["CLUSTER_AGENT"] },
+      { name: "Price Chart", href: "/admin/price-chart", icon: Tags, permissions: [PERMISSIONS.MANAGE_PRODUCTS], hideForRoles: ["AGENT", "CLUSTER_AGENT"] },
+    ],
+  },
+  {
+    label: "Team",
+    icon: UsersRound,
+    items: [
+      { name: "Users", href: "/admin/users", icon: UserCog, permissions: [PERMISSIONS.MANAGE_USERS] },
+      { name: "Agent Supervision", href: "/admin/agent-supervision", icon: ShieldCheck, permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
+      { name: "Cluster Coverage", href: "/admin/cluster-chart", icon: Network, permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
+      // Deliberately not shown to agents: they see their own officer on their dashboard.
+      { name: "Customer Service", href: "/admin/customer-service-chart", icon: Headset, permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
+      { name: "Call Assignments", href: "/admin/welcome-calls", icon: PhoneIncoming, permissions: [PERMISSIONS.MANAGE_CSO_ASSIGNMENTS] },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: ChartLine,
+    items: [
+      { name: "Reports", href: "/admin/reports", icon: BarChart3, permissions: [PERMISSIONS.VIEW_REPORTS] },
+      { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", icon: ShieldAlert, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
+      { name: "KPIs", href: "/admin/kpi", icon: Target, permissions: [PERMISSIONS.VIEW_REPORTS], hideForRoles: OWN_MENU_ROLES },
+      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", icon: Medal, permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
+      { name: "Call Logs", href: "/admin/call-logs", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS], hideForRoles: ["CUSTOMER_SERVICE"] },
+    ],
+  },
+  {
+    label: "Messages",
+    icon: MessagesSquare,
+    items: [
+      { name: "Send SMS", href: "/admin/sms", icon: MessageSquare, permissions: [PERMISSIONS.MANAGE_SETTINGS], hideForRoles: ["CUSTOMER_SERVICE"] },
+      { name: "SMS Log", href: "/admin/sms/log", icon: ClipboardList, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Announcements", href: "/admin/announcements", icon: Megaphone, permissions: [PERMISSIONS.MANAGE_ANNOUNCEMENTS] },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    items: [
+      { name: "Payment Gateway", href: "/admin/settings/payment-gateway", icon: Landmark, permissions: [PERMISSIONS.MANAGE_SETTINGS], onlyForRoles: ["SUPER_ADMIN"] },
+      { name: "Payment Retries", href: "/admin/settings/retry-settings", icon: RefreshCw, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Commissions", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
+      { name: "Expiry Penalties", href: "/admin/settings/penalties", icon: CalendarX, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Notifications", href: "/admin/settings/notifications", icon: Bell, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Roles & Permissions", href: "/admin/roles", icon: KeyRound, permissions: [PERMISSIONS.MANAGE_ROLES] },
+      { name: "Import Data", href: "/admin/import", icon: Upload, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Audit Trail", href: "/admin/audit", icon: History, permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
     ],
   },
 ];
@@ -264,131 +322,87 @@ const PRIMARY_TABS = [
   { name: "Payments",  href: "/admin/payments",   icon: CreditCard,      permissions: [PERMISSIONS.VIEW_PAYMENTS] },
 ];
 
-const MORE_GROUPS: Array<{
-  label: string;
-  permissions?: readonly PermissionName[];
-  roles?: string[];
-  links: { name: string; href: string; emoji: string; permissions: readonly PermissionName[]; hideForRoles?: string[] }[];
-}> = [
-  {
-    label: "Directory",
-    permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS,
-    links: [
-      { name: "Customer Service", href: "/admin/customer-service-chart", emoji: "🎧", permissions: CUSTOMER_SERVICE_CHART_PERMISSIONS },
-      { name: "Cluster Coverage", href: "/admin/cluster-chart", emoji: "🗺️", permissions: [PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS, PERMISSIONS.MANAGE_USERS] },
-      { name: "Agent Supervision", href: "/admin/agent-supervision", emoji: "🧭", permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_CSO_ASSIGNMENTS, PERMISSIONS.MANAGE_CLUSTER_ASSIGNMENTS] },
-      { name: "Welcome Call Assignments", href: "/admin/welcome-calls", emoji: "📲", permissions: [PERMISSIONS.MANAGE_CSO_ASSIGNMENTS] },
-    ],
-  },
-  {
-    label: "Agent Menu",
-    roles: ["AGENT"],
-    links: [
-      { name: "Dashboard",     href: "/admin/agent/dashboard",  emoji: "🏠", permissions: [] as PermissionName[] },
-      { name: "My Contracts",  href: "/admin/agent/contracts",  emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
-      { name: "Deposit Ledger",href: "/admin/agent/deposits",   emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
-      { name: "My KPIs",       href: "/admin/kpi",              emoji: "🎯", permissions: [] as PermissionName[] },
-      { name: "Price Chart",   href: "/admin/price-chart",      emoji: "🏷️", permissions: [] as PermissionName[] },
-    ],
-  },
-  {
-    label: "Cluster Menu",
-    roles: ["CLUSTER_AGENT"],
-    links: [
-      { name: "Dashboard",     href: "/admin/cluster/dashboard", emoji: "🏠", permissions: [] as PermissionName[] },
-      { name: "Temp Unlocks",  href: "/admin/temporary-unlocks", emoji: "🔓", permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
-      { name: "Stock",         href: "/admin/cluster/stock",     emoji: "📦", permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
-      { name: "Cluster Contracts", href: "/admin/contracts",     emoji: "📄", permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
-      { name: "Overdue",       href: "/admin/agent/overdue",     emoji: "⚠️", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
-      { name: "Due Tomorrow",  href: "/admin/agent/upcoming",    emoji: "📅", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
-      { name: "My Contracts",  href: "/admin/agent/contracts",   emoji: "💼", permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
-      { name: "Deposit Ledger",href: "/admin/agent/deposits",    emoji: "💰", permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
-      { name: "My KPIs",       href: "/admin/kpi",               emoji: "🎯", permissions: [] as PermissionName[] },
-      { name: "Price Chart",   href: "/admin/price-chart",       emoji: "🏷️", permissions: [] as PermissionName[] },
-    ],
-  },
-  {
-    label: "Customer Service",
-    roles: ["CUSTOMER_SERVICE"],
-    links: [
-      { name: "Dashboard",    href: "/admin/customer-service/dashboard",    emoji: "🏠", permissions: [] as PermissionName[] },
-      { name: "My KPIs",      href: "/admin/kpi",                           emoji: "🎯", permissions: [] as PermissionName[] },
-      { name: "Welcome Calls", href: "/admin/customer-service/verification", emoji: "✅", permissions: [PERMISSIONS.VERIFY_CUSTOMER] },
-      { name: "Call Queue",   href: "/admin/customer-service/call-queue",   emoji: "📞", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
-      { name: "Follow-ups",   href: "/admin/customer-service/follow-ups",   emoji: "📅", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
-      { name: "My Agents",    href: "/admin/customer-service/my-agents",    emoji: "💼", permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
-      { name: "Temp Unlocks", href: "/admin/temporary-unlocks",            emoji: "🔓", permissions: [PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
-      { name: "Call Logs",    href: "/admin/call-logs",                    emoji: "🗒️", permissions: [PERMISSIONS.MANAGE_CONTACT_ATTEMPTS] },
-      { name: "Customers",    href: "/admin/customers",                    emoji: "👥", permissions: [PERMISSIONS.VIEW_ASSIGNED_CUSTOMERS] },
-      { name: "Send SMS",     href: "/admin/sms",                          emoji: "💬", permissions: [PERMISSIONS.SEND_SMS] },
-    ],
-  },
-  {
-    label: "Inventory",
-    permissions: [PERMISSIONS.MANAGE_PRODUCTS, PERMISSIONS.MANAGE_INVENTORY],
-    links: [
-      { name: "Products",    href: "/admin/products",    emoji: "📦", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
-      { name: "Inventory",   href: "/admin/inventory",   emoji: "🏭", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
-      { name: "Stock by Agent", href: "/admin/cluster/stock", emoji: "📦", permissions: [PERMISSIONS.MANAGE_INVENTORY] },
-      { name: "Price Chart", href: "/admin/price-chart", emoji: "🏷️", permissions: [PERMISSIONS.MANAGE_PRODUCTS] },
-    ],
-  },
-  {
-    label: "Contract Approvals",
-    permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS,
-    links: [
-      { name: "Approvals", href: "/admin/contract-approvals", emoji: "📋", permissions: CONTRACT_APPROVAL_ACCESS_PERMISSIONS },
-      { name: "Welcome Calls", href: "/admin/customer-service/verification", emoji: "📞", permissions: [PERMISSIONS.VERIFY_CUSTOMER], hideForRoles: ["CUSTOMER_SERVICE"] },
-    ],
-  },
-  {
-    label: "Payments",
-    permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS],
-    links: [
-      { name: "Payment Mgmt", href: "/admin/failed-payments", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
-    ],
-  },
-  {
-    label: "Reports",
-    permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS],
-    links: [
-      { name: "Reports", href: "/admin/reports", emoji: "📊", permissions: [PERMISSIONS.VIEW_REPORTS] },
-      { name: "Portfolio at Risk", href: "/admin/reports/portfolio-at-risk", emoji: "⚠️", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
-      { name: "Cluster Scorecard", href: "/admin/cluster-scorecard", emoji: "🏅", permissions: [PERMISSIONS.VIEW_REPORTS, PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
-      { name: "KPIs", href: "/admin/kpi", emoji: "🎯", permissions: [PERMISSIONS.VIEW_REPORTS] },
-    ],
-  },
-  {
-    label: "Communications",
-    permissions: [PERMISSIONS.MANAGE_SETTINGS],
-    links: [
-      { name: "Send SMS",       href: "/admin/sms",                          emoji: "💬", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "SMS Log",        href: "/admin/sms/log",                      emoji: "📋", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Notifications",  href: "/admin/settings/notifications",       emoji: "🔔", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Retry Settings", href: "/admin/settings/retry-settings",      emoji: "🔄", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-    ],
-  },
-  {
-    label: "Administration",
-    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_ROLES, PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.MANAGE_SETTINGS, PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL, PERMISSIONS.MANAGE_AGENT_LEDGER, PERMISSIONS.MANAGE_COMMISSION_SETTINGS],
-    links: [
-      { name: "Import",              href: "/admin/import",               emoji: "📥", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-      { name: "Users",               href: "/admin/users",                emoji: "👥", permissions: [PERMISSIONS.MANAGE_USERS] },
-      { name: "Roles",               href: "/admin/roles",                emoji: "🔑", permissions: [PERMISSIONS.MANAGE_ROLES] },
-      { name: "Audit Trail",         href: "/admin/audit",                emoji: "🔍", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS] },
-      { name: "Call Logs",           href: "/admin/call-logs",            emoji: "📞", permissions: [PERMISSIONS.VIEW_AUDIT_LOGS, PERMISSIONS.VIEW_REPORTS] },
-      { name: "Knox Guard",          href: "/admin/knox",                 emoji: "🔒", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "PayTrigger",          href: "/admin/paytrigger",           emoji: "📱", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "Device Control",      href: "/admin/device-control",       emoji: "🛡️", permissions: [PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "Temp Unlocks",        href: "/admin/temporary-unlocks",    emoji: "🔓", permissions: [PERMISSIONS.APPROVE_TEMPORARY_UNLOCK, PERMISSIONS.VIEW_TEMPORARY_UNLOCKS] },
-      { name: "Paid Unlock",         href: "/admin/paid-unlock",          emoji: "💳", permissions: [PERMISSIONS.MANAGE_DEVICE_CONTROL] },
-      { name: "Agent Ledger",        href: "/admin/agent/admin-ledger",   emoji: "📒", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
-      { name: "Completion Pay",      href: "/admin/agent/completion-commissions", emoji: "🎁", permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
-      { name: "Commission Settings", href: "/admin/settings/commission",  emoji: "💲", permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
-      { name: "Expiry Penalties",    href: "/admin/settings/penalties",   emoji: "⚠️", permissions: [PERMISSIONS.MANAGE_SETTINGS] },
-    ],
-  },
-];
+// ─── Shared: what this user can see ─────────────────────────────────────────
+
+function useVisibleGroups(userRole: string) {
+  const { hasAnyPermission } = usePermissions();
+  return navGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (i) =>
+          (!i.permissions?.length || hasAnyPermission(i.permissions)) &&
+          !i.hideForRoles?.includes(userRole) &&
+          (!i.onlyForRoles || i.onlyForRoles.includes(userRole))
+      ),
+    }))
+    .filter((g) => g.items.length > 0 && (!g.permissions?.length || hasAnyPermission(g.permissions)) && (!g.roles?.length || g.roles.includes(userRole)));
+}
+
+const ROOT_PAGES = ["/admin/dashboard", "/admin/agent/dashboard", "/admin/cluster/dashboard", "/admin/customer-service/dashboard", "/admin/sms"];
+
+/** The menu item for this page: the longest href that matches, so /admin/sms/log lights SMS Log, not Send SMS. */
+function activeHref(pathname: string | null, hrefs: string[]): string | null {
+  if (!pathname) return null;
+  let best: string | null = null;
+  for (const h of hrefs) {
+    const hit = pathname === h || (!ROOT_PAGES.includes(h) && pathname.startsWith(h + "/")) || (h === "/admin/sms" && pathname === h);
+    if (hit && (!best || h.length > best.length)) best = h;
+  }
+  return best;
+}
+
+// Which groups each person has opened or closed, kept in this browser only.
+// Read through useSyncExternalStore so the server render (no storage) and the
+// browser agree, and every sidebar on the page stays in step.
+const OPEN_KEY = "sidebar.groups";
+const openListeners = new Set<() => void>();
+
+function subscribeOpen(cb: () => void) {
+  openListeners.add(cb);
+  return () => {
+    openListeners.delete(cb);
+  };
+}
+
+function readOpenRaw(): string | null {
+  try {
+    return localStorage.getItem(OPEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeOpen(prefs: Record<string, boolean>) {
+  try {
+    localStorage.setItem(OPEN_KEY, JSON.stringify(prefs));
+  } catch {
+    /* per-browser convenience only */
+  }
+  openListeners.forEach((cb) => cb());
+}
+
+function parseOpen(raw: string | null): Record<string, boolean> {
+  try {
+    const v = raw ? JSON.parse(raw) : {};
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function Badge({ value, color }: { value: number; color?: "red" | "amber" }) {
+  return (
+    <span
+      className={cn(
+        "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums text-white",
+        color === "amber" ? "bg-amber-500" : "bg-red-500"
+      )}
+    >
+      {value > 99 ? "99+" : value}
+    </span>
+  );
+}
 
 // ─── Desktop Sidebar Navigation ─────────────────────────────────────────────
 
@@ -405,115 +419,94 @@ function SidebarNav({
   temporaryUnlockCount: number;
   onNavigate: () => void;
 }) {
-  const { hasAnyPermission } = usePermissions();
   const { user } = useAuth();
   const adminUser = user && "role" in user ? (user as AdminUser) : null;
   const userRole = adminUser?.role ?? "";
+  const groups = useVisibleGroups(userRole);
 
-  const visibleGroups = navGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => (!i.permissions?.length || hasAnyPermission(i.permissions)) && !i.hideForRoles?.includes(userRole)) }))
-    .filter((g) =>
-      g.items.length > 0 &&
-      (!g.permissions?.length || hasAnyPermission(g.permissions)) &&
-      (!g.roles?.length || g.roles.includes(userRole))
+  const current = activeHref(pathname, groups.flatMap((g) => g.items.map((i) => i.href)));
+  const activeGroup = groups.find((g) => g.items.some((i) => i.href === current))?.label ?? null;
+
+  // A group is open if this person said so; otherwise their own menu and the
+  // group holding the current page start open, the rest closed.
+  const prefs = parseOpen(useSyncExternalStore(subscribeOpen, readOpenRaw, () => null));
+  const isOpen = (g: { label: string; roles?: string[] }) => prefs[g.label] ?? (g.label === activeGroup || !!g.roles?.length);
+  const toggle = (g: { label: string; roles?: string[] }) => writeOpen({ ...prefs, [g.label]: !isOpen(g) });
+
+  const badgeOf = (item: NavItem) => item.badge?.(paymentCount, approvalCount, temporaryUnlockCount) ?? null;
+
+  const renderItem = (item: NavItem, nested = false) => {
+    const active = item.href === current;
+    const badge = badgeOf(item);
+    return (
+      <Link
+        key={item.href + item.name}
+        href={item.href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "group/item relative flex items-center gap-3 rounded-md px-2.5 py-[7px] text-[13.5px] transition-colors",
+          active
+            ? "bg-white/[0.09] font-semibold text-white"
+            : "font-medium text-slate-400 hover:bg-white/[0.05] hover:text-slate-100"
+        )}
+      >
+        {active && (
+          <span
+            className={cn("absolute inset-y-1.5 w-[3px] bg-blue-500", nested ? "-left-[10px] rounded-full" : "left-0 rounded-r-full")}
+            aria-hidden="true"
+          />
+        )}
+        <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-blue-400" : "text-slate-500 group-hover/item:text-slate-300")} />
+        <span className="flex-1 truncate">{item.name}</span>
+        {badge !== null && <Badge value={badge} color={item.badgeColor} />}
+      </Link>
     );
-
-  const activeIdx = visibleGroups.findIndex((g) =>
-    g.items.some((i) => pathname === i.href || pathname?.startsWith(i.href + "/"))
-  );
-
-  const [openGroups, setOpenGroups] = useState<Set<number>>(() => {
-    const s = new Set<number>([0]);
-    if (activeIdx >= 0) s.add(activeIdx);
-    return s;
-  });
-
-  const toggleGroup = (idx: number) =>
-    setOpenGroups((p) => { const n = new Set(p); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
+  };
 
   return (
-    <nav className="flex-1 overflow-y-auto sidebar-scroll py-3 px-2.5 space-y-0.5">
-      {visibleGroups.map((group, idx) => {
-        const isOpen = openGroups.has(idx);
-        const single = group.items.length === 1;
-
-        if (single) {
-          const item = group.items[0];
-          const active = pathname === item.href || (item.href !== "/admin/dashboard" && item.href !== "/admin/agent/dashboard" && pathname?.startsWith(item.href + "/"));
-          const badge = item.badge?.(paymentCount, approvalCount, temporaryUnlockCount) ?? null;
+    <nav className="flex-1 overflow-y-auto sidebar-scroll px-2.5 py-3" aria-label="Main">
+      {groups.map((group) => {
+        if (!group.label) {
           return (
-            <div key={idx}>
-              <p className="px-2.5 pt-5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-                {group.label}
-              </p>
-              <Link
-                href={item.href}
-                onClick={onNavigate}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-400 hover:text-white hover:bg-white/8"
-                )}
-              >
-                <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-white" : "text-slate-500")} />
-                <span className="flex-1 truncate">{item.name}</span>
-                {badge !== null && (
-                  <span className={cn(
-                    "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white",
-                    item.badgeColor === "amber" ? "bg-amber-500" : "bg-red-500"
-                  )}>
-                    {badge > 99 ? "99+" : badge}
-                  </span>
-                )}
-              </Link>
+            <div key="pinned" className="mb-2 space-y-0.5 border-b border-white/[0.06] pb-2">
+              {group.items.map((item) => renderItem(item))}
             </div>
           );
         }
-
+        const expanded = isOpen(group);
+        const pending = group.items.reduce((s, i) => s + (badgeOf(i) ?? 0), 0);
+        const pendingColor = group.items.some((i) => (badgeOf(i) ?? 0) > 0 && i.badgeColor === "red") ? "red" : "amber";
+        const id = `nav-${group.label.replace(/\W+/g, "-").toLowerCase()}`;
+        const holdsCurrent = group.label === activeGroup;
         return (
-          <div key={idx}>
+          <div key={group.label} className="mt-1 first:mt-0">
             <button
-              onClick={() => toggleGroup(idx)}
-              className="w-full flex items-center justify-between px-2.5 pt-5 pb-1 group"
+              type="button"
+              onClick={() => toggle(group)}
+              aria-expanded={expanded}
+              aria-controls={id}
+              className={cn(
+                "group/head flex w-full items-center gap-3 rounded-md px-2.5 py-[7px] text-left text-[13.5px] font-semibold transition-colors",
+                holdsCurrent ? "text-white" : "text-slate-300 hover:bg-white/[0.05] hover:text-white"
+              )}
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 group-hover:text-slate-400">
-                {group.label}
-              </p>
-              {isOpen
-                ? <ChevronDown className="h-3 w-3 text-slate-600" />
-                : <ChevronRight className="h-3 w-3 text-slate-600" />}
+              {group.icon && (
+                <group.icon
+                  className={cn("h-4 w-4 shrink-0", holdsCurrent ? "text-blue-400" : "text-slate-400 group-hover/head:text-slate-200")}
+                  aria-hidden="true"
+                />
+              )}
+              <span className="flex-1 truncate">{group.label}</span>
+              {!expanded && pending > 0 && <Badge value={pending} color={pendingColor} />}
+              <ChevronRight
+                className={cn("h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform duration-150", expanded && "rotate-90")}
+                aria-hidden="true"
+              />
             </button>
-            {isOpen && (
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const active = pathname === item.href || (pathname?.startsWith(item.href + "/") && item.href !== "/admin/sms");
-                  const badge = item.badge?.(paymentCount, approvalCount, temporaryUnlockCount) ?? null;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onNavigate}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-blue-600 text-white"
-                          : "text-slate-400 hover:text-white hover:bg-white/8"
-                      )}
-                    >
-                      <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-white" : "text-slate-500")} />
-                      <span className="flex-1 truncate">{item.name}</span>
-                      {badge !== null && (
-                        <span className={cn(
-                          "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white",
-                          item.badgeColor === "amber" ? "bg-amber-500" : "bg-red-500"
-                        )}>
-                          {badge > 99 ? "99+" : badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
+            {expanded && (
+              <div id={id} className="ml-[18px] mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
+                {group.items.map((item) => renderItem(item, true))}
               </div>
             )}
           </div>
@@ -521,6 +514,26 @@ function SidebarNav({
       })}
     </nav>
   );
+}
+
+/** The bottom tabs on a phone: each role's own home and main lists. */
+function primaryTabs(userRole?: string) {
+  return PRIMARY_TABS.map((t) => {
+    if (userRole === "AGENT") {
+      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/agent/dashboard" };
+      if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
+    }
+    if (userRole === "CLUSTER_AGENT") {
+      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/cluster/dashboard" };
+      if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
+    }
+    if (userRole === "CUSTOMER_SERVICE") {
+      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/customer-service/dashboard" };
+      if (t.href === "/admin/contracts") return { ...t, name: "Verify", href: "/admin/customer-service/verification", icon: UserCheck };
+      if (t.href === "/admin/payments") return { ...t, name: "Call Queue", href: "/admin/customer-service/call-queue", icon: PhoneCall };
+    }
+    return t;
+  });
 }
 
 // ─── Mobile Bottom Tab Bar ──────────────────────────────────────────────────
@@ -542,23 +555,7 @@ function MobileTabBar({
 }) {
   const { hasAnyPermission } = usePermissions();
 
-  const effectiveTabs = PRIMARY_TABS.map((t) => {
-    if (userRole === "AGENT") {
-      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/agent/dashboard" };
-      if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
-    }
-    if (userRole === "CLUSTER_AGENT") {
-      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/cluster/dashboard" };
-      if (t.href === "/admin/contracts") return { ...t, name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase };
-    }
-    if (userRole === "CUSTOMER_SERVICE") {
-      if (t.href === "/admin/dashboard") return { ...t, href: "/admin/customer-service/dashboard" };
-      if (t.href === "/admin/contracts") return { ...t, name: "Verify", href: "/admin/customer-service/verification", icon: UserCheck };
-      if (t.href === "/admin/payments") return { ...t, name: "Call Queue", href: "/admin/customer-service/call-queue", icon: PhoneCall };
-    }
-    return t;
-  });
-  const tabs = effectiveTabs.filter((t) => !t.permissions.length || hasAnyPermission(t.permissions));
+  const tabs = primaryTabs(userRole).filter((t) => !t.permissions.length || hasAnyPermission(t.permissions));
 
   const isActive = (href: string) =>
     pathname === href ||
@@ -644,6 +641,9 @@ function MoreBottomSheet({
   onClose,
   user,
   pathname,
+  paymentCount,
+  approvalCount,
+  temporaryUnlockCount,
   onLogout,
 }: {
   open: boolean;
@@ -651,23 +651,18 @@ function MoreBottomSheet({
   user: AdminUser | null;
   pathname: string | null;
   paymentCount: number;
+  approvalCount: number;
+  temporaryUnlockCount: number;
   onLogout: () => void;
 }) {
   const { hasAnyPermission } = usePermissions();
   const userRole = user?.role ?? "";
-
-  const visibleGroups = MORE_GROUPS
-    .map((g) => ({
-      ...g,
-      links: g.links.filter((l) => (!l.permissions.length || hasAnyPermission(l.permissions)) && !l.hideForRoles?.includes(userRole)),
-    }))
-    .filter((g) =>
-      g.links.length > 0 &&
-      (!g.permissions?.length || hasAnyPermission(g.permissions)) &&
-      (!g.roles?.length || g.roles.includes(userRole))
-    );
-
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
+  // The bottom tabs are already one tap away: the sheet holds everything else.
+  const onTabs = new Set(primaryTabs(userRole).filter((t) => !t.permissions.length || hasAnyPermission(t.permissions)).map((t) => t.href));
+  const visibleGroups = useVisibleGroups(userRole)
+    .map((g) => ({ ...g, items: g.items.filter((i) => !onTabs.has(i.href)) }))
+    .filter((g) => g.items.length > 0);
+  const current = activeHref(pathname, visibleGroups.flatMap((g) => g.items.map((i) => i.href)));
 
   return (
     <>
@@ -714,30 +709,44 @@ function MoreBottomSheet({
         {/* Grid groups */}
         <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-5">
           {visibleGroups.map((group) => (
-            <div key={group.label}>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5 px-1">
-                {group.label}
-              </p>
+            <div key={group.label || "pinned"}>
+              {group.label && (
+                <p className="mb-2.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+                  {group.icon && <group.icon className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />}
+                  {group.label}
+                </p>
+              )}
               <div className="grid grid-cols-3 gap-2">
-                {group.links.map((link) => {
-                  const active = isActive(link.href);
+                {group.items.map((item) => {
+                  const active = item.href === current;
+                  const badge = item.badge?.(paymentCount, approvalCount, temporaryUnlockCount) ?? null;
                   return (
                     <Link
-                      key={link.href}
-                      href={link.href}
+                      key={item.href + item.name}
+                      href={item.href}
                       onClick={onClose}
+                      aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex flex-col items-center gap-2 py-4 px-2 rounded-xl text-center transition-all",
-                        active
-                          ? "bg-blue-600 shadow-md"
-                          : "bg-gray-50 border border-gray-200 hover:bg-gray-100 active:scale-95"
+                        "relative flex flex-col items-center gap-2 rounded-xl px-2 py-3.5 text-center transition-all active:scale-95",
+                        active ? "bg-blue-600 shadow-md" : "border border-gray-200 bg-gray-50 hover:bg-gray-100"
                       )}
                     >
-                      <span className="text-2xl leading-none">{link.emoji}</span>
-                      <span className={cn(
-                        "text-[11px] font-semibold leading-tight",
-                        active ? "text-white" : "text-gray-700"
-                      )}>{link.name}</span>
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-lg",
+                          active ? "bg-white/15 text-white" : "bg-white text-blue-600 shadow-sm ring-1 ring-gray-200"
+                        )}
+                      >
+                        <item.icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                      </span>
+                      <span className={cn("text-[11px] font-semibold leading-tight", active ? "text-white" : "text-gray-700")}>
+                        {item.name}
+                      </span>
+                      {badge !== null && (
+                        <span className="absolute right-1.5 top-1.5">
+                          <Badge value={badge} color={item.badgeColor} />
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -781,7 +790,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex h-full w-60 shrink-0 flex-col bg-slate-900 border-r border-slate-800">
+      <div className="hidden lg:flex h-full w-64 shrink-0 flex-col bg-slate-900 border-r border-slate-800">
         {/* Brand strip */}
         <div className="h-14 flex items-center gap-2.5 px-4 border-b border-slate-800 shrink-0">
           <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
@@ -826,6 +835,8 @@ export default function Sidebar() {
         user={adminUser}
         pathname={pathname}
         paymentCount={paymentCount}
+        approvalCount={approvalCount}
+        temporaryUnlockCount={temporaryUnlockCount}
         onLogout={handleLogout}
       />
     </>

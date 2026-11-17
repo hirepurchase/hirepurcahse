@@ -78,6 +78,14 @@ export default function CustomerContractPaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [transactionRef, setTransactionRef] = useState('');
+  // Telecel through Paystack: a code arrives by SMS and is typed in here.
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otpSubmitting, setOtpSubmitting] = useState(false);
+  const [pendingAmount, setPendingAmount] = useState(0);
+  // What the gateway says to do (Paystack can explain how to approve without a pop-up).
+  const [promptMessage, setPromptMessage] = useState('');
   const [showSchedule, setShowSchedule] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
 
@@ -158,17 +166,27 @@ export default function CustomerContractPaymentPage() {
     setPaymentStatus('pending');
 
     try {
-      const response = await api.post('/payments/hubtel/initiate', {
+      const response = await api.post('/payments/momo/initiate', {
         contractId: contract.id,
         amount: paymentAmount,
         phoneNumber,
         network,
+        // This page can ask for the SMS code Paystack sends Telecel payers.
+        otpCapable: true,
       });
 
       setTransactionRef(response.data.transactionRef);
+      setPendingAmount(paymentAmount);
+      if (response.data.otpRequired) {
+        setOtpRequired(true);
+        setOtp('');
+        setOtpMessage(response.data.message || 'Enter the code sent to your phone by SMS.');
+        return;
+      }
+      setPromptMessage(response.data.message || '');
       toast({
         title: 'Payment Initiated',
-        description: 'Please check your phone and approve the payment prompt',
+        description: response.data.message || 'Please check your phone and approve the payment prompt',
       });
       pollPaymentStatus(response.data.transactionRef, paymentAmount);
     } catch (error: unknown) {
@@ -183,13 +201,66 @@ export default function CustomerContractPaymentPage() {
     }
   };
 
+  const submitOtp = async () => {
+    if (!/^\d{4,8}$/.test(otp.trim())) {
+      setOtpMessage('Enter the code from the SMS: 4 to 8 digits.');
+      return;
+    }
+    setOtpSubmitting(true);
+    try {
+      const res = await api.post(`/payments/momo/${transactionRef}/otp`, { otp: otp.trim() });
+      if (res.data.otpRequired) {
+        setOtpMessage(res.data.message || 'That code was not accepted. Check the SMS and try again.');
+        return;
+      }
+      setOtpRequired(false);
+      if (res.data.status === 'FAILED') {
+        setPaymentStatus('failed');
+        setIsProcessing(false);
+        toast({ title: 'Payment Failed', description: res.data.message || 'The payment did not go through.', variant: 'destructive' });
+        return;
+      }
+      setPromptMessage(res.data.message || '');
+      toast({ title: 'Code accepted', description: res.data.message || 'Approve the payment on your phone.' });
+      pollPaymentStatus(transactionRef, pendingAmount);
+    } catch (error: unknown) {
+      setOtpMessage(errorMessage(error) || 'Could not send the code. Please try again.');
+    } finally {
+      setOtpSubmitting(false);
+    }
+  };
+
+  // Tell the server, so the payment stops counting as waiting. If it turns out
+  // to have gone through already, it is credited and shown as paid.
+  const cancelOtp = async () => {
+    setOtpSubmitting(true);
+    try {
+      const res = await api.post(`/payments/momo/${transactionRef}/cancel`);
+      if (res.data.status === 'SUCCESS') {
+        setOtpRequired(false);
+        setPaymentStatus('success');
+        setIsProcessing(false);
+        loadContract();
+        return;
+      }
+    } catch {
+      /* the payment will time out on its own */
+    } finally {
+      setOtpSubmitting(false);
+    }
+    setOtpRequired(false);
+    setOtp('');
+    setPaymentStatus('idle');
+    setIsProcessing(false);
+  };
+
   const pollPaymentStatus = async (txnRef: string, paid: number) => {
     let attempts = 0;
     const maxAttempts = 60; // Poll for up to 2 minutes
 
     const poll = async () => {
       try {
-        const response = await api.get(`/payments/hubtel/status/${txnRef}`);
+        const response = await api.get(`/payments/momo/status/${txnRef}`);
         const status = response.data.status;
 
         if (status === 'SUCCESS') {
@@ -215,7 +286,7 @@ export default function CustomerContractPaymentPage() {
           return;
         }
       } catch {
-        // Expected while Hubtel has not registered the payment yet.
+        // Expected while the gateway has not registered the payment yet.
       }
       attempts++;
       if (attempts < maxAttempts) {
@@ -267,7 +338,9 @@ export default function CustomerContractPaymentPage() {
   const scheduleRows = showAllRows ? unpaid : unpaid.slice(0, SCHEDULE_PREVIEW);
   const payDisabled = !canMakePayment || isProcessing || paymentAmount <= 0;
 
-  const payButtonLabel = isProcessing ? (
+  const payButtonLabel = isProcessing && otpRequired ? (
+    <>Enter the SMS code above</>
+  ) : isProcessing ? (
     <><Clock className="h-4 w-4 mr-2 animate-spin" />Waiting for approval…</>
   ) : (
     <><Smartphone className="h-4 w-4 mr-2" />Pay {formatCurrency(paymentAmount)}</>
@@ -291,11 +364,48 @@ export default function CustomerContractPaymentPage() {
       </div>
 
       {/* Payment Status Alerts */}
-      {paymentStatus === 'pending' && (
+      {paymentStatus === 'pending' && otpRequired && (
+        <Card className="border-blue-200">
+          <CardContent className="space-y-3 p-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Enter the code from the SMS</p>
+              <p className="mt-0.5 text-sm text-slate-600">{otpMessage}</p>
+            </div>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submitOtp();
+              }}
+            >
+              <Input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="Code"
+                aria-label="Code from the SMS"
+                className="max-w-[10rem] text-base tracking-widest"
+                autoFocus
+              />
+              <Button type="submit" disabled={otpSubmitting || otp.length < 4}>
+                {otpSubmitting ? 'Sending…' : 'Continue'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => void cancelOtp()} disabled={otpSubmitting}>
+                Cancel
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+      {paymentStatus === 'pending' && !otpRequired && (
         <Alert className="border-blue-500 bg-blue-50">
           <Clock className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-900 text-sm">
-            Check your phone and enter your Mobile Money PIN to approve. Ref: <strong>{transactionRef}</strong>
+            {promptMessage && !/^Payment initiated/.test(promptMessage)
+              ? promptMessage
+              : 'Check your phone and enter your Mobile Money PIN to approve.'}{' '}
+            Ref: <strong>{transactionRef}</strong>
           </AlertDescription>
         </Alert>
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,6 +10,7 @@ import { ExportButtons } from '@/components/admin/ExportButtons';
 import { ExportOptions } from '@/lib/exportUtils';
 import MyCompletionCommissionsCard from '@/components/admin/MyCompletionCommissionsCard';
 import {
+  Loader2,
   Wallet,
   TrendingUp,
   CheckCircle2,
@@ -73,7 +74,16 @@ interface Summary {
   totalOutstanding: number;
 }
 
-const NETWORKS = ['MTN', 'VODAFONE', 'TELECEL', 'AIRTELTIGO'];
+// The server knows Telecel by its old name, VODAFONE.
+const NETWORKS = [
+  { value: 'MTN', label: 'MTN MoMo' },
+  { value: 'VODAFONE', label: 'Telecel Cash' },
+  { value: 'AIRTELTIGO', label: 'AirtelTigo Money' },
+];
+
+type PayStage = 'form' | 'otp' | 'waiting' | 'done' | 'failed';
+const POLL_MS = 3000;
+const POLL_TRIES = 40; // two minutes
 
 export default function AgentDepositsPage() {
   const { toast } = useToast();
@@ -95,6 +105,12 @@ export default function AgentDepositsPage() {
   const [payModal, setPayModal] = useState<LedgerEntry | null>(null);
   const [payForm, setPayForm] = useState({ phoneNumber: '', network: 'MTN', amount: '' });
   const [paying, setPaying] = useState(false);
+  // After the prompt is sent: the SMS code (Telecel through Paystack), then waiting for the result.
+  const [stage, setStage] = useState<PayStage>('form');
+  const [payRef, setPayRef] = useState('');
+  const [otp, setOtp] = useState('');
+  const [stageMessage, setStageMessage] = useState('');
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,7 +144,87 @@ export default function AgentDepositsPage() {
 
   function openPayModal(entry: LedgerEntry) {
     setPayForm({ phoneNumber: '', network: 'MTN', amount: String(entry.outstandingBalance.toFixed(2)) });
+    setStage('form');
+    setOtp('');
+    setStageMessage('');
     setPayModal(entry);
+  }
+
+  // Cancel on the SMS-code step: tell the server, so this sale can be paid
+  // again straight away (a payment that already went through is credited).
+  async function cancelOtpStep() {
+    try {
+      if (payRef) await api.post(`/agent-deposits/payments/${payRef}/cancel`);
+    } catch {
+      /* it times out on its own */
+    }
+    closePayModal();
+    load();
+  }
+
+  function closePayModal() {
+    if (pollTimer.current) clearTimeout(pollTimer.current);
+    pollTimer.current = null;
+    const settled = stage === 'waiting' || stage === 'done';
+    setPayModal(null);
+    setStage('form');
+    if (settled) load();
+  }
+
+  useEffect(() => () => { if (pollTimer.current) clearTimeout(pollTimer.current); }, []);
+
+  function waitForResult(ref: string, tries = 0) {
+    pollTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/agent-deposits/payments/${ref}/status`);
+        if (res.data.status === 'SUCCESS') {
+          setStage('done');
+          setStageMessage('Payment received. Your ledger has been updated.');
+          load();
+          return;
+        }
+        if (res.data.status === 'FAILED') {
+          setStage('failed');
+          setStageMessage(res.data.failureReason || 'The payment did not go through.');
+          return;
+        }
+      } catch {
+        /* keep waiting */
+      }
+      if (tries + 1 >= POLL_TRIES) {
+        setStageMessage('Still waiting for confirmation. If you approved the payment it will show on your ledger shortly.');
+        return;
+      }
+      waitForResult(ref, tries + 1);
+    }, POLL_MS);
+  }
+
+  async function submitOtp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(otp)) {
+      setStageMessage('Enter the code from the SMS: 4 to 8 digits.');
+      return;
+    }
+    try {
+      setPaying(true);
+      const res = await api.post(`/agent-deposits/payments/${payRef}/otp`, { otp });
+      if (res.data.otpRequired) {
+        setStageMessage(res.data.message || 'That code was not accepted. Check the SMS and try again.');
+        return;
+      }
+      if (res.data.status === 'FAILED') {
+        setStage('failed');
+        setStageMessage(res.data.message || 'The payment did not go through.');
+        return;
+      }
+      setStage('waiting');
+      setStageMessage(res.data.message || 'Approve the payment on your phone.');
+      waitForResult(payRef);
+    } catch (err: any) {
+      setStageMessage(err.response?.data?.error || 'Could not send the code. Please try again.');
+    } finally {
+      setPaying(false);
+    }
   }
 
   async function submitPayment(e: React.FormEvent) {
@@ -145,14 +241,23 @@ export default function AgentDepositsPage() {
     }
     try {
       setPaying(true);
-      await api.post(`/agent-deposits/${payModal.id}/pay`, {
+      const res = await api.post(`/agent-deposits/${payModal.id}/pay`, {
         amount,
         phoneNumber: payForm.phoneNumber,
         network: payForm.network,
+        // This page can ask for the SMS code Paystack sends Telecel payers.
+        otpCapable: true,
       });
-      toast({ title: 'Payment Initiated', description: 'You will receive a prompt on your phone to complete the payment.' });
-      setPayModal(null);
-      load();
+      setPayRef(res.data.transactionRef);
+      if (res.data.otpRequired) {
+        setStage('otp');
+        setOtp('');
+        setStageMessage(res.data.message || 'Enter the code sent to your phone by SMS.');
+        return;
+      }
+      setStage('waiting');
+      setStageMessage(res.data.message || 'You will receive a prompt on your phone to complete the payment.');
+      waitForResult(res.data.transactionRef);
     } catch (err: any) {
       toast({ title: 'Error', description: err.response?.data?.error || 'Payment failed', variant: 'destructive' });
     } finally {
@@ -422,7 +527,7 @@ export default function AgentDepositsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="text-base font-semibold text-gray-900">Remit Deposit Payment</h2>
-              <button onClick={() => setPayModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={closePayModal} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close">
                 <X className="h-4 w-4 text-gray-500" />
               </button>
             </div>
@@ -452,6 +557,53 @@ export default function AgentDepositsPage() {
                 </div>
               </div>
 
+              {stage === 'otp' && (
+                <form onSubmit={submitOtp} className="space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Enter the code from the SMS</p>
+                    <p className="mt-0.5 text-sm text-gray-600">{stageMessage}</p>
+                  </div>
+                  <input
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Code"
+                    aria-label="Code from the SMS"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => void cancelOtpStep()} className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50">
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={paying || otp.length < 4} className="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                      {paying ? 'Sending…' : 'Continue'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {(stage === 'waiting' || stage === 'done' || stage === 'failed') && (
+                <div className="space-y-4">
+                  <div className={`flex items-start gap-2 rounded-lg p-3 text-sm ${stage === 'done' ? 'bg-emerald-50 text-emerald-800' : stage === 'failed' ? 'bg-red-50 text-red-800' : 'bg-blue-50 text-blue-900'}`}>
+                    {stage === 'waiting' && <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />}
+                    <p>{stageMessage}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    {stage === 'failed' && (
+                      <button type="button" onClick={() => { setStage('form'); setStageMessage(''); }} className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50">
+                        Try again
+                      </button>
+                    )}
+                    <button type="button" onClick={closePayModal} className="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-blue-700">
+                      {stage === 'waiting' ? 'Close (keeps waiting)' : 'Close'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {stage === 'form' && (
               <form onSubmit={submitPayment} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Money Number</label>
@@ -471,7 +623,7 @@ export default function AgentDepositsPage() {
                     onChange={(e) => setPayForm({ ...payForm, network: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {NETWORKS.map((n) => <option key={n} value={n}>{n}</option>)}
+                    {NETWORKS.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
                   </select>
                 </div>
                 <div>
@@ -491,7 +643,7 @@ export default function AgentDepositsPage() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setPayModal(null)}
+                    onClick={closePayModal}
                     className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50"
                   >
                     Cancel
@@ -505,6 +657,7 @@ export default function AgentDepositsPage() {
                   </button>
                 </div>
               </form>
+              )}
             </div>
           </div>
         </div>

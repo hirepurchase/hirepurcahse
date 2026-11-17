@@ -72,6 +72,7 @@ export function getStatusColor(status: string): string {
     OVERDUE: 'bg-red-100 text-red-800',
     SUCCESS: 'bg-green-100 text-green-800',
     FAILED: 'bg-red-100 text-red-800',
+    REVERSED: 'bg-slate-200 text-slate-700',
     AVAILABLE: 'bg-blue-100 text-blue-800',
     SOLD: 'bg-gray-100 text-gray-800',
     RESERVED: 'bg-yellow-100 text-yellow-800',
