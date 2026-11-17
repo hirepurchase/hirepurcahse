@@ -293,7 +293,7 @@ export default function PaymentGatewayPage() {
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
         <p className="flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> Short code payments always use Hubtel.</p>
-        <p className="mt-1.5 flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> Telecel payers on older app versions use Hubtel, because Paystack sends Telecel payers a code by SMS that those versions can&apos;t ask for.</p>
+        <p className="mt-1.5 flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> Older app versions always use Hubtel, because Paystack can ask payers for a one-time code that those versions can&apos;t ask for.</p>
         <p className="mt-1.5 flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> Payments already waiting finish on the gateway they started on.</p>
       </div>
 

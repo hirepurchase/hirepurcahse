@@ -47,6 +47,8 @@ interface TestDetail {
   amountMatches: boolean | null;
   events: TestEvent[];
   refunds: Array<{ at: string; ok: boolean; status: string | null; message: string }>;
+  /** Paystack's answers to the charge and to the code, as the server kept them. */
+  answers?: Array<{ at: string; step: string; state: string; message: string }>;
 }
 
 interface RecentTest {
@@ -242,10 +244,12 @@ export default function PaystackTestPage() {
   const live = ps?.mode === "LIVE";
 
   // ── The checks for the test being watched ──
-  const askedTelecel = detail?.asked.network === "VODAFONE" || (!detail && network === "VODAFONE");
+  // Paystack may ask any payer for a one-time code first (Telecel always,
+  // live MTN for a number it hasn't seen), so this follows what it asked.
+  const otpAsked = startState?.state === "OTP_REQUIRED" || otpDone || !!detail?.answers?.some((a) => a.state === "OTP_REQUIRED");
   const needsOtp = startState?.state === "OTP_REQUIRED";
   const promptState: CheckState = !startState ? "wait" : startState.state === "FAILED" ? "fail" : "ok";
-  const otpState: CheckState = !askedTelecel ? "skip" : otpDone ? "ok" : needsOtp ? "wait" : promptState === "fail" ? "skip" : "ok";
+  const otpState: CheckState = !otpAsked ? "skip" : otpDone ? "ok" : needsOtp ? "wait" : "ok";
   const psStatus = detail?.paystack?.status ?? null;
   const paidState: CheckState = psStatus === "success" || psStatus === "reversed" ? "ok" : psStatus === "failed" ? "fail" : promptState === "fail" ? "skip" : "wait";
   const amountState: CheckState = detail?.amountMatches === true ? "ok" : detail?.amountMatches === false ? "fail" : paidState === "fail" || paidState === "skip" ? "skip" : "wait";
@@ -354,7 +358,7 @@ export default function PaystackTestPage() {
               <Input id="test-amount" type="number" min="0.10" max="5" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
             </div>
             <div className="sm:col-span-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-slate-500">GHS 0.10 to GHS 5.00. Try each network you can: Telecel also tests the SMS code step.</p>
+              <p className="text-xs text-slate-500">GHS 0.10 to GHS 5.00. Paystack may ask for a one-time code first (Telecel always asks for a voucher from *110#).</p>
               <Button type="submit" disabled={sending || !ps?.configured}>
                 {sending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />}
                 Send test prompt
@@ -383,7 +387,7 @@ export default function PaystackTestPage() {
                 {startState ? startState.message : "Sending…"}
               </Check>
 
-              <Check state={otpState} title="SMS code (Telecel only)">
+              <Check state={otpState} title="Code step (when Paystack asks)">
                 {needsOtp ? (
                   <form onSubmit={sendOtp} className="mt-2 flex flex-wrap gap-2">
                     <Input
@@ -397,7 +401,7 @@ export default function PaystackTestPage() {
                     />
                     <Button type="submit" size="sm" disabled={otpBusy || otp.length < 4}>{otpBusy ? "Sending…" : "Send code"}</Button>
                   </form>
-                ) : askedTelecel ? (otpDone ? "Code accepted." : "") : "Only Telecel uses a code."}
+                ) : otpAsked ? "Code accepted." : "Paystack didn't ask for a code."}
               </Check>
 
               <Check state={paidState} title="Paystack says paid">
