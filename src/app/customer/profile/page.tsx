@@ -1,7 +1,8 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, CreditCard, Lock, FileText, Banknote } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, CreditCard, Lock, FileText, Banknote, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
 import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import type { Customer, HirePurchaseContract, InstallmentSchedule, PaymentTransaction } from '@/types';
 
@@ -41,6 +43,7 @@ export default function CustomerProfilePage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { logout } = useAuth();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -165,18 +168,21 @@ export default function CustomerProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading your profile…" />
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage your account information</p>
-      </div>
+      <header className="flex flex-wrap items-center justify-between gap-3 workspace-heading workspace-heading--customer">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-950">My Profile</h1>
+          <p className="mt-1 text-sm text-slate-600">Manage your account information</p>
+        </div>
+        <Button variant="outline" onClick={logout}><LogOut aria-hidden="true" /> Sign out</Button>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Profile Info */}

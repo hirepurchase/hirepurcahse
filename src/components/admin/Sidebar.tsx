@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -445,10 +446,10 @@ function SidebarNav({
         onClick={onNavigate}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "group/item relative flex items-center gap-3 rounded-md px-2.5 py-[7px] text-[13.5px] transition-colors",
+          "group/item relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
           active
-            ? "bg-white/[0.09] font-semibold text-white"
-            : "font-medium text-slate-400 hover:bg-white/[0.05] hover:text-slate-100"
+            ? "bg-blue-500/20 font-semibold text-white"
+            : "font-medium text-slate-300 hover:bg-white/[0.07] hover:text-white"
         )}
       >
         {active && (
@@ -465,7 +466,7 @@ function SidebarNav({
   };
 
   return (
-    <nav className="flex-1 overflow-y-auto sidebar-scroll px-2.5 py-3" aria-label="Main">
+    <nav className="flex-1 overflow-y-auto sidebar-scroll px-3 py-4" aria-label="Main">
       {groups.map((group) => {
         if (!group.label) {
           return (
@@ -567,7 +568,7 @@ function MobileTabBar({
   const moreActive = moreOpen || !tabs.some((t) => isActive(t.href));
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 safe-area-bottom">
+    <nav aria-label="Mobile navigation" className="lg:hidden fixed bottom-0 inset-x-0 z-40 safe-area-bottom bg-white">
       <div className="bg-white border-t border-gray-200 shadow-[0_-1px_12px_rgba(0,0,0,0.08)]">
         <div className="flex items-end h-[60px] px-1">
           {tabs.map((tab) => {
@@ -577,13 +578,14 @@ function MobileTabBar({
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="flex-1 flex flex-col items-center justify-end pb-2.5 gap-1 relative group"
+                aria-current={active ? "page" : undefined}
+                className="h-full min-w-0 flex-1 flex flex-col items-center justify-center gap-1 relative group"
               >
                 <div className="relative">
                   <tab.icon
                     className={cn(
                       "h-5 w-5 transition-colors",
-                      active ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"
+                      active ? "text-blue-600" : "text-slate-600 group-hover:text-slate-900"
                     )}
                     strokeWidth={active ? 2.5 : 1.75}
                   />
@@ -594,8 +596,8 @@ function MobileTabBar({
                   )}
                 </div>
                 <span className={cn(
-                  "text-[10px] font-semibold leading-none transition-colors",
-                  active ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"
+                  "text-xs font-semibold leading-none transition-colors",
+                  active ? "text-blue-600" : "text-slate-600 group-hover:text-slate-900"
                 )}>
                   {tab.name}
                 </span>
@@ -608,19 +610,21 @@ function MobileTabBar({
 
           {/* More */}
           <button
+            type="button"
+            aria-expanded={moreOpen}
             onClick={onMoreToggle}
-            className="flex-1 flex flex-col items-center justify-end pb-2.5 gap-1 relative group"
+            className="h-full min-w-0 flex-1 flex flex-col items-center justify-center gap-1 relative group"
           >
             <Menu
               className={cn(
                 "h-5 w-5 transition-colors",
-                moreActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"
+                moreActive ? "text-blue-600" : "text-slate-600 group-hover:text-slate-900"
               )}
               strokeWidth={moreActive ? 2.5 : 1.75}
             />
             <span className={cn(
-              "text-[10px] font-semibold leading-none transition-colors",
-              moreActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"
+              "text-xs font-semibold leading-none transition-colors",
+              moreActive ? "text-blue-600" : "text-slate-600 group-hover:text-slate-900"
             )}>
               More
             </span>
@@ -673,10 +677,10 @@ function MoreBottomSheet({
         />
       )}
 
-      <div className={cn(
-        "lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl shadow-2xl max-h-[88vh] flex flex-col",
+      <div inert={!open} className={cn(
+        "lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl shadow-2xl max-h-[88dvh] flex flex-col",
         "bg-white border-t border-gray-200",
-        "transform transition-transform duration-300 ease-out will-change-transform",
+        "transform transition-transform duration-300 ease-out motion-reduce:transition-none",
         open ? "translate-y-0" : "translate-y-full"
       )}>
         {/* Handle */}
@@ -700,7 +704,7 @@ function MoreBottomSheet({
             <DeviceIssueBell variant="light" />
             <NotificationBell variant="light" />
             <ContractApprovalBell variant="light" />
-            <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-200 transition-colors">
+            <button aria-label="Close navigation" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-200 transition-colors">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -790,15 +794,13 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex h-full w-64 shrink-0 flex-col bg-slate-900 border-r border-slate-800">
+      <div className="operations-sidebar hidden lg:flex h-full w-60 shrink-0 flex-col border-r border-slate-800">
         {/* Brand strip */}
-        <div className="h-14 flex items-center gap-2.5 px-4 border-b border-slate-800 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-            <span className="text-white text-[11px] font-extrabold tracking-tighter">AT</span>
-          </div>
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-white/10 shrink-0">
+          <Image src="/logo-mark-white.png" alt="" width={32} height={32} className="shrink-0" />
           <div className="leading-none">
-            <p className="text-[14px] font-extrabold text-white tracking-tight">AIDOO TECH</p>
-            <p className="text-[9px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">Hire Purchase</p>
+            <p className="text-base font-bold text-white tracking-tight">AidooTech</p>
+            <p className="text-xs text-slate-300 font-medium mt-1">Hire Purchase</p>
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, CreditCard, FileText, User, UserCheck, Download, Printer, RotateCcw, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -150,8 +151,8 @@ export default function CustomerStatementPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading the customer statement…" />
       </div>
     );
   }
@@ -173,7 +174,7 @@ export default function CustomerStatementPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex items-center justify-between print:hidden workspace-heading workspace-heading--work">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
@@ -346,7 +347,7 @@ export default function CustomerStatementPage() {
         </CardHeader>
         <CardContent>
           {contracts.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No contracts found</p>
+            <p className="text-center text-gray-500 py-8 workspace-empty-message">No contracts found</p>
           ) : (
             contracts.map((contract: any) => (
               <Card key={contract.id} className="mb-4">
@@ -449,7 +450,7 @@ export default function CustomerStatementPage() {
         </CardHeader>
         <CardContent className="p-0">
           {paymentHistory.length === 0 ? (
-            <p className="text-center text-gray-500 py-8 text-sm">No payment history</p>
+            <p className="text-center text-gray-500 py-8 text-sm workspace-empty-message">No payment history</p>
           ) : (
             <>
               {/* Mobile */}
@@ -514,7 +515,7 @@ export default function CustomerStatementPage() {
         </CardHeader>
         <CardContent>
           {contactAttempts.length === 0 ? (
-            <p className="text-center text-gray-500 py-6 text-sm">
+            <p className="text-center text-gray-500 py-6 text-sm workspace-empty-message">
               No calls logged for this customer yet.
             </p>
           ) : (

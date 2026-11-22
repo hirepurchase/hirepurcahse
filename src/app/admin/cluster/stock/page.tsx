@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRightLeft, Box, History, MapPin, Search, Package, ShieldAlert } from "lucide-react";
 import api from "@/lib/api";
@@ -179,14 +180,14 @@ export default function ClusterStockPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+        <LoadingState label="Loading stock allocations…" />
       </div>
     );
   }
 
   return (
     <div className="space-y-5 pb-10 sm:space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Stock by Agent</h1>
           <p className="mt-0.5 text-sm text-gray-500">
@@ -225,7 +226,7 @@ export default function ClusterStockPage() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <input
+        <input aria-label="Search agent, area, district or serial number"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search agent, area, district or serial number…"
@@ -322,7 +323,7 @@ export default function ClusterStockPage() {
                     </p>
                   )}
                   {itemsLoading === agent.id ? (
-                    <p className="py-4 text-center text-xs text-gray-400">Loading devices…</p>
+                    <p role="status" className="py-4 text-center text-xs text-gray-400 workspace-status">Loading devices…</p>
                   ) : (items[agent.id] ?? []).length === 0 ? (
                     <p className="py-4 text-center text-xs text-gray-400">Holding nothing</p>
                   ) : (
@@ -431,7 +432,7 @@ export default function ClusterStockPage() {
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Transfer history</DialogTitle></DialogHeader>
           {history.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-500">No stock has been transferred yet.</p>
+            <p className="py-10 text-center text-sm text-gray-500 workspace-empty-message">No stock has been transferred yet.</p>
           ) : (
             <div className="space-y-2">
               {history.map((t) => (

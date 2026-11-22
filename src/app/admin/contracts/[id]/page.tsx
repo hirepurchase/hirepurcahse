@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
@@ -607,8 +608,8 @@ export default function ContractDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading the contract…" />
       </div>
     );
   }
@@ -629,7 +630,7 @@ export default function ContractDetailsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Button variant="outline" size="sm" onClick={() => router.push('/admin/contracts')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           <span className="hidden sm:inline">Back to Contracts</span>
@@ -689,11 +690,10 @@ export default function ContractDetailsPage() {
         )}
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
+      <header className="workspace-heading workspace-heading--work">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <CardTitle className="text-xl sm:text-2xl wrap-break-word">Contract {contract.contractNumber}</CardTitle>
+              <h1>Contract {contract.contractNumber}</h1>
               <p className="text-sm text-gray-500 mt-1">
                 Created on {formatDate(contract.createdAt)}
               </p>
@@ -702,8 +702,7 @@ export default function ContractDetailsPage() {
               {contract.status.replace(/_/g, ' ')}
             </Badge>
           </div>
-        </CardHeader>
-      </Card>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>

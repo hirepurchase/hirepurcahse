@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { Users as UsersIcon, Plus, Search, Edit, Lock, UserCheck, UserX, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -370,7 +371,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between workspace-heading workspace-heading--settings">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage admin users and their roles</p>
@@ -384,11 +385,11 @@ export default function UsersPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 workspace-filters">
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
+                <Input aria-label="Search name or email"
                   placeholder="Search name or email…"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPagination({ ...pagination, page: 1 }); }}
@@ -438,7 +439,7 @@ export default function UsersPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
+              <LoadingState label="Loading staff accounts…" />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -758,7 +759,7 @@ export default function UsersPage() {
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
                   </div>
                 ) : assignableAgents.length === 0 ? (
-                  <p className="text-sm text-gray-500 py-3">No active agents available.</p>
+                  <p className="text-sm text-gray-500 py-3 workspace-empty-message">No active agents available.</p>
                 ) : (
                   <>
                     <div className="max-h-48 overflow-y-auto rounded-md border divide-y">

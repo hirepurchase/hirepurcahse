@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Search, Pencil, Trash2, Eye, RotateCcw, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
@@ -233,15 +234,14 @@ export default function CustomersPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customers</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage customer accounts and memberships</p>
         </div>
         <Button onClick={() => setShowForm(true)} size="sm" className="shrink-0">
           <Plus className="mr-1.5 h-4 w-4" />
-          <span className="hidden sm:inline">Register Customer</span>
-          <span className="sm:hidden">New</span>
+          Register customer
         </Button>
       </div>
 
@@ -251,6 +251,7 @@ export default function CustomersPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
+                aria-label="Search customers"
                 placeholder="Search name, ID, phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -264,11 +265,11 @@ export default function CustomersPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <LoadingState label="Loading customers…" />
             </div>
           ) : customers.length === 0 ? (
             <div className="text-center py-12 px-4">
-              <p className="text-gray-500 mb-4">No customers found</p>
+              <p className="text-gray-500 mb-4 workspace-empty-message">No customers found</p>
               <Button onClick={() => setShowForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Register First Customer

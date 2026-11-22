@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import api from '@/lib/api';
@@ -58,10 +60,11 @@ export default function PayTriggerProducts() {
     }
   };
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Product assignments" />
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
         Marked products are managed by PayTrigger, and <span className="font-semibold text-gray-800">Knox Guard will not try to enrol them</span>. Names
         that look like TECNO, Infinix or itel are suggested, but nothing is marked until you confirm it here.
@@ -69,12 +72,12 @@ export default function PayTriggerProducts() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input className="pl-9" placeholder="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input aria-label="Search products" className="pl-9" placeholder="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <Section title={`Products (${marked.size} marked)`}>
         {!products ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p role="status" className="text-sm text-gray-400 workspace-status">Loading…</p>
         ) : (
           <ul className="divide-y divide-gray-100">
             {shown.map((p) => (

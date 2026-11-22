@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, Users, FileText, Package, Banknote, AlertTriangle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,14 +77,14 @@ export default function DashboardStatsPage() {
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingState label="Loading business metrics…" />
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 workspace-heading workspace-heading--report">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 sm:mr-2" />

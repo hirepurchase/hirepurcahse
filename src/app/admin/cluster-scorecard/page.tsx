@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, Lock, ShieldAlert } from 'lucide-react';
@@ -91,8 +93,9 @@ export default function ClusterScorecardPage() {
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Monthly payout" />
       {/* Month picker */}
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-2 py-2">
+      <div className="operations-panel flex items-center justify-between gap-2 px-3 py-3">
         <button className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -110,7 +113,7 @@ export default function ClusterScorecardPage() {
         </button>
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>}
       {!data && !error && <p className="py-10 text-center text-sm text-gray-400">Calculating…</p>}
 
       {data && (
@@ -171,7 +174,7 @@ export default function ClusterScorecardPage() {
           )}
 
           {data.leaders.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">No cluster leaders this month.</p>
+            <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500 workspace-empty-message">No cluster leaders this month.</p>
           ) : (
             <ul className="space-y-3">
               {data.leaders.map((l) => (
@@ -220,7 +223,7 @@ export default function ClusterScorecardPage() {
                             );
                           })}
                       </ul>
-                      {enabledKeys.size === 0 && <p className="text-xs text-gray-500">No indicators are paid this month.</p>}
+                      {enabledKeys.size === 0 && <p className="text-xs text-gray-500 workspace-empty-message">No indicators are paid this month.</p>}
                       <div className="space-y-1 rounded-lg bg-gray-50 px-3 py-2 text-sm">
                         <Row label="Base" value={ghs(l.base)} />
                         <Row label="Variable" value={ghs(l.variable)} />

@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, Search, ShieldCheck, Users } from "lucide-react";
 import api from "@/lib/api";
@@ -205,7 +206,7 @@ export default function AgentSupervisionPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-cyan-600" />
+        <LoadingState label="Loading agent assignments…" />
       </div>
     );
   }
@@ -215,7 +216,7 @@ export default function AgentSupervisionPage() {
 
   return (
     <div className="space-y-5 pb-10 sm:space-y-6">
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Agent Supervision</h1>
         <p className="mt-0.5 text-sm text-gray-500">
           Who supervises each agent, and who handles their customers
@@ -342,7 +343,7 @@ export default function AgentSupervisionPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
+          <input aria-label="Search agents by name or email"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search agents by name or email…"

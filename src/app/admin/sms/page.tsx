@@ -111,7 +111,7 @@ export default function SMSPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-cyan-600" />
           Send SMS
@@ -171,7 +171,7 @@ export default function SMSPage() {
                 {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
+                  <input aria-label="Search by name, phone or ID"
                     type="text"
                     placeholder="Search by name, phone or ID..."
                     value={search}
@@ -211,7 +211,7 @@ export default function SMSPage() {
                       Loading...
                     </div>
                   ) : filtered.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-gray-400">No customers found</p>
+                    <p className="py-8 text-center text-sm text-gray-400 workspace-empty-message">No customers found</p>
                   ) : (
                     filtered.map(c => {
                       const isSelected = selected.has(c.id);

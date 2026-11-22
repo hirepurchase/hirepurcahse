@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -134,14 +135,14 @@ export default function SalesReportPage() {
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingState label="Loading the sales report…" />
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 workspace-heading workspace-heading--report">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
@@ -158,7 +159,7 @@ export default function SalesReportPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 workspace-filters">
             <div>
               <label className="block text-sm font-medium mb-2">Start Date</label>
               <Input
@@ -238,7 +239,7 @@ export default function SalesReportPage() {
         </CardHeader>
         <CardContent className="p-0">
           {contracts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 text-sm">No contracts found. Try adjusting your filters.</div>
+            <div className="text-center py-12 text-gray-500 text-sm workspace-empty-message">No contracts found. Try adjusting your filters.</div>
           ) : (
             <>
               {/* Mobile */}

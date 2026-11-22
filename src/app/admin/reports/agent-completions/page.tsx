@@ -70,7 +70,7 @@ export default function AgentCompletionsReportPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 workspace-heading workspace-heading--report">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
@@ -127,7 +127,7 @@ export default function AgentCompletionsReportPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="py-12 text-center text-sm text-gray-400">Loading...</div>
+            <div role="status" className="py-12 text-center text-sm text-gray-400 workspace-status">Loading...</div>
           ) : (report?.agents?.length ?? 0) === 0 ? (
             <div className="py-12 text-center text-sm text-gray-500">No contracts were completed in {monthLabel(month)}.</div>
           ) : (

@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Calculator, Save, Play, ShieldAlert } from "lucide-react";
 import api from "@/lib/api";
@@ -137,7 +138,7 @@ export default function PenaltySettingsPage() {
   if (loading || !form) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-cyan-600" />
+        <LoadingState label="Loading penalty settings…" />
       </div>
     );
   }
@@ -147,7 +148,7 @@ export default function PenaltySettingsPage() {
 
   return (
     <div className="max-w-3xl space-y-5 pb-10 sm:space-y-6">
-      <div>
+      <div className="workspace-heading workspace-heading--settings">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Expiry Penalties</h1>
         <p className="mt-0.5 text-sm text-gray-500">
           Charges applied when a contract runs past its agreed term with money still owing

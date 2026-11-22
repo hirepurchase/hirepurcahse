@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -77,39 +77,39 @@ export default function CustomerResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-dvh flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <Button variant="ghost" className="mb-4 text-sm sm:text-base" onClick={() => router.push("/customer-login")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Login
         </Button>
 
-        <Card className="border-white/70 bg-white/90 shadow-[0_30px_60px_-36px_rgba(15,23,42,0.7)]">
+        <Card className="operations-panel">
           <CardHeader className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 px-4 sm:px-6">
             <div className="flex justify-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-cyan-700 to-emerald-700 rounded-2xl flex items-center justify-center shadow-[0_20px_30px_-20px_rgba(13,148,136,0.8)]">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-teal-900 rounded-2xl flex items-center justify-center shadow-[0_20px_30px_-20px_rgba(13,148,136,0.8)]">
                 <KeyRound className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
             </div>
             <div className="text-center">
-              <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-950">
                 Reset Password
-              </CardTitle>
+              </h1>
               <CardDescription className="text-sm sm:text-base mt-2">
-                {step === "request" ? "Request an OTP by SMS" : "Enter OTP and set a new password"}
+                {step === "request" ? "Get a verification code by SMS." : "Enter the SMS code and choose a new password."}
               </CardDescription>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6">
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" role="alert">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-sm">{error}</AlertDescription>
               </Alert>
             )}
             {message && (
-              <Alert>
+              <Alert role="status">
                 <AlertDescription className="text-sm">{message}</AlertDescription>
               </Alert>
             )}
@@ -203,6 +203,6 @@ export default function CustomerResetPasswordPage() {
         </Card>
         <DeveloperCredit className="mt-4" />
       </div>
-    </div>
+    </main>
   );
 }

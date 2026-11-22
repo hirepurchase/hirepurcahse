@@ -262,7 +262,7 @@ export default function PaystackTestPage() {
 
   return (
     <div className="mx-auto min-w-0 max-w-3xl space-y-6">
-      <div>
+      <div className="workspace-heading workspace-heading--settings">
         <Link href="/admin/settings/payment-gateway" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
           <ArrowLeft className="h-4 w-4" /> Payment gateway
         </Link>

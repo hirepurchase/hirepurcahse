@@ -165,7 +165,7 @@ export default function DeviceIssuesPage() {
   return (
     <div className="space-y-6">
       {pinFor && <KnoxPinDialog contractId={pinFor.contractId} customer={pinFor.customerName} onClose={() => setPinFor(null)} />}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between workspace-heading workspace-heading--device">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <AlertTriangle className="h-6 w-6 text-red-500" />
@@ -182,7 +182,7 @@ export default function DeviceIssuesPage() {
       </div>
 
       {isLoading && !data ? (
-        <p className="text-sm text-gray-500">Loading…</p>
+        <p role="status" className="text-sm text-gray-500">Loading…</p>
       ) : data ? (
         <div className="space-y-6">
           <IssueTable

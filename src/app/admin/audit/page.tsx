@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { FileText, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -121,7 +122,7 @@ export default function AuditTrailPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="workspace-heading workspace-heading--report">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Audit Trail</h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-0.5">System activity and change history</p>
       </div>
@@ -182,7 +183,7 @@ export default function AuditTrailPage() {
           <CardTitle className="text-base">Filters</CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 workspace-filters">
             <div>
               <label className="block text-sm font-medium mb-2">Action</label>
               <select
@@ -232,7 +233,7 @@ export default function AuditTrailPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <LoadingState label="Loading audit activity…" />
             </div>
           ) : logs.length === 0 ? (
             <div className="text-center py-12 text-gray-500 text-sm">

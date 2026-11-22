@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { AlertTriangle, Download, Headset, Mail, Phone, RefreshCw } from 'lucide-react';
@@ -21,6 +22,7 @@ export default function CustomerServiceChartPage() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [unassigned, setUnassigned] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const dateLabel = new Date().toLocaleDateString('en-GB', {
@@ -31,10 +33,13 @@ export default function CustomerServiceChartPage() {
 
   async function load() {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await api.get('/admin-users/customer-service-chart');
       setOfficers(res.data.officers ?? []);
       setUnassigned(res.data.unassignedAgents ?? []);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -203,9 +208,9 @@ export default function CustomerServiceChartPage() {
   return (
     <div className="min-h-screen bg-[hsl(210,20%,97%)]">
       {/* Top bar */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2 shadow-sm">
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2 shadow-sm workspace-compact-heading">
         <div>
-          <h1 className="text-[15px] font-bold text-slate-900 leading-tight">
+          <h1 data-compact-title className="text-[15px] font-bold text-slate-900 leading-tight">
             Customer Service Chart
           </h1>
           <p className="text-[11px] text-slate-400 mt-0.5">{dateLabel}</p>
@@ -221,7 +226,7 @@ export default function CustomerServiceChartPage() {
           <Button
             size="sm"
             onClick={exportPDF}
-            disabled={exporting || loading || officers.length === 0}
+            disabled={exporting || loading || loadError || officers.length === 0}
             className="h-8 px-3 text-xs font-semibold"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
@@ -232,10 +237,14 @@ export default function CustomerServiceChartPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <LoadingState label="Loading the chart…" />
         </div>
+      ) : loadError ? (
+        <p role="alert" className="workspace-error mt-4 bg-red-50 p-4 text-sm text-red-800">
+          Could not load customer service assignments. Use Refresh to try again.
+        </p>
       ) : officers.length === 0 ? (
-        <div className="text-center py-32 text-slate-400 text-sm px-4">
+        <div className="text-center py-32 text-slate-400 text-sm px-4 workspace-empty-message">
           No customer service officers yet.
         </div>
       ) : (
@@ -296,7 +305,7 @@ export default function CustomerServiceChartPage() {
                 </div>
 
                 {officer.agents.length === 0 ? (
-                  <p className="text-center text-slate-400 text-[12px] py-6">
+                  <p className="text-center text-slate-400 text-[12px] py-6 workspace-empty-message">
                     No agents assigned to this officer
                   </p>
                 ) : (

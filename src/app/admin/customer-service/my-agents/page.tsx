@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import { Mail, Phone, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +50,7 @@ export default function MyAgentsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl sm:text-3xl font-bold">My Agents</h1>
         <p className="text-sm text-gray-500">
           You handle verification and collections for these agents&apos; customers
@@ -66,11 +67,11 @@ export default function MyAgentsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <LoadingState label="Loading your agents…" />
             </div>
           ) : agents.length === 0 ? (
             <div className="text-center py-12 px-4">
-              <p className="text-sm text-gray-500">No agents assigned to you yet.</p>
+              <p className="text-sm text-gray-500 workspace-empty-message">No agents assigned to you yet.</p>
               <p className="text-sm text-gray-400 mt-1">
                 Until an administrator assigns agents, you will not see any customers or
                 contracts.

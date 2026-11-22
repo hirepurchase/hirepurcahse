@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -124,8 +125,8 @@ export default function AgentDepositReportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button
+      <div className="flex items-center gap-3 workspace-heading workspace-heading--report">
+        <button aria-label="Go back"
           onClick={() => router.back()}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -145,7 +146,7 @@ export default function AgentDepositReportPage() {
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 workspace-filters">
           <input
             type="date"
             value={startDate}
@@ -204,7 +205,7 @@ export default function AgentDepositReportPage() {
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-600" />
+            <LoadingState label="Loading deposit collections…" />
           </div>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">

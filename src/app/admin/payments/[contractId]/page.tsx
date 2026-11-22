@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Banknote, Calendar, CheckCircle } from 'lucide-react';
@@ -204,8 +205,8 @@ export default function ContractPaymentPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading the contract and installment schedule…" />
       </div>
     );
   }
@@ -221,7 +222,7 @@ export default function ContractPaymentPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 workspace-heading workspace-heading--work">
         <Button variant="ghost" size="sm" onClick={() => router.push('/admin/payments')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           <span className="hidden sm:inline">Back to Contracts</span>

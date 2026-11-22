@@ -97,8 +97,8 @@ export default function PayTriggerDeviceDetail() {
     }
   };
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!detail) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
+  if (!detail) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
 
   const { device, contract } = detail;
   const canManage = hasPermission(PERMISSIONS.MANAGE_DEVICE_CONTROL);
@@ -112,10 +112,10 @@ export default function PayTriggerDeviceDetail() {
         <ArrowLeft className="h-4 w-4" /> Devices
       </Link>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="workspace-heading workspace-heading--device">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-lg font-bold text-gray-900">{customer || 'Not sold yet'}</p>
+            <h2 className="text-xl font-bold text-slate-950">{customer || 'Unassigned phone'}</h2>
             <p className="text-sm text-gray-500">
               {contract?.inventoryItem?.product.name || 'Transsion phone'} · IMEI {device.imei}
               {device.deviceTag && <> · tag {device.deviceTag}</>}
@@ -252,7 +252,7 @@ export default function PayTriggerDeviceDetail() {
 
       <Section title="Timeline" subtitle="Everything asked of PayTrigger for this phone. PayTrigger keeps no history of its own.">
         {detail.logs.length === 0 ? (
-          <p className="text-sm text-gray-400">Nothing yet.</p>
+          <p className="text-sm text-gray-400 workspace-empty-message">Nothing yet.</p>
         ) : (
           <ol className="space-y-3">
             {detail.logs.map((l) => (
@@ -390,7 +390,7 @@ function MessageDialog({
         </p>
         <Input maxLength={80} placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
         <Textarea rows={4} maxLength={500} placeholder="Message. {firstName}, {amount} and {dueDate} are filled in from the contract." value={text} onChange={(e) => setText(e.target.value)} />
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 workspace-error">{error}</p>}
         <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-700" disabled={sending || left === 0 || !title.trim() || !text.trim()} onClick={send}>
           {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
           Send

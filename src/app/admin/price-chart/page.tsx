@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -31,6 +32,7 @@ interface CategoryGroup {
 export default function PriceChartPage() {
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [exporting, setExporting] = useState(false);
   const posterRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +45,7 @@ export default function PriceChartPage() {
 
   async function load() {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await api.get('/products', { params: { limit: 500, isActive: true } });
       const products: Product[] = res.data.products ?? [];
@@ -63,6 +66,8 @@ export default function PriceChartPage() {
       const groups = [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
       groups.forEach((g) => g.products.sort((a, b) => a.name.localeCompare(b.name)));
       setCategories(groups);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -395,9 +400,9 @@ export default function PriceChartPage() {
     <div className="min-h-screen bg-[hsl(210,20%,97%)]">
 
       {/* Top bar */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2 shadow-sm">
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2 shadow-sm workspace-compact-heading">
         <div>
-          <h1 className="text-[15px] font-bold text-slate-900 leading-tight">Price Chart</h1>
+          <h1 data-compact-title className="text-[15px] font-bold text-slate-900 leading-tight">Price Chart</h1>
           <p className="text-[11px] text-slate-400 mt-0.5">{dateLabel}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -411,7 +416,7 @@ export default function PriceChartPage() {
           <Button
             size="sm"
             onClick={exportPDF}
-            disabled={exporting || loading || categories.length === 0}
+            disabled={exporting || loading || loadError || categories.length === 0}
             className="h-8 px-3 text-xs font-semibold"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
@@ -422,10 +427,14 @@ export default function PriceChartPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <LoadingState label="Loading the chart…" />
         </div>
+      ) : loadError ? (
+        <p role="alert" className="workspace-error mt-4 bg-red-50 p-4 text-sm text-red-800">
+          Could not load the price chart. Use Refresh to try again.
+        </p>
       ) : categories.length === 0 ? (
-        <div className="text-center py-32 text-slate-400 text-sm px-4">
+        <div className="text-center py-32 text-slate-400 text-sm px-4 workspace-empty-message">
           No products with prices and available inventory found.
         </div>
       ) : (

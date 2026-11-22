@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useCallback, useEffect, useState } from "react";
 import {
   Unlock,
@@ -416,7 +417,7 @@ export default function TemporaryUnlocksPage() {
 
   return (
     <div className="space-y-5 pb-10 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between workspace-heading workspace-heading--device">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Temporary Unlocks</h1>
           <p className="mt-0.5 text-sm text-gray-500">
@@ -531,7 +532,7 @@ export default function TemporaryUnlocksPage() {
 
       {loading ? (
         <div className="flex min-h-[30vh] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+          <LoadingState label="Loading unlock requests…" />
         </div>
       ) : requests.length === 0 ? (
         <Card>
@@ -762,7 +763,7 @@ export default function TemporaryUnlocksPage() {
             <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
+                <Input aria-label="Search by name, phone, membership or contract number"
                   placeholder="Search by name, phone, membership or contract number"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { KeyRound, Phone, RefreshCw } from 'lucide-react';
@@ -76,11 +78,12 @@ export default function PayTriggerIssues() {
     return () => clearInterval(t);
   }, []);
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!issues) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
+  if (!issues) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Device issues" description="Review the phones and contracts that need follow-up." />
       {issues.sweep.late && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           The 08:36 morning sweep has not run in over a day

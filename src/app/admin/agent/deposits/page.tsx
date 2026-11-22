@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
@@ -306,7 +307,7 @@ export default function AgentDepositsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Deposit Ledger</h1>
           <p className="text-sm text-gray-500">Track your deposit collections and remittances</p>
@@ -335,7 +336,7 @@ export default function AgentDepositsPage() {
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 workspace-filters">
           <input
             type="date"
             value={startDate}
@@ -386,7 +387,7 @@ export default function AgentDepositsPage() {
       <div className="hidden sm:block bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-600" />
+            <LoadingState label="Loading the deposit ledger…" />
           </div>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">
@@ -449,7 +450,7 @@ export default function AgentDepositsPage() {
       <div className="sm:hidden space-y-3">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-600" />
+            <LoadingState label="Loading the deposit ledger…" />
           </div>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">

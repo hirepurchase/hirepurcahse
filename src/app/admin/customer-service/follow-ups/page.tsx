@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import { Phone, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,12 +56,12 @@ export default function FollowUpsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <header className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl sm:text-3xl font-bold">Follow-ups</h1>
         <p className="text-sm text-gray-500">
           Payment promises and callbacks that are due
         </p>
-      </div>
+      </header>
 
       <Card>
         <CardHeader>
@@ -71,7 +72,7 @@ export default function FollowUpsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <LoadingState label="Loading follow-ups…" />
             </div>
           ) : rows.length === 0 ? (
             <p className="text-center text-gray-500 py-12 text-sm">

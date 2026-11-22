@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Loader2, Smartphone } from 'lucide-react';
@@ -200,14 +202,15 @@ export default function KnoxEnrollPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-lg space-y-5">
+    <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <SectionHeading title="Enroll a device" />
       <p className="text-sm text-slate-500">
         Lock-screen settings are inherited from{' '}
         <a href="/admin/knox/settings" className="text-cyan-600 hover:underline">Knox settings</a> automatically.
       </p>
 
       {/* Contract ID */}
-      <div className="border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="operations-panel p-4 sm:p-5">
         <Field label="Contract ID" required hint="Paste the hire-purchase contract UUID to link this device to.">
           <input
             type="text"
@@ -221,7 +224,7 @@ export default function KnoxEnrollPage() {
       </div>
 
       {/* Device UID */}
-      <div className="border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="operations-panel p-4 sm:p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Device UID" hint="Leave blank to use the serial from the contract's inventory item.">
             <input
@@ -246,7 +249,7 @@ export default function KnoxEnrollPage() {
       </div>
 
       {/* Customer disclosure */}
-      <div className="border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="operations-panel p-4 sm:p-5">
         <label className="flex cursor-pointer items-start gap-4 border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
           <input
             type="checkbox"

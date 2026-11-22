@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: 210 20% 97%;
+  --background: 216 45% 97%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
@@ -94,7 +94,6 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   letter-spacing: -0.02em;
-  word-spacing: 0.08em;
   font-weight: 700;
 }
 
@@ -175,4 +174,153 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-slide-down {
   animation: slide-down 0.2s ease-out;
+}
+
+.operations-sidebar {
+  background: #111d34;
+}
+
+.operations-panel {
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background-color: hsl(var(--card));
+  box-shadow: 0 2px 4px rgb(15 23 42 / 0.035);
+}
+
+.operations-featured {
+  background: linear-gradient(125deg, #16378c, #2353c2);
+  border-color: #2353c2;
+}
+
+.operations-featured:hover {
+  background: linear-gradient(125deg, #132f78, #204ab0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell, .animate-slide-down {
+    animation: none;
+  }
+}
+
+.workspace-page h1:first-child:not([data-compact-title]) {
+  color: hsl(var(--foreground));
+  font-size: clamp(1.5rem, 1.15rem + 1.15vw, 2.25rem);
+  font-weight: 750;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.workspace-page h1:first-child:not([data-compact-title]) + p {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.workspace-heading {
+  --heading-accent: 221 72% 49%;
+  min-inline-size: 0;
+  gap: 0.875rem;
+  border: 1px solid hsl(var(--border));
+  border-inline-start: 3px solid hsl(var(--heading-accent));
+  border-radius: 0.875rem;
+  padding: clamp(0.875rem, 2vw, 1.5rem);
+  background: linear-gradient(105deg, hsl(var(--heading-accent) / 0.045), hsl(var(--card)) 65%), hsl(var(--card));
+}
+
+.workspace-heading--report { --heading-accent: 234 52% 52%; }
+.workspace-heading--service { --heading-accent: 200 75% 36%; }
+.workspace-heading--device { --heading-accent: 254 49% 53%; }
+.workspace-heading--settings { --heading-accent: 215 25% 42%; }
+.workspace-heading--customer { --heading-accent: 174 74% 28%; }
+
+.workspace-heading h1 {
+  color: hsl(var(--foreground));
+  font-size: clamp(1.375rem, 1rem + 1.35vw, 2.125rem);
+  font-weight: 750;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.workspace-heading h1 + p {
+  margin-block-start: 0.375rem;
+}
+
+.workspace-heading > :first-child,
+.workspace-filters > * {
+  min-inline-size: 0;
+}
+
+.workspace-heading > :is(div, button, a) {
+  max-inline-size: 100%;
+}
+
+.workspace-compact-heading {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-block-end: 2px solid hsl(var(--primary) / 0.28);
+}
+
+.workspace-compact-heading h1 {
+  font-size: 1rem;
+}
+
+.workspace-filters {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--background));
+  padding: 0.75rem;
+}
+
+.workspace-filters :is(input, select, button[role="combobox"]) {
+  max-inline-size: 100%;
+}
+
+.workspace-status,
+.workspace-empty-message,
+.workspace-empty-cell {
+  color: hsl(var(--muted-foreground));
+}
+
+.workspace-status {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.875rem;
+  background: hsl(var(--card));
+  padding: 1.25rem;
+}
+
+.workspace-empty-cell {
+  background: hsl(var(--background));
+}
+
+.workspace-error {
+  border: 1px solid hsl(var(--destructive) / 0.25);
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.workspace-native-table {
+  min-inline-size: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 639px) {
+  .workspace-heading:where(.flex) {
+    flex-wrap: wrap;
+  }
+
+  .workspace-heading :where(.flex):has(> button:nth-child(2), > a:nth-child(2)) {
+    flex-wrap: wrap;
+  }
+
+  .workspace-heading h1.truncate {
+    overflow: visible;
+    white-space: normal;
+  }
+}
+
+@media print {
+  .workspace-heading {
+    background: white;
+    box-shadow: none;
+  }
 }

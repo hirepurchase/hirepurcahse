@@ -198,7 +198,7 @@ export default function NotificationSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
+        <div role="status" className="text-gray-600">Loading...</div>
       </div>
     );
   }
@@ -213,7 +213,7 @@ export default function NotificationSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between workspace-heading workspace-heading--settings">
         <h1 className="text-2xl font-bold text-gray-900">Notification Settings</h1>
         <button
           onClick={handleTriggerManual}

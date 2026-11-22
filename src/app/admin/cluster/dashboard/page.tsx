@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Users, AlertTriangle, ShieldAlert, Clock, Phone, Mail, CalendarClock, ChevronRight } from "lucide-react";
@@ -118,14 +119,14 @@ export default function ClusterDashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+        <LoadingState label="Loading your cluster…" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-10">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 workspace-heading workspace-heading--work">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
           {adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : "Cluster"}
         </h1>

@@ -1,137 +1,47 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Wallet } from "lucide-react";
+import { ShieldCheck, Wallet } from "lucide-react";
+import { InstallAppButton } from "@/components/shared/InstallAppButton";
 import DeveloperCredit from "@/components/shared/DeveloperCredit";
 
-/**
- * Entry point for an internal system, so it is built as a sign-in chooser
- * rather than a marketing page: a solid brand panel identifying the system,
- * and a short list of the ways in.
- *
- * Deliberately avoids the consumer-landing furniture that was here before —
- * pill badges, gradient washes, floating rounded cards with long shadows.
- * Everyone who reaches this page already works here; they need to know they
- * are in the right place and get to their portal.
- */
-
-const BRAND = "#013B9A";
-
-const ENTRANCES = [
-  {
-    href: "/admin-login",
-    label: "Staff portal",
-    who: "Agents, cluster leaders, customer service, administrators",
-    icon: ShieldCheck,
-  },
-  {
-    href: "/customer-login",
-    label: "Customer portal",
-    who: "Balances, payment history and instalment payments",
-    icon: Wallet,
-  },
+const portals = [
+  { href: "/admin-login", title: "Staff portal", description: "Customers, contracts, inventory, and collections.", icon: ShieldCheck, color: "bg-blue-50 text-blue-800" },
+  { href: "/customer-login", title: "Customer portal", description: "Balances, installments, and payment history.", icon: Wallet, color: "bg-teal-50 text-teal-800" },
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-slate-900 lg:grid lg:grid-cols-[minmax(0,420px)_1fr]">
-      {/* Identity panel — a flat block of brand, no gradient. */}
-      <aside
-        className="flex flex-col justify-between px-6 py-8 text-white sm:px-10 lg:py-10"
-        style={{ backgroundColor: BRAND }}
-      >
-        <div className="flex items-center gap-3">
-          <img
-            src="/logo-mark-white.png"
-            alt=""
-            width={36}
-            height={36}
-            className="h-9 w-9 object-contain"
-          />
-          <div className="leading-tight">
-            <p className="text-[15px] font-semibold tracking-tight">Aidoo Tech Solutions</p>
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/60">
-              Hire Purchase
-            </p>
+    <main className="min-h-dvh">
+      <div className="bg-slate-950 px-5 pb-20 pt-8 text-white sm:px-8 sm:pb-28">
+        <div className="mx-auto max-w-4xl">
+          <div className="flex items-center gap-3 font-semibold">
+            <Image src="/logo-mark-white.png" alt="" width={36} height={36} />
+            Aidoo Tech Solutions
           </div>
+          <h1 className="mt-10 text-4xl font-bold tracking-tight sm:text-5xl">Hire Purchase</h1>
+          <p className="mt-3 text-base text-slate-300">Choose a portal to sign in.</p>
         </div>
-
-        <div className="mt-8 lg:mt-0">
-          <h1 className="text-[22px] font-semibold leading-[1.2] tracking-tight lg:text-[27px]">
-            Hire Purchase
-            <br className="hidden lg:inline" /> Management System
-          </h1>
-          <p className="mt-3 max-w-md text-sm leading-6 text-white/70 lg:mt-4 lg:max-w-xs">
-            Contracts, collections, inventory and device control for the Aidoo Tech
-            agent network.
-          </p>
-        </div>
-
-        <p className="hidden text-[11px] uppercase tracking-[0.16em] text-white/45 lg:block">
-          Authorised users only
-        </p>
-      </aside>
-
-      {/* Ways in */}
-      <main className="flex px-6 py-10 sm:px-10 lg:items-center lg:px-12 lg:py-12">
-        <div className="mx-auto w-full max-w-[420px]">
-          <h2 className="text-[26px] font-semibold leading-tight tracking-tight text-slate-900">
-            Sign in
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Two portals run on this system. Choose the one your account belongs to.
-          </p>
-
-          {/* A bordered list, not floating cards: the rows read as one control
-              with a clear boundary, which is what a chooser should look like. */}
-          <div className="mt-7 divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200">
-            {ENTRANCES.map(({ href, label, who, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="group flex items-center gap-4 bg-white px-4 py-4 transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
-              >
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors"
-                  style={{ borderColor: "rgba(1,59,154,0.18)", backgroundColor: "rgba(1,59,154,0.05)" }}
-                >
-                  <Icon className="h-[18px] w-[18px]" style={{ color: BRAND }} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-semibold text-slate-900">{label}</span>
-                  <span className="mt-0.5 block text-[13px] leading-5 text-slate-500">{who}</span>
-                </span>
-                <ArrowRight
-                  className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
-            ))}
-          </div>
-
-          {/* The two questions this screen actually gets asked. */}
-          <div className="mt-6 rounded-lg bg-slate-50 px-4 py-4 text-[13px] leading-6 text-slate-600">
-            <p>
-              <span className="font-semibold text-slate-800">Signing in for the first time?</span>{" "}
-              Customers use their phone number as both username and password, then set a new one.
-            </p>
-            <p className="mt-2">
-              <span className="font-semibold text-slate-800">Cannot get in?</span> Staff should
-              contact their administrator, customers their agent.
-            </p>
-          </div>
-
-          <p className="mt-8 text-xs leading-5 text-slate-400">
-            hirepurchase.aidootechsolutions.com
-            <br />
-            &copy; {new Date().getFullYear()} Aidoo Tech Solutions ·{" "}
-            <Link href="/privacy" className="underline-offset-2 hover:text-slate-600 hover:underline">
-              Privacy policy
+      </div>
+      <div className="relative mx-auto -mt-10 max-w-[60rem] px-5 pb-8 sm:px-8">
+        <nav aria-label="Sign-in portals" className="grid gap-4 sm:grid-cols-2">
+          {portals.map(({ href, title, description, icon: Icon, color }) => (
+            <Link key={href} href={href} className="operations-panel block p-5 transition-colors hover:border-blue-400 sm:p-6">
+              <span className={`grid size-11 place-items-center rounded-xl ${color}`}><Icon aria-hidden="true" className="size-5" /></span>
+              <h2 className="mt-4 text-xl font-bold text-slate-950">{title}</h2>
+              <p className="mt-2 text-base text-slate-600">{description}</p>
             </Link>
-          </p>
-          <DeveloperCredit align="left" className="mt-3" />
+          ))}
+        </nav>
+        <div className="mt-6 text-sm leading-6 text-slate-600">
+          <p>First time signing in? Customers use their phone number as their initial password.</p>
+          <p>For help signing in, staff can contact their administrator and customers can contact their agent.</p>
         </div>
-      </main>
-    </div>
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t py-4 text-sm">
+          <Link href="/privacy" className="font-medium text-slate-700 hover:underline">Privacy policy</Link>
+          <InstallAppButton />
+          <DeveloperCredit align="left" />
+        </footer>
+      </div>
+    </main>
   );
 }

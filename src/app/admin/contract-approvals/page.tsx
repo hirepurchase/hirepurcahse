@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState, useCallback } from "react";
 import {
   ClipboardCheck,
@@ -1017,7 +1018,7 @@ export default function ContractApprovalsPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 workspace-heading workspace-heading--work">
         <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-amber-100 shrink-0">
           <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
         </div>
@@ -1054,10 +1055,10 @@ export default function ContractApprovalsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="p-3 sm:p-4">
-          <div className="space-y-2 sm:space-y-0 sm:grid sm:gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+          <div className="space-y-2 sm:space-y-0 sm:grid sm:gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] workspace-filters">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
+              <input aria-label="Search contract, customer, agent"
                 value={searchQuery}
                 onChange={(e) => {
                   setCurrentPage(1);
@@ -1138,13 +1139,13 @@ export default function ContractApprovalsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+              <LoadingState label="Loading the approval queue…" />
             </div>
           ) : contracts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <CheckCircle className="h-12 w-12 text-green-400 mb-3" />
               <p className="text-base font-semibold text-gray-700">All caught up!</p>
-              <p className="text-sm text-gray-400 mt-1">No contracts match the current queue filters.</p>
+              <p className="text-sm text-gray-400 mt-1 workspace-empty-message">No contracts match the current queue filters.</p>
             </div>
           ) : (
             <>

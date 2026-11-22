@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -162,7 +163,7 @@ export default function CallQueuePage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl sm:text-3xl font-bold">Call Queue</h1>
         <p className="text-sm text-gray-500">
           {shared
@@ -200,7 +201,7 @@ export default function CallQueuePage() {
             {filtered.length} customer{filtered.length === 1 ? "" : "s"} to call
           </CardTitle>
           <div className="flex gap-2">
-            <Input
+            <Input aria-label="Search name, phone, contract"
               placeholder="Search name, phone, contract..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -213,7 +214,7 @@ export default function CallQueuePage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <LoadingState label="Loading the call queue…" />
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-500 py-12 text-sm">

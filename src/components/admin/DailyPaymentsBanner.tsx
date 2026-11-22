@@ -45,7 +45,7 @@ export default function DailyPaymentsBanner() {
   if (!visible || !data) return null;
 
   return (
-    <div className="mx-4 mt-4 sm:mx-6 lg:mx-8 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+    <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100">

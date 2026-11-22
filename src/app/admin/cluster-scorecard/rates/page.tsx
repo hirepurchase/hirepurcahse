@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -82,13 +84,14 @@ function RatesEditor() {
     }
   };
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!rules || !settings) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
+  if (!rules || !settings) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
 
   const defByKey = new Map(defs.map((d) => [d.key, d]));
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Indicator rates" />
       <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
         Switch on the indicators management wants to pay for, then set a rate or an amount for each. A negative amount is a deduction.
         Closed months keep the rates they were closed with.

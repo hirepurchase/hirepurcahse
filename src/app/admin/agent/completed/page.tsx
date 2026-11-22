@@ -81,9 +81,9 @@ export default function AgentCompletedContractsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 workspace-heading workspace-heading--work">
         <div className="flex items-center gap-3">
-          <button
+          <button aria-label="Go back"
             onClick={() => router.push("/admin/agent/dashboard")}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
           >
@@ -127,7 +127,7 @@ export default function AgentCompletedContractsPage() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
+        <Input aria-label="Search by customer, contract, or product"
           placeholder="Search by customer, contract, or product..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -143,7 +143,7 @@ export default function AgentCompletedContractsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center text-gray-400 text-sm">Loading...</div>
+            <div role="status" className="py-12 text-center text-gray-400 text-sm workspace-status">Loading...</div>
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
               <Award className="h-8 w-8 text-gray-300 mx-auto mb-2" />

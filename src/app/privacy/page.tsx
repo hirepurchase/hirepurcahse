@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   description: "How Aidoo Tech Solutions collects, uses and protects personal information in its hire purchase service and the AIDOO TECH app.",
 };
 
-const BRAND = "#013B9A";
 const UPDATED = "16 November 2026";
 const SUPPORT_PHONES = ["0303981216", "0303983472", "0303984318"];
 
@@ -33,9 +32,9 @@ const SECTIONS = [
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-6 border-t border-slate-200 pt-8">
+    <section id={id} className="operations-panel scroll-mt-6 p-5 sm:p-6">
       <h2 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h2>
-      <div className="mt-3 space-y-3 text-[15px] leading-7 text-slate-700">{children}</div>
+      <div className="mt-3 space-y-3 text-base leading-7 text-slate-700">{children}</div>
     </section>
   );
 }
@@ -52,8 +51,8 @@ function List({ items }: { items: React.ReactNode[] }) {
 
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="text-white" style={{ backgroundColor: BRAND }}>
+    <div className="min-h-screen bg-background text-slate-900">
+      <header className="bg-slate-950 text-white">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-5 sm:px-8">
           <img src="/logo-mark-white.png" alt="" width={32} height={32} className="h-8 w-8 object-contain" />
           <Link href="/" className="leading-tight">
@@ -66,18 +65,18 @@ export default function PrivacyPolicy() {
       <main className="mx-auto max-w-3xl px-5 pb-16 pt-10 sm:px-8">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Privacy Policy</h1>
         <p className="mt-2 text-sm text-slate-500">Last updated {UPDATED}</p>
-        <p className="mt-6 text-[15px] leading-7 text-slate-700">
+        <p className="mt-6 text-base leading-7 text-slate-700">
           This policy explains what personal information Aidoo Tech Solutions collects when you buy a phone or other
           item from us on hire purchase, how we use it, who we share it with, and the choices you have. It covers our
           hire purchase service, the customer website and the AIDOO TECH mobile app.
         </p>
 
-        <nav aria-label="Contents" className="mt-8 rounded-lg border border-slate-200 bg-slate-50 px-5 py-4">
+        <nav aria-label="Contents" className="operations-panel mt-8 px-5 py-4 sm:px-6">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Contents</p>
           <ol className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
             {SECTIONS.map((s, i) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="text-slate-700 hover:underline" style={{ textDecorationColor: BRAND }}>
+                <a href={`#${s.id}`} className="text-slate-700 decoration-blue-700 hover:underline">
                   {i + 1}. {s.title}
                 </a>
               </li>
@@ -247,7 +246,7 @@ export default function PrivacyPolicy() {
             <p>For questions about this policy or your information, call Aidoo Tech Solutions on:</p>
             <p className="flex flex-wrap gap-x-5 gap-y-1">
               {SUPPORT_PHONES.map((n) => (
-                <a key={n} href={`tel:${n}`} className="font-semibold hover:underline" style={{ color: BRAND }}>
+                <a key={n} href={`tel:${n}`} className="font-semibold text-blue-800 hover:underline">
                   {n}
                 </a>
               ))}

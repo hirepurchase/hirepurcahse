@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -557,12 +559,13 @@ export default function KnoxDevicesPage() {
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Managed devices" description="Find a device, review its status, or check its Knox upload." />
       {pinFor && <KnoxPinDialog contractId={pinFor.contractId} customer={pinFor.customer} onClose={() => setPinFor(null)} />}
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
+          <input aria-label="Search contract, customer, IMEI"
             type="search"
             placeholder="Search contract, customer, IMEI…"
             value={query}
@@ -619,7 +622,7 @@ export default function KnoxDevicesPage() {
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Managed Devices</h2>
+            <h3 className="text-lg font-semibold text-slate-900">Enrollment and device status</h3>
             <p className="text-sm text-slate-500">Locally tracked Knox Guard devices, including devices awaiting approval or activation.</p>
           </div>
         </div>
@@ -1375,7 +1378,7 @@ export default function KnoxDevicesPage() {
             )}
 
             {portalCheck.devices.length === 0 ? (
-              <div className="p-10 text-center text-sm text-slate-500">No active enrolled devices to check.</div>
+              <div className="p-10 text-center text-sm text-slate-500 workspace-empty-message">No active enrolled devices to check.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">

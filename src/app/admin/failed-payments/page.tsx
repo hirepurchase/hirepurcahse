@@ -171,7 +171,7 @@ export default function FailedPaymentsPage() {
     return (
       <div className="p-8">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">Loading failed payments...</div>
+          <div role="status" className="text-lg text-gray-600">Loading failed payments...</div>
         </div>
       </div>
     );
@@ -179,7 +179,7 @@ export default function FailedPaymentsPage() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 workspace-heading workspace-heading--work">
         <h1 className="text-3xl font-bold text-gray-800">Payment Management</h1>
         <p className="text-gray-600 mt-2">
           Manage failed payments and configure retry settings
@@ -257,7 +257,7 @@ export default function FailedPaymentsPage() {
 
         {/* Payments Table */}
         {payments.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 workspace-empty-message">
             No failed payments found
           </div>
         ) : (
@@ -511,7 +511,7 @@ function RetrySettingsTab() {
     return (
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">Loading settings...</div>
+          <div role="status" className="text-lg text-gray-600">Loading settings...</div>
         </div>
       </div>
     );

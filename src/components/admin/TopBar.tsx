@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, KeyRound, ChevronDown, ChevronRight, Menu } from "lucide-react";
@@ -107,6 +108,10 @@ function UserMenu({ user, onLogout }: { user: AdminUser; onLogout: () => void })
       {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
       <div className="relative">
         <button
+          type="button"
+          aria-label="Account options"
+          aria-expanded={open}
+          onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}
           onClick={() => setOpen((o) => !o)}
           className={cn(
             "flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl border transition-all",
@@ -243,12 +248,13 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
   const adminUser = user && "role" in user ? (user as AdminUser) : null;
 
   return (
-    <header className="h-14 shrink-0 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 z-30 sticky top-0">
+    <header className="h-16 shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 z-30 sticky top-0">
       {/* Left: company branding */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {/* Mobile hamburger — only shown when sidebar is a drawer */}
         {onMenuToggle && (
           <button
+            aria-label="Open navigation"
             onClick={onMenuToggle}
             className="lg:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors mr-1"
           >
@@ -257,11 +263,9 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
         )}
         {/* Logo mark — the sidebar carries it on desktop, so the bar shows where you are instead */}
         <div className="flex items-center gap-2.5 lg:hidden">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-            <span className="text-white text-[13px] font-extrabold tracking-tighter leading-none">AT</span>
-          </div>
+          <Image src="/logo-mark.png" alt="" width={30} height={30} className="shrink-0" />
           <div className="flex flex-col leading-none">
-            <span className="text-[15px] font-extrabold text-gray-900 tracking-tight">AIDOO TECH</span>
+            <span className="text-base font-bold text-slate-950 tracking-tight">AidooTech</span>
             <span className="text-[10px] text-gray-400 font-medium tracking-wide uppercase hidden sm:block">Hire Purchase System</span>
           </div>
         </div>

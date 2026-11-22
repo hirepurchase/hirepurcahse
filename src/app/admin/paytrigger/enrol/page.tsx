@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
@@ -68,6 +70,7 @@ export default function PayTriggerEnrol() {
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Enrol phones from stock" />
       <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
         Enrol phones when they arrive in stock. They lock themselves the first time they are switched on with data, and stay locked until
         the sale is approved and the agent has remitted the deposit. <span className="font-semibold">No licence is used until a phone activates.</span>
@@ -88,7 +91,7 @@ export default function PayTriggerEnrol() {
         </Section>
       )}
 
-      {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>}
 
       <Section
         title={`Transsion stock not enrolled (${candidates?.length ?? '…'})`}
@@ -105,7 +108,7 @@ export default function PayTriggerEnrol() {
         }
       >
         {!candidates ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p role="status" className="text-sm text-gray-400 workspace-status">Loading…</p>
         ) : candidates.length === 0 ? (
           <p className="text-sm text-gray-500">
             Nothing to enrol. If phones are missing, check the product is marked on{' '}

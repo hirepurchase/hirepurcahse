@@ -33,11 +33,14 @@ export default function CustomerLayout({
   }
 
   return (
-    <div className="flex h-screen bg-transparent surface-grid">
+    <div className="flex h-dvh bg-transparent surface-grid">
+      <a href="#customer-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3">
+        Skip to content
+      </a>
       <CustomerSidebar />
       {/* pb-32 reserves space for the mobile bottom tab bar and the pay button */}
-      <main className="flex-1 overflow-auto pb-32 lg:pb-24">
-        <div className="page-shell p-4 sm:p-6 lg:p-8">
+      <main id="customer-content" tabIndex={-1} className="min-w-0 flex-1 overflow-auto pb-[calc(8rem+env(safe-area-inset-bottom,0px))] lg:pb-24">
+        <div className="page-shell workspace-page mx-auto w-full max-w-[1200px] p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, Clock, KeyRound, RefreshCw } from 'lucide-react';
@@ -44,12 +46,13 @@ export default function PayTriggerOverview() {
     load();
   }, []);
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
   if (!health) return <p className="py-10 text-center text-sm text-gray-400">{loading ? 'Loading…' : 'No data'}</p>;
 
   const d = health.devices;
   return (
     <div className="space-y-4">
+      <SectionHeading title="Device fleet overview" />
       {health.config.dryRun && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <span className="font-semibold">Dry run.</span>{' '}
@@ -85,7 +88,7 @@ export default function PayTriggerOverview() {
         <Section
           title="Morning sweep"
           subtitle="Runs once a day at 08:36, after Knox. Catches anything an event missed."
-          right={<Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button>}
+          right={<Button variant="outline" size="sm" aria-label="Refresh device overview" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button>}
         >
           {health.lastSweepAt ? (
             <div className="space-y-2 text-sm">

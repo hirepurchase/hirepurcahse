@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -324,15 +325,14 @@ export default function ContractsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Contracts</h1>
           <p className="text-sm text-gray-500 mt-0.5">Hire purchase sales and agreements</p>
         </div>
         <Button onClick={() => setShowCreateForm(true)} size="sm" className="shrink-0">
           <Plus className="mr-1.5 h-4 w-4" />
-          <span className="hidden sm:inline">Create New Sale</span>
-          <span className="sm:hidden">New</span>
+          New contract
         </Button>
       </div>
 
@@ -357,6 +357,7 @@ export default function ContractsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
+                aria-label="Search contracts"
                 placeholder="Search customer, serial, contract #..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -370,12 +371,12 @@ export default function ContractsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <LoadingState label="Loading contracts…" />
             </div>
           ) : contracts.length === 0 ? (
             <div className="text-center py-12 px-4">
               <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500 font-medium">No contracts yet</p>
+              <p className="text-gray-500 font-medium workspace-empty-message">No contracts yet</p>
               <p className="text-sm text-gray-400 mt-1">Create your first hire purchase sale to get started</p>
               <Button className="mt-5" onClick={() => setShowCreateForm(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Create First Contract
@@ -674,7 +675,7 @@ function DesktopStepContent({
       {step === 1 && (
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Step 1: Select Customer</h3>
-          <input
+          <input aria-label="Search by Membership ID, Name, or Phone"
             type="text"
             placeholder="Search by Membership ID, Name, or Phone..."
             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
@@ -713,7 +714,7 @@ function DesktopStepContent({
               </div>
             ))}
             {!customersLoading && filteredCustomers.length === 0 && (
-              <p className="text-center text-sm text-gray-400 py-8">No customers found</p>
+              <p className="text-center text-sm text-gray-400 py-8 workspace-empty-message">No customers found</p>
             )}
           </div>
           <div className="flex gap-4">
@@ -727,7 +728,7 @@ function DesktopStepContent({
       {step === 2 && (
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Step 2: Select Product & Serial Number</h3>
-          <input
+          <input aria-label="Search by product name, category, or serial/IMEI number"
             type="text"
             placeholder="Search by product name, category, or serial/IMEI number..."
             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
@@ -906,7 +907,7 @@ function DesktopStepContent({
                     {hasPricing ? (
                       <div className="text-xs mt-0.5 text-gray-500">{formatCurrency(pricing.basePrice)}</div>
                     ) : (
-                      <div className="text-xs mt-0.5 text-gray-400">No pricing</div>
+                      <div className="text-xs mt-0.5 text-gray-400 workspace-empty-message">No pricing</div>
                     )}
                   </button>
                 );
@@ -1688,7 +1689,7 @@ function CreateHirePurchaseSale({
           {/* ── Mobile Step 1 ── */}
           {step === 1 && (
             <>
-              <input
+              <input aria-label="Search by name, ID, or phone"
                 type="text"
                 placeholder="Search by name, ID, or phone..."
                 className="flex h-9 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1730,7 +1731,7 @@ function CreateHirePurchaseSale({
                   </p>
                 )}
                 {!customersLoading && filteredCustomers.length === 0 && (
-                  <p className="text-center text-sm text-gray-400 py-8">No customers found</p>
+                  <p className="text-center text-sm text-gray-400 py-8 workspace-empty-message">No customers found</p>
                 )}
               </div>
             </>
@@ -1739,7 +1740,7 @@ function CreateHirePurchaseSale({
           {/* ── Mobile Step 2 ── */}
           {step === 2 && (
             <>
-              <input
+              <input aria-label="Search by product, category, or serial"
                 type="text"
                 placeholder="Search by product, category, or serial..."
                 className="flex h-9 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1786,7 +1787,7 @@ function CreateHirePurchaseSale({
                   </div>
                 ))}
                 {filteredInventory.length === 0 && (
-                  <p className="text-center text-sm text-gray-400 py-8">No inventory items found</p>
+                  <p className="text-center text-sm text-gray-400 py-8 workspace-empty-message">No inventory items found</p>
                 )}
               </div>
             </>

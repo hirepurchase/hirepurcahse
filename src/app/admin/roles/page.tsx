@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { Plus, Shield, Users, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -108,7 +109,7 @@ export default function RolesPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between workspace-heading workspace-heading--settings">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Roles & Permissions</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage user roles and permissions</p>
@@ -129,7 +130,7 @@ export default function RolesPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
+              <LoadingState label="Loading roles and permissions…" />
             </div>
           ) : roles.length === 0 ? (
             <div className="text-center py-12 text-gray-500">

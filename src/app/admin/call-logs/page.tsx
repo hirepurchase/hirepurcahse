@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import { Phone, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ export default function CallLogsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl sm:text-3xl font-bold">Call Logs</h1>
         <p className="text-sm text-gray-500">
           Every verification and collection call logged by customer service
@@ -204,7 +205,7 @@ export default function CallLogsPage() {
       <Card>
         <CardHeader className="space-y-3">
           <div className="flex gap-2">
-            <Input
+            <Input aria-label="Search customer, phone, contract or notes"
               placeholder="Search customer, phone, contract or notes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -245,7 +246,7 @@ export default function CallLogsPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 workspace-filters">
             <SearchableSelect
               options={officers.map((o) => ({
                 value: o.id,
@@ -295,7 +296,7 @@ export default function CallLogsPage() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 lg:max-w-md">
+          <div className="grid grid-cols-2 gap-2 lg:max-w-md workspace-filters">
             <label className="block min-w-0">
               <span className="mb-1 block text-xs text-gray-500">From date</span>
               <Input
@@ -326,7 +327,7 @@ export default function CallLogsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <LoadingState label="Loading call history…" />
             </div>
           ) : attempts.length === 0 ? (
             <p className="text-center text-gray-500 py-12 text-sm">

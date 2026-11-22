@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreditCard, Banknote, FileText, AlertCircle } from 'lucide-react';
@@ -117,27 +118,27 @@ export default function CustomerPaymentsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading payable contracts…" />
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="workspace-heading workspace-heading--customer">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Make a Payment</h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Select a contract to view installments and make a payment</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        <Card>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <Card className="col-span-2 border-teal-200 bg-teal-50 sm:col-span-1">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Outstanding</p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.totalOutstanding)}</p>
+                <p className="break-words text-xl font-bold tabular-nums text-teal-900 sm:text-2xl">{formatCurrency(stats.totalOutstanding)}</p>
               </div>
               <Banknote className="h-6 w-6 text-blue-600 hidden sm:block" />
             </div>
@@ -148,9 +149,9 @@ export default function CustomerPaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Pending</p>
-                <p className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.pendingInstallments}</p>
+                <p className="text-lg sm:text-2xl font-bold text-amber-800">{stats.pendingInstallments}</p>
               </div>
-              <FileText className="h-6 w-6 text-yellow-600 hidden sm:block" />
+              <FileText className="h-6 w-6 text-amber-800 hidden sm:block" />
             </div>
           </CardContent>
         </Card>

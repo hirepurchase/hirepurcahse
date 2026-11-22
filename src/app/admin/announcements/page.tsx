@@ -124,7 +124,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Megaphone className="h-6 w-6 text-amber-500" />
           Staff Announcements
@@ -187,9 +187,9 @@ export default function AnnouncementsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-sm text-gray-500">Loading…</p>
+            <p role="status" className="text-sm text-gray-500">Loading…</p>
           ) : announcements.length === 0 ? (
-            <p className="text-sm text-gray-500">No announcements posted yet.</p>
+            <p className="text-sm text-gray-500 workspace-empty-message">No announcements posted yet.</p>
           ) : (
             <div className="space-y-3">
               {announcements.map((a) => (

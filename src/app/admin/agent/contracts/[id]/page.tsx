@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -210,7 +211,7 @@ function RevisionEditModal({
                 <div className="mt-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
+                    <input aria-label="Search by name, phone, or membership ID"
                       autoFocus
                       className={`${inputCls} pl-9`}
                       placeholder="Search by name, phone, or membership ID..."
@@ -375,7 +376,7 @@ export default function AgentContractDetailPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+        <LoadingState label="Loading your contract…" />
       </div>
     );
   }
@@ -436,8 +437,8 @@ export default function AgentContractDetailPage() {
 
   return (
     <div className="space-y-4 pb-24">
-      <div className="flex items-center gap-3">
-        <button
+      <div className="flex items-center gap-3 workspace-heading workspace-heading--work">
+        <button aria-label="Go back"
           onClick={() => router.push("/admin/agent/contracts")}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
         >
@@ -594,7 +595,7 @@ export default function AgentContractDetailPage() {
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Timeline</p>
             <div className="mt-3 space-y-3">
               {approvalHistory.length === 0 ? (
-                <p className="text-sm text-gray-400">No approval activity has been recorded yet.</p>
+                <p className="text-sm text-gray-400 workspace-empty-message">No approval activity has been recorded yet.</p>
               ) : (
                 approvalHistory.map((item: any) => {
                   const changeKeys = item.newValues
@@ -837,7 +838,7 @@ export default function AgentContractDetailPage() {
               {!contract.payments?.length ? (
                 <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
                   <CreditCard className="mb-2 h-8 w-8 text-gray-300" />
-                  <p className="text-sm text-gray-400">No payments yet</p>
+                  <p className="text-sm text-gray-400 workspace-empty-message">No payments yet</p>
                 </div>
               ) : (
                 <>

@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { isInstallmentOverdue } from '@/lib/paymentDue';
 import { useParams, useRouter } from 'next/navigation';
@@ -84,8 +85,8 @@ export default function CustomerContractDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading your contract…" />
       </div>
     );
   }
@@ -123,7 +124,7 @@ export default function CustomerContractDetailPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 workspace-heading workspace-heading--customer">
         <div className="flex min-w-0 items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.back()} className="shrink-0">
             <ArrowLeft className="h-4 w-4 sm:mr-2" />
@@ -251,7 +252,7 @@ export default function CustomerContractDetailPage() {
             </CardHeader>
             <CardContent className="p-0">
               {contract.payments?.length === 0 ? (
-                <p className="text-center py-8 text-gray-500 text-sm">No payments yet</p>
+                <p className="text-center py-8 text-gray-500 text-sm workspace-empty-message">No payments yet</p>
               ) : (
                 <>
                   {/* Mobile */}

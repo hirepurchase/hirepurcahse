@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -142,7 +143,7 @@ export default function AgentContractsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex items-end justify-between gap-3 workspace-heading workspace-heading--work">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Contracts</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -187,10 +188,10 @@ export default function AgentContractsPage() {
           <CardTitle className="text-base">Find Contracts</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto_auto] workspace-filters">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
+            <input aria-label="Search customer, ID, contract, product"
               type="text"
               placeholder="Search customer, ID, contract, product..."
               className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -238,7 +239,7 @@ export default function AgentContractsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+              <LoadingState label="Loading your contracts…" />
             </div>
           ) : contracts.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">

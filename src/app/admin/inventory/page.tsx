@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Package, Search, Edit2, Trash2, Upload, Loader2, Lock, Unlock, ShieldCheck, TabletSmartphone, ExternalLink, RefreshCw, KeyRound, XCircle } from "lucide-react";
@@ -467,12 +468,12 @@ export default function InventoryPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory</h1>
           <p className="text-sm text-gray-500 mt-0.5">Track items with IMEI/Serial numbers</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canManageKnox && selectedIds.size > 0 && (() => {
             const enrollable = inventory.filter((i) => selectedIds.has(i.id) && ptCanEnrol(i)).map((i) => i.id);
             return enrollable.length > 0 ? (
@@ -508,7 +509,7 @@ export default function InventoryPage() {
           {canAdd && (
             <Button onClick={() => setShowForm(true)} size="sm">
               <Plus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Add Item</span>
+              Add item
             </Button>
           )}
         </div>
@@ -549,10 +550,11 @@ export default function InventoryPage() {
       </div>
 
       {/* Search + filters */}
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-2 workspace-filters">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
+            aria-label="Search inventory"
             placeholder="Search product or IMEI/Serial…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -597,7 +599,7 @@ export default function InventoryPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
+              <LoadingState label="Loading inventory…" />
             </div>
           ) : inventory.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -1371,7 +1373,7 @@ function InventoryForm({
               <label className="block text-sm font-medium mb-2">
                 Search Product *
               </label>
-              <Input
+              <Input aria-label="Search by product name or category"
                 placeholder="Search by product name or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1816,7 +1818,7 @@ function EditInventoryForm({
           {/* Product Search Input */}
           {!selectedProduct && (
             <>
-              <Input
+              <Input aria-label="Search by product name or category"
                 placeholder="Search by product name or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

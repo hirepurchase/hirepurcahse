@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Smartphone, CheckCircle, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
@@ -306,8 +307,8 @@ export default function CustomerContractPaymentPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading payment details…" />
       </div>
     );
   }
@@ -350,8 +351,8 @@ export default function CustomerContractPaymentPage() {
     // Room at the bottom on phones for the pay bar.
     <div className="space-y-4 pb-28 lg:pb-0">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
+      <div className="flex items-center gap-3 workspace-heading workspace-heading--customer">
+        <Button variant="outline" size="sm" aria-label="Go back" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 sm:mr-2" />
           <span className="hidden sm:inline">Back</span>
         </Button>
@@ -372,7 +373,7 @@ export default function CustomerContractPaymentPage() {
               <p className="mt-0.5 text-sm text-slate-600">{otpMessage}</p>
             </div>
             <form
-              className="flex gap-2"
+              className="flex flex-wrap gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 void submitOtp();

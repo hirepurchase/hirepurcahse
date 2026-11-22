@@ -178,7 +178,7 @@ export default function AgentDashboardPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-gray-500 text-sm">Loading your dashboard...</p>
+          <p role="status" className="text-gray-500 text-sm">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -213,7 +213,7 @@ export default function AgentDashboardPage() {
 
       {/* ── HEADER ── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 workspace-heading workspace-heading--work">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-lg sm:text-xl font-bold shrink-0">
               {agentInitials}
@@ -383,7 +383,7 @@ export default function AgentDashboardPage() {
         </div>
 
         {portfolio.totalContracts === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">No contracts yet</p>
+          <p className="text-sm text-gray-400 text-center py-4 workspace-empty-message">No contracts yet</p>
         ) : (
           <>
             <div className="flex h-2.5 w-full rounded-full overflow-hidden bg-gray-100">

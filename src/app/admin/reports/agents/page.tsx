@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState, useCallback } from "react";
 import {
   Users,
@@ -121,7 +122,7 @@ export default function AgentReportPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 workspace-heading workspace-heading--report">
         <Link
           href="/admin/reports"
           className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
@@ -145,7 +146,7 @@ export default function AgentReportPage() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-wrap gap-3 items-end workspace-filters">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
               <input
@@ -271,12 +272,12 @@ export default function AgentReportPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
+              <LoadingState label="Loading the leaderboard…" />
             </div>
           ) : sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Users className="h-10 w-10 text-gray-300 mb-3" />
-              <p className="text-sm font-medium text-gray-500">No data found</p>
+              <p className="text-sm font-medium text-gray-500 workspace-empty-message">No data found</p>
               <p className="text-xs text-gray-400 mt-1">Try adjusting the date range</p>
             </div>
           ) : (

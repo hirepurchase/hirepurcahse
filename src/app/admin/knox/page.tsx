@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -123,6 +125,7 @@ export default function KnoxOverviewPage() {
 
   return (
     <div className="space-y-6">
+      <SectionHeading title="Device fleet overview" />
       {/* Dry-run warning banner */}
       {kg?.dryRun && (
         <div className="flex items-start gap-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -250,7 +253,7 @@ export default function KnoxOverviewPage() {
               </div>
             ))}
             {!kg?.configuredPaths || Object.keys(kg.configuredPaths).length === 0 ? (
-              <p className="text-slate-400 text-xs">No path data available.</p>
+              <p className="text-slate-400 text-xs workspace-empty-message">No path data available.</p>
             ) : null}
           </div>
         </div>
@@ -288,7 +291,7 @@ export default function KnoxOverviewPage() {
           <span className="text-xs text-slate-400">Last 10</span>
         </div>
         {commands.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+          <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 workspace-empty-message">
             No Knox Guard commands yet.
           </div>
         ) : (

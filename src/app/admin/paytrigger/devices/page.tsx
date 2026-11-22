@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
@@ -36,16 +38,18 @@ export default function PayTriggerDevices() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <SectionHeading title="Managed phones" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center workspace-filters">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input className="pl-9" placeholder="Search IMEI" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input aria-label="Search IMEI" className="pl-9" placeholder="Search IMEI" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1 overflow-x-auto">
           {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setStatus(f.value)}
+              aria-pressed={status === f.value}
               className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${status === f.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {f.label}
@@ -54,9 +58,9 @@ export default function PayTriggerDevices() {
         </div>
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>}
       {!devices ? (
-        <p className="py-10 text-center text-sm text-gray-400">Loading…</p>
+        <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>
       ) : devices.length === 0 ? (
         <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">
           No phones yet. <Link href="/admin/paytrigger/enrol" className="font-medium text-indigo-700">Enrol Transsion stock</Link>.

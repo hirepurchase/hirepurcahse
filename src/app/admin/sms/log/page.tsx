@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState, useCallback } from 'react';
 import { MessageSquare, Search, X, CheckCircle, XCircle, Clock, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,7 +109,7 @@ export default function SMSLogPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-cyan-600" />
           SMS Log
@@ -119,11 +120,11 @@ export default function SMSLogPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4 pb-4">
-          <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-wrap gap-3 items-end workspace-filters">
             {/* Search */}
             <form onSubmit={handleSearch} className="relative flex-1 min-w-48">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
+              <input aria-label="Search by name, phone, message"
                 type="text"
                 placeholder="Search by name, phone, message..."
                 value={search}
@@ -177,7 +178,7 @@ export default function SMSLogPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
+              <LoadingState label="Loading message history…" />
             </div>
           ) : logs.length === 0 ? (
             <div className="py-16 text-center text-gray-400">

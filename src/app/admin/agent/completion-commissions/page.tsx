@@ -134,7 +134,7 @@ function CompletionCommissions() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 workspace-heading workspace-heading--work">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 shadow-sm">
           <Gift className="h-5 w-5 text-white" />
         </div>
@@ -168,7 +168,7 @@ function CompletionCommissions() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 workspace-filters">
         <select className="h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
           <option value="">All agents</option>
           {agents.map(([id, name]) => (
@@ -187,8 +187,8 @@ function CompletionCommissions() {
         </div>
       )}
 
-      {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-      {!data && !error && <p className="py-10 text-center text-sm text-gray-400">Loading…</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>}
+      {!data && !error && <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>}
 
       {data && data.rows.length === 0 && (
         <p className="rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">Nothing here.</p>

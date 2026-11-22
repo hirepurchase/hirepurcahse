@@ -248,7 +248,7 @@ export default function IncomeReportPage() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading income report...</p>
+          <p role="status">Loading income report...</p>
         </div>
       </div>
     );
@@ -256,7 +256,7 @@ export default function IncomeReportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center workspace-heading workspace-heading--report">
         <div>
           <h1 className="text-3xl font-bold">Income Report</h1>
           <p className="text-gray-500">Track payments and revenue by payment method</p>
@@ -282,7 +282,7 @@ export default function IncomeReportPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 workspace-filters">
             <div>
               <label className="text-sm font-medium mb-1 block">Start Date</label>
               <Input
@@ -353,7 +353,7 @@ export default function IncomeReportPage() {
 
           <div className="mt-4">
             <label className="text-sm font-medium mb-1 block">Search</label>
-            <Input
+            <Input aria-label="Search by transaction ref, customer, membership ID, or contract"
               placeholder="Search by transaction ref, customer, membership ID, or contract..."
               value={filters.search}
               onChange={e => handleFilterChange('search', e.target.value)}
@@ -481,7 +481,7 @@ export default function IncomeReportPage() {
         </CardHeader>
         <CardContent>
           {filteredPayments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 workspace-empty-message">
               No payments found matching your filters
             </div>
           ) : (

@@ -1,7 +1,8 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { FileText, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,6 @@ export default function CustomerContractsPage() {
   const [filteredContracts, setFilteredContracts] = useState<HirePurchaseContract[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -61,25 +61,26 @@ export default function CustomerContractsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading your contracts…" />
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
+    <div className="space-y-5">
+      <header className="workspace-heading workspace-heading--customer">
         <h1 className="text-3xl font-bold text-gray-900">My Contracts</h1>
         <p className="text-gray-600 mt-1">View all your hire purchase contracts</p>
-      </div>
+      </header>
 
       {/* Search */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
+      <Card>
+        <CardContent className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
+              aria-label="Search your contracts"
               placeholder="Search by contract number or product name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -97,7 +98,7 @@ export default function CustomerContractsPage() {
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium">No contracts found</p>
               <p className="text-sm mt-1">
-                {searchQuery ? 'Try a different search term' : 'You don&apos;t have any contracts yet'}
+                {searchQuery ? 'Try a different search term' : 'You do not have any contracts yet'}
               </p>
             </div>
           </CardContent>
@@ -109,13 +110,14 @@ export default function CustomerContractsPage() {
             return (
               <Card
                 key={contract.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => router.push(`/customer/contracts/${contract.id}`)}
+                className="min-w-0 transition-colors hover:border-teal-400"
               >
                 <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <CardTitle className="text-lg wrap-break-word">{contract.contractNumber}</CardTitle>
+                      <CardTitle className="text-lg wrap-break-word">
+                        <Link href={`/customer/contracts/${contract.id}`} className="text-teal-800 hover:underline">{contract.contractNumber}</Link>
+                      </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
                         {contract.inventoryItem?.product?.name}
                       </p>
@@ -128,7 +130,7 @@ export default function CustomerContractsPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {/* Financial Summary */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm wrap-break-word tabular-nums">
                       <div>
                         <p className="text-gray-600">Total Price</p>
                         <p className="font-semibold">{formatCurrency(contract.totalPrice)}</p>

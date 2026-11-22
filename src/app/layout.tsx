@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ServiceWorkerRegister } from "@/components/shared/ServiceWorkerRegister";
-import { InstallAppButton } from "@/components/shared/InstallAppButton";
 
 export const metadata: Metadata = {
   title: "AidooTech Hire Purchase",
@@ -30,9 +29,6 @@ export default function RootLayout({
         {children}
         <Toaster />
         <ServiceWorkerRegister />
-        <div className="fixed bottom-4 right-4 z-40">
-          <InstallAppButton />
-        </div>
       </body>
     </html>
   );

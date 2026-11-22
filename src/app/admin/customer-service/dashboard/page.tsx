@@ -1,5 +1,6 @@
 "use client";
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle, Phone, Users, Clock, Wallet } from "lucide-react";
@@ -53,7 +54,7 @@ export default function CustomerServiceDashboardPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <LoadingState label="Loading your customer service dashboard…" />
       </div>
     );
   }
@@ -64,7 +65,7 @@ export default function CustomerServiceDashboardPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="workspace-heading workspace-heading--service">
         <h1 className="text-2xl sm:text-3xl font-bold">Customer Service</h1>
         <p className="text-sm text-gray-500">
           Verify new registrations and follow up on overdue payments

@@ -54,7 +54,7 @@ export default function WelcomeCallsPage() {
   return (
     <ProtectedRoute permissions={[PERMISSIONS.MANAGE_CSO_ASSIGNMENTS]}>
       <div className="space-y-4 pb-10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 workspace-heading workspace-heading--service">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 shadow-sm">
             <PhoneIncoming className="h-5 w-5 text-white" />
           </div>
@@ -195,7 +195,7 @@ function AgentsTab() {
     }
   };
 
-  if (loading) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (loading) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
 
   const rows: Array<Officer | { id: typeof NONE; name: string; agentCount: number; role: string; phone: null; eligible: true }> = [
     ...officers,
@@ -251,9 +251,9 @@ function AgentsTab() {
             {open === o.id && (
               <div className="border-t border-gray-100 p-3">
                 {loadingAgents === o.id ? (
-                  <p className="py-4 text-center text-xs text-gray-400">Loading agents…</p>
+                  <p role="status" className="py-4 text-center text-xs text-gray-400 workspace-status">Loading agents…</p>
                 ) : sourceAgents.length === 0 ? (
-                  <p className="py-4 text-center text-xs text-gray-400">No agents</p>
+                  <p className="py-4 text-center text-xs text-gray-400 workspace-empty-message">No agents</p>
                 ) : (
                   <>
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -338,7 +338,7 @@ function AgentsTab() {
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>Moves</DialogTitle></DialogHeader>
           {history.length === 0 ? (
-            <p className="py-10 text-center text-sm text-gray-500">No agents have been moved yet.</p>
+            <p className="py-10 text-center text-sm text-gray-500 workspace-empty-message">No agents have been moved yet.</p>
           ) : (
             <div className="space-y-2">
               {history.map((t) => (
@@ -400,7 +400,7 @@ function TodaysCallsTab() {
     }
   };
 
-  if (!officers) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (!officers) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
   const total = officers.reduce((s, o) => s + o.total, 0);
   const called = officers.reduce((s, o) => s + o.called, 0);
   const absent = officers.filter((o) => !working.has(o.id));

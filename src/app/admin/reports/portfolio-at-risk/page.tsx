@@ -220,10 +220,10 @@ export default function PortfolioAtRiskPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 workspace-heading workspace-heading--report">
         <div className="flex items-center gap-3">
           <Link href="/admin/reports">
-            <Button variant="ghost" size="sm">
+            <Button aria-label="Go back" variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
@@ -240,7 +240,7 @@ export default function PortfolioAtRiskPage() {
         </Button>
       </div>
 
-      {isLoading && !report && <p className="py-10 text-center text-sm text-gray-500">Loading…</p>}
+      {isLoading && !report && <p role="status" className="py-10 text-center text-sm text-gray-500">Loading…</p>}
 
       {summary && (
         <>
@@ -407,7 +407,7 @@ export default function PortfolioAtRiskPage() {
                   <span className="ml-2 text-sm font-normal text-gray-500">{visibleAgents.length}</span>
                 </CardTitle>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Input
+                  <Input aria-label="Search agent, area, cluster"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search agent, area, cluster…"
@@ -430,7 +430,7 @@ export default function PortfolioAtRiskPage() {
             </CardHeader>
             <CardContent className="p-0">
               {visibleAgents.length === 0 ? (
-                <p className="py-10 text-center text-sm text-gray-500">No agents match those filters.</p>
+                <p className="py-10 text-center text-sm text-gray-500 workspace-empty-message">No agents match those filters.</p>
               ) : (
                 <>
                   {/* Desktop */}
@@ -574,9 +574,9 @@ export default function PortfolioAtRiskPage() {
 }
 
 function LateList({ rows, loading }: { rows?: LateContract[]; loading: boolean }) {
-  if (loading) return <p className="py-3 text-center text-sm text-gray-500">Loading customers…</p>;
+  if (loading) return <p role="status" className="py-3 text-center text-sm text-gray-500">Loading customers…</p>;
   if (!rows || rows.length === 0)
-    return <p className="py-3 text-center text-sm text-gray-500">No late customers.</p>;
+    return <p className="py-3 text-center text-sm text-gray-500 workspace-empty-message">No late customers.</p>;
 
   return (
     <div className="space-y-2">

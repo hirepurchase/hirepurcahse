@@ -414,7 +414,7 @@ export default function DeviceControlPage() {
   return (
     <ProtectedRoute permissions={[PERMISSIONS.VIEW_DEVICE_CONTROL, PERMISSIONS.MANAGE_DEVICE_CONTROL]}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between workspace-heading workspace-heading--device">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Knox Guard Device Control</h1>
             <p className="mt-2 text-sm text-gray-600">
@@ -687,7 +687,7 @@ export default function DeviceControlPage() {
                 Loading devices...
               </div>
             ) : devices.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 workspace-empty-message">
                 No managed devices enrolled yet.
               </div>
             ) : (
@@ -791,7 +791,7 @@ export default function DeviceControlPage() {
 
               <div className="mt-4 space-y-3">
                 {commands.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                  <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 workspace-empty-message">
                     No Knox Guard commands yet.
                   </div>
                 ) : (

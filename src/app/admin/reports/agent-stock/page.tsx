@@ -214,7 +214,7 @@ export default function AgentStockReportPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3 workspace-heading workspace-heading--report">
         <button onClick={() => router.push('/admin/reports')} className="rounded-lg p-2 hover:bg-slate-100" aria-label="Back to reports">
           <ArrowLeft className="h-5 w-5 text-slate-600" />
         </button>
@@ -279,7 +279,7 @@ export default function AgentStockReportPage() {
         </CardContent>
       </Card>
 
-      {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>}
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -317,7 +317,7 @@ export default function AgentStockReportPage() {
           <div className="border-b border-slate-100 px-4 py-3">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
+              <input aria-label="Search IMEI / serial or product"
                 value={serialSearch}
                 onChange={(e) => setSerialSearch(e.target.value)}
                 placeholder="Search IMEI / serial or product"
@@ -329,10 +329,10 @@ export default function AgentStockReportPage() {
 
         <div className="overflow-x-auto">
           {loading && !report ? (
-            <p className="px-4 py-16 text-center text-sm text-slate-500">Loading…</p>
+            <p role="status" className="px-4 py-16 text-center text-sm text-slate-500">Loading…</p>
           ) : tab === 'agents' ? (
             agents.length === 0 ? (
-              <p className="px-4 py-16 text-center text-sm text-slate-500">No agents match these filters.</p>
+              <p className="px-4 py-16 text-center text-sm text-slate-500 workspace-empty-message">No agents match these filters.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -389,7 +389,7 @@ export default function AgentStockReportPage() {
               </table>
             )
           ) : devices.length === 0 ? (
-            <p className="px-4 py-16 text-center text-sm text-slate-500">No devices match these filters.</p>
+            <p className="px-4 py-16 text-center text-sm text-slate-500 workspace-empty-message">No devices match these filters.</p>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">

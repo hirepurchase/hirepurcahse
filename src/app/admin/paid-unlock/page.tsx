@@ -99,7 +99,7 @@ export default function PaidUnlockSettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between workspace-heading workspace-heading--device">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Paid Temporary Unlock</h1>
           <p className="mt-0.5 text-sm text-gray-500">

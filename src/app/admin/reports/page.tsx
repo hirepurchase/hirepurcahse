@@ -1,20 +1,14 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, AlertTriangle, Package, Users, Banknote, FileText, Shield, Wallet, Trophy, DollarSign, Award, ShieldAlert, Medal, Boxes } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { BarChart3, TrendingUp, AlertTriangle, Package, Banknote, Shield, Wallet, Trophy, DollarSign, Award, ShieldAlert, Medal, Boxes } from 'lucide-react';
 
 export default function ReportsPage() {
-  const router = useRouter();
-
   const reports = [
     {
       title: 'Income Report',
       description: 'Track payments and revenue by payment method (Direct Debit, Mobile Money, Cash, Bank)',
       icon: Wallet,
       color: 'text-emerald-600 bg-emerald-100',
+      category: 'Payments and risk',
       path: '/admin/reports/income',
     },
     {
@@ -22,6 +16,7 @@ export default function ReportsPage() {
       description: 'Leaderboard of agents by contracts created, sales value, and payments collected on their contracts',
       icon: Trophy,
       color: 'text-amber-600 bg-amber-100',
+      category: 'Agent and cluster performance',
       path: '/admin/reports/agents',
     },
     {
@@ -29,6 +24,7 @@ export default function ReportsPage() {
       description: 'View sales performance, contract values, and sales by category and agent',
       icon: TrendingUp,
       color: 'text-green-600 bg-green-100',
+      category: 'Sales and inventory',
       path: '/admin/reports/sales',
     },
     {
@@ -36,6 +32,7 @@ export default function ReportsPage() {
       description: 'Track payment collections, transaction status, and payment methods',
       icon: Banknote,
       color: 'text-blue-600 bg-blue-100',
+      category: 'Payments and risk',
       path: '/admin/reports/payments',
     },
     {
@@ -43,6 +40,7 @@ export default function ReportsPage() {
       description: 'Monitor overdue contracts, defaulters, and payment delays',
       icon: AlertTriangle,
       color: 'text-red-600 bg-red-100',
+      category: 'Payments and risk',
       path: '/admin/reports/defaults',
     },
     {
@@ -50,6 +48,7 @@ export default function ReportsPage() {
       description: 'Stock levels, product availability, and inventory valuation',
       icon: Package,
       color: 'text-purple-600 bg-purple-100',
+      category: 'Sales and inventory',
       path: '/admin/reports/inventory',
     },
     {
@@ -57,6 +56,7 @@ export default function ReportsPage() {
       description: 'Devices each agent is holding, their value, and how long they have had them',
       icon: Boxes,
       color: 'text-indigo-600 bg-indigo-100',
+      category: 'Sales and inventory',
       path: '/admin/reports/agent-stock',
     },
     {
@@ -64,6 +64,7 @@ export default function ReportsPage() {
       description: 'Track Hubtel direct debit mandate approvals and customer authorization status',
       icon: Shield,
       color: 'text-teal-600 bg-teal-100',
+      category: 'Payments and risk',
       path: '/admin/reports/preapprovals',
     },
     {
@@ -71,6 +72,7 @@ export default function ReportsPage() {
       description: 'Quick overview of key business metrics and statistics',
       icon: BarChart3,
       color: 'text-indigo-600 bg-indigo-100',
+      category: 'Sales and inventory',
       path: '/admin/reports/dashboard',
     },
     {
@@ -78,6 +80,7 @@ export default function ReportsPage() {
       description: 'Contracts paid off per agent in a month — the basis for paying completion bonuses',
       icon: Award,
       color: 'text-emerald-600 bg-emerald-100',
+      category: 'Agent and cluster performance',
       path: '/admin/reports/agent-completions',
     },
     {
@@ -85,6 +88,7 @@ export default function ReportsPage() {
       description: 'PAR 1 and PAR 30 by agent and cluster, ageing of the book, and who is over the contract-blocking limit',
       icon: ShieldAlert,
       color: 'text-rose-600 bg-rose-100',
+      category: 'Payments and risk',
       path: '/admin/reports/portfolio-at-risk',
     },
     {
@@ -92,6 +96,7 @@ export default function ReportsPage() {
       description: 'Monthly performance pay for cluster leaders — indicators, rates, approval and payment',
       icon: Medal,
       color: 'text-emerald-600 bg-emerald-100',
+      category: 'Agent and cluster performance',
       path: '/admin/cluster-scorecard',
     },
     {
@@ -99,43 +104,39 @@ export default function ReportsPage() {
       description: 'Track deposit collections, commissions earned, and remittances per agent',
       icon: DollarSign,
       color: 'text-cyan-600 bg-cyan-100',
+      category: 'Agent and cluster performance',
       path: '/admin/reports/agent-deposits',
     },
   ];
 
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-600 mt-1">Business intelligence and analytics</p>
-      </div>
+  const categories = ['Payments and risk', 'Sales and inventory', 'Agent and cluster performance'];
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map((report) => (
-          <Card
-            key={report.path}
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => router.push(report.path)}
-          >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg mb-2">{report.title}</CardTitle>
-                  <p className="text-sm text-gray-600">{report.description}</p>
-                </div>
-                <div className={`p-3 rounded-lg ${report.color}`}>
-                  <report.icon className="h-6 w-6" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full">
-                View Report
-              </Button>
-            </CardContent>
-          </Card>
+  return (
+    <div className="space-y-6">
+      <header className="workspace-heading workspace-heading--report">
+        <h1>Reports</h1>
+        <p className="mt-2">Review collections, sales, inventory, and team performance.</p>
+      </header>
+      <nav aria-label="Reports" className="space-y-7">
+        {categories.map((category) => (
+          <section key={category} aria-label={category}>
+            <h2 className="mb-3 text-lg font-bold text-slate-950">{category}</h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {reports.filter((report) => report.category === category).map(({ path, title, description, color, icon: Icon }) => (
+                <Link key={path} href={path} className="operations-panel flex items-start gap-4 p-4 transition-colors hover:border-blue-400 hover:bg-blue-50/30 sm:p-5">
+                  <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${color}`}>
+                    <Icon aria-hidden="true" className="size-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-slate-950">{title}</span>
+                    <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
         ))}
-      </div>
+      </nav>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/useToast';
@@ -92,14 +93,14 @@ export default function CommissionSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <LoadingState label="Loading commission settings…" />
       </div>
     );
   }
 
   return (
     <div className="max-w-lg">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 workspace-heading workspace-heading--settings">
         <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
           <DollarSign className="h-5 w-5" />
         </div>

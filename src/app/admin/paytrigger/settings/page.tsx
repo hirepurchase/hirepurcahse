@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useRef, useState } from 'react';
 import { ImageUp, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -88,11 +90,12 @@ export default function PayTriggerSettingsPage() {
     }
   };
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!s) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
+  if (!s) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Lock rules and customer messages" />
       <Section title="When a phone locks">
         <div className="space-y-4">
           <NumberField

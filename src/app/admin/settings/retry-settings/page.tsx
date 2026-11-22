@@ -97,7 +97,7 @@ export default function RetrySettingsPage() {
     return (
       <div className="p-8">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">Loading settings...</div>
+          <div role="status" className="text-lg text-gray-600">Loading settings...</div>
         </div>
       </div>
     );
@@ -105,7 +105,7 @@ export default function RetrySettingsPage() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 workspace-heading workspace-heading--settings">
         <h1 className="text-3xl font-bold text-gray-800">Payment Retry Settings</h1>
         <p className="text-gray-600 mt-2">
           Configure automatic retry settings for failed payments

@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -62,11 +64,12 @@ export default function PayTriggerLadder() {
     }
   };
 
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!ladder) return <p className="py-10 text-center text-sm text-gray-400">Loading…</p>;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 workspace-error">{error}</p>;
+  if (!ladder) return <p role="status" className="py-10 text-center text-sm text-gray-400 workspace-status">Loading…</p>;
 
   return (
     <div className="space-y-4">
+      <SectionHeading title="Restriction stages" />
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
         What a phone does once its lock date passes, step by step. <span className="font-semibold text-gray-800">Days are counted from the lock date</span>,
         which is already {`grace + 1 day`} after the instalment fell due. Changes reach every phone the next time it connects.

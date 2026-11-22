@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, Edit2, Package } from 'lucide-react';
@@ -158,7 +159,7 @@ export default function ProductsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage products and categories</p>
@@ -215,6 +216,7 @@ export default function ProductsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
+            aria-label="Search products"
             placeholder="Search by product name…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -236,7 +238,7 @@ export default function ProductsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600" />
+              <LoadingState label="Loading products…" />
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12 text-gray-500">

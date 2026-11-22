@@ -1,5 +1,6 @@
 'use client';
 
+import LoadingState from "@/components/shared/LoadingState";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Banknote, FileText, AlertCircle, ChevronLeft, ChevronRight, ChevronRight as ArrowRight, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -142,8 +143,8 @@ export default function PaymentsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-600" />
+      <div className="flex min-h-56 items-center justify-center">
+        <LoadingState label="Loading contracts with balances…" />
       </div>
     );
   }
@@ -151,7 +152,7 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 workspace-heading workspace-heading--work">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Payment Processing</h1>
           <p className="text-sm text-gray-500 mt-0.5">Select a contract to process payments</p>
@@ -235,6 +236,7 @@ export default function PaymentsPage() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
+          aria-label="Search payments"
           placeholder="Search contract, customer, phone…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

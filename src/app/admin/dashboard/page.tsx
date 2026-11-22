@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, FileText, Banknote, AlertCircle, ChevronRight, Plus, ArrowRight } from 'lucide-react';
+import { Users, FileText, Banknote, AlertCircle, Plus, PackagePlus, UserPlus, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/permissions';
+import { Button } from '@/components/ui/button';
 import { AdminUser } from '@/types';
 
 interface RecentContract {
@@ -24,17 +27,22 @@ interface DashboardStats {
   totalContracts: number;
   activeContracts: number;
   totalRevenue: number;
+  monthlyPayments: number;
   overduePayments: number;
 }
 
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-emerald-100 text-emerald-700',
   COMPLETED: 'bg-blue-100 text-blue-700',
-  CANCELLED: 'bg-red-100 text-red-700',
+  CANCELLED: 'bg-slate-100 text-slate-700',
+  DEFAULTED: 'bg-red-100 text-red-800',
+  PENDING_APPROVAL: 'bg-amber-100 text-amber-900',
+  REVISION_REQUESTED: 'bg-amber-100 text-amber-900',
 };
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
   const { user, isLoading: isAuthLoading } = useAuthStore();
   const adminUser = user as AdminUser | null;
 
@@ -43,6 +51,7 @@ export default function AdminDashboard() {
     totalContracts: 0,
     activeContracts: 0,
     totalRevenue: 0,
+    monthlyPayments: 0,
     overduePayments: 0,
   });
   const [recentContracts, setRecentContracts] = useState<RecentContract[]>([]);
@@ -50,6 +59,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   const loadDashboardStats = useCallback(async () => {
+    setIsLoading(true);
     try {
       setError(null);
       const response = await api.get('/reports/dashboard');
@@ -59,11 +69,12 @@ export default function AdminDashboard() {
         totalContracts: payload?.contracts?.total ?? 0,
         activeContracts: payload?.contracts?.active ?? 0,
         totalRevenue: payload?.payments?.monthlyTotal ?? 0,
+        monthlyPayments: payload?.payments?.monthlyCount ?? 0,
         overduePayments: payload?.alerts?.overdueInstallments ?? 0,
       });
       setRecentContracts(payload?.recentContracts ?? []);
     } catch {
-      setError('Could not load dashboard statistics. Please refresh the page.');
+      setError('We couldn’t load the dashboard. Try again to see the latest figures.');
     } finally {
       setIsLoading(false);
     }
@@ -84,249 +95,156 @@ export default function AdminDashboard() {
       return;
     }
 
+    // Customer service work from their own dashboard (their menu and phone
+    // tabs start there), so signing in lands them on it.
+    if (adminUser?.role === 'CUSTOMER_SERVICE') {
+      router.replace('/admin/customer-service/dashboard');
+      return;
+    }
+
     void loadDashboardStats();
   }, [adminUser?.role, isAuthLoading, loadDashboardStats, router]);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-600" />
-      </div>
-    );
-  }
+  const canCreateContract = hasPermission(PERMISSIONS.CREATE_CONTRACT);
+  const shortcuts = [
+    { label: 'Register customer', href: '/admin/customers?action=new', icon: UserPlus, permission: PERMISSIONS.CREATE_CUSTOMER },
+    { label: 'Add product', href: '/admin/products?action=new', icon: PackagePlus, permission: PERMISSIONS.MANAGE_PRODUCTS },
+    { label: 'View payment reports', href: '/admin/reports/payments', icon: Wallet, permission: PERMISSIONS.VIEW_REPORTS },
+  ].filter(({ permission }) => hasPermission(permission));
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Hire purchase management overview</p>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-          <button
-            onClick={loadDashboardStats}
-            className="shrink-0 text-sm font-medium text-red-700 underline hover:no-underline"
-          >
-            Retry
-          </button>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4 workspace-heading workspace-heading--work">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Operations overview</h1>
+          <p className="mt-2 text-base text-slate-600">Monitor collections, customers, and contracts.</p>
         </div>
-      )}
-
-      {/* Stats Grid — 2 cols on mobile, 4 on lg */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard
-          title="Customers"
-          value={stats.totalCustomers}
-          icon={Users}
-          iconClass="text-blue-600"
-          iconBg="bg-blue-50"
-          href="/admin/customers"
-        />
-        <StatCard
-          title="Contracts"
-          value={stats.totalContracts}
-          icon={FileText}
-          iconClass="text-emerald-600"
-          iconBg="bg-emerald-50"
-          subtitle={`${stats.activeContracts} active`}
-          href="/admin/contracts"
-        />
-        <StatCard
-          title="This Month"
-          value={formatCurrency(stats.totalRevenue)}
-          icon={Banknote}
-          iconClass="text-purple-600"
-          iconBg="bg-purple-50"
-          href="/admin/reports"
-        />
-        <StatCard
-          title="Overdue"
-          value={stats.overduePayments}
-          icon={AlertCircle}
-          iconClass="text-red-600"
-          iconBg="bg-red-50"
-          href="/admin/reports"
-          highlight={stats.overduePayments > 0}
-        />
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <QuickAction
-            href="/admin/customers?action=new"
-            label="Register Customer"
-            description="Create account & membership ID"
-            colorClass="bg-blue-50 hover:bg-blue-100 border-blue-100"
-            labelClass="text-blue-900"
-            descClass="text-blue-600"
-            icon={<Plus className="h-5 w-5 text-blue-600" />}
-          />
-          <QuickAction
-            href="/admin/contracts?action=new"
-            label="New HP Sale"
-            description="Initiate a hire purchase contract"
-            colorClass="bg-emerald-50 hover:bg-emerald-100 border-emerald-100"
-            labelClass="text-emerald-900"
-            descClass="text-emerald-600"
-            icon={<Plus className="h-5 w-5 text-emerald-600" />}
-          />
-          <QuickAction
-            href="/admin/products?action=new"
-            label="Add Product"
-            description="Add products to inventory"
-            colorClass="bg-purple-50 hover:bg-purple-100 border-purple-100"
-            labelClass="text-purple-900"
-            descClass="text-purple-600"
-            icon={<Plus className="h-5 w-5 text-purple-600" />}
-          />
-        </div>
-      </div>
-
-      {/* Recent Contracts */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Recent Contracts</h2>
-          <Link
-            href="/admin/contracts"
-            className="flex items-center gap-1 text-xs font-medium text-cyan-600 hover:text-cyan-800 transition-colors"
-          >
-            View all <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        {recentContracts.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-            <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No contracts yet</p>
-            <p className="text-xs text-gray-400 mt-1">Recent contracts will appear here</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
-            {recentContracts.map((contract) => (
-              <Link
-                key={contract.id}
-                href={`/admin/contracts/${contract.id}`}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors group"
-              >
-                {/* Avatar */}
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 group-hover:bg-cyan-50 group-hover:text-cyan-700 transition-colors">
-                  {contract.customer.firstName[0]}{contract.customer.lastName[0]}
-                </div>
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {contract.customer.firstName} {contract.customer.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {contract.inventoryItem?.product?.name ?? 'Product'} · {contract.customer.membershipId}
-                  </p>
-                </div>
-                {/* Right */}
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-semibold text-gray-900">{formatCurrency(contract.totalPrice)}</p>
-                  <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', STATUS_STYLES[contract.status] ?? 'bg-gray-100 text-gray-600')}>
-                    {contract.status.replace(/_/g, " ")}
-                  </span>
-                </div>
-                <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
-              </Link>
-            ))}
-          </div>
+        {canCreateContract && (
+          <Button asChild size="lg">
+            <Link href="/admin/contracts?action=new"><Plus aria-hidden="true" /> New contract</Link>
+          </Button>
         )}
-      </div>
+      </header>
+
+      {isLoading ? (
+        <div role="status" className="operations-panel flex min-h-52 items-center justify-center gap-3 text-sm text-slate-600">
+          <span aria-hidden="true" className="size-5 rounded-full border-2 border-blue-100 border-t-blue-600 motion-safe:animate-spin" />
+          Loading dashboard…
+        </div>
+      ) : error ? (
+        <div role="alert" className="operations-panel flex flex-wrap items-center gap-3 p-5">
+          <AlertCircle aria-hidden="true" className="size-5 text-red-600" />
+          <p className="flex-1 text-sm text-slate-700">{error}</p>
+          <Button variant="outline" onClick={loadDashboardStats}>Retry</Button>
+        </div>
+      ) : (
+        <>
+          <section aria-label="Portfolio metrics" className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
+            <Metric title="Collected this month" value={formatCurrency(stats.totalRevenue)}
+              detail={`${stats.monthlyPayments.toLocaleString()} successful payments`} icon={Banknote}
+              href="/admin/reports/payments" featured />
+            <Metric title="Active contracts" value={stats.activeContracts.toLocaleString()}
+              detail={`${stats.totalContracts.toLocaleString()} total contracts`} icon={FileText} href="/admin/contracts" />
+            <Metric title="Customers" value={stats.totalCustomers.toLocaleString()}
+              detail="Registered customers" icon={Users} href="/admin/customers" />
+            <Metric title="Overdue installments" value={stats.overduePayments.toLocaleString()}
+              detail={stats.overduePayments > 0 ? 'View defaults report' : 'No overdue installments'}
+              icon={AlertCircle} href="/admin/reports/defaults" attention={stats.overduePayments > 0} />
+          </section>
+
+          <div className={cn('grid items-start gap-5', shortcuts.length > 0 && 'xl:grid-cols-[minmax(0,1fr)_17rem]')}>
+            <section aria-labelledby="recent-contracts" className="operations-panel min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
+                <h2 id="recent-contracts" className="text-lg font-bold text-slate-950">Recent contracts</h2>
+                <Button asChild variant="outline" size="sm"><Link href="/admin/contracts">All contracts</Link></Button>
+              </div>
+              {recentContracts.length === 0 ? (
+                <p className="border-t px-5 py-12 text-center text-sm text-slate-600 workspace-empty-message">No contracts yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table aria-labelledby="recent-contracts" className="w-full text-left text-sm">
+                    <thead className="border-y bg-slate-50 text-slate-600">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 font-semibold sm:pl-5">Customer</th>
+                        <th scope="col" className="hidden px-3 py-3 font-semibold md:table-cell">Created</th>
+                        <th scope="col" className="px-3 py-3 text-right font-semibold">Contract total</th>
+                        <th scope="col" className="hidden px-4 py-3 font-semibold sm:table-cell">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {recentContracts.map((contract) => {
+                        const { firstName, lastName, membershipId } = contract.customer;
+                        const status = (
+                          <span className={cn('inline-block rounded-full px-2 py-0.5 text-xs font-semibold capitalize', STATUS_STYLES[contract.status] ?? 'bg-slate-100 text-slate-700')}>
+                            {contract.status.toLowerCase().replace(/_/g, ' ')}
+                          </span>
+                        );
+                        return (
+                          <tr key={contract.id} className="hover:bg-slate-50">
+                            <th scope="row" className="px-4 py-3 font-normal sm:pl-5">
+                              <Link href={`/admin/contracts/${contract.id}`} className="font-semibold text-blue-700 hover:underline">
+                                {firstName} {lastName}
+                              </Link>
+                              <p className="mt-0.5 text-xs text-slate-600">{[contract.inventoryItem?.product?.name, membershipId].filter(Boolean).join(' · ')}</p>
+                            </th>
+                            <td className="hidden whitespace-nowrap px-3 py-3 text-slate-600 md:table-cell">{formatDate(contract.createdAt)}</td>
+                            <td className="px-3 py-3 text-right font-semibold text-slate-900">
+                              <span className="whitespace-nowrap">{formatCurrency(contract.totalPrice)}</span>
+                              <div className="mt-1 sm:hidden">{status}</div>
+                            </td>
+                            <td className="hidden px-4 py-3 sm:table-cell">{status}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+            {shortcuts.length > 0 && (
+              <section aria-labelledby="quick-actions" className="operations-panel p-4 sm:p-5">
+                <h2 id="quick-actions" className="text-lg font-bold text-slate-950">Quick actions</h2>
+                <ul className="mt-4 space-y-2">
+                  {shortcuts.map(({ href, label, icon: Icon }) => (
+                    <li key={href}>
+                      <Link href={href} className="flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold text-slate-800 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800">
+                        <Icon aria-hidden="true" className="size-4 shrink-0 text-blue-700" />
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  iconClass,
-  iconBg,
-  subtitle,
-  href,
-  highlight,
-}: {
+function Metric({ title, value, detail, icon: Icon, href, featured, attention }: {
   title: string;
-  value: string | number;
-  icon: React.ElementType;
-  iconClass: string;
-  iconBg: string;
-  subtitle?: string;
+  value: string;
+  detail: string;
+  icon: typeof Users;
   href: string;
-  highlight?: boolean;
+  featured?: boolean;
+  attention?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        'group flex min-w-0 flex-col gap-3 rounded-xl border bg-white p-4 transition-all hover:shadow-md hover:-translate-y-0.5',
-        highlight ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-100'
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs sm:text-sm font-medium text-gray-500">{title}</span>
-        <div className={cn('p-1.5 sm:p-2 rounded-lg', iconBg)}>
-          <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconClass)} />
-        </div>
+    <Link href={href} className={cn('operations-panel flex min-w-0 flex-col p-4 transition-colors sm:p-5',
+      featured ? 'operations-featured text-white' : 'hover:border-blue-300 hover:bg-blue-50/30')}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={cn('text-sm font-semibold', featured ? 'text-blue-100' : 'text-slate-700')}>{title}</span>
+        <span className={cn('grid size-9 shrink-0 place-items-center rounded-xl', featured ? 'bg-white/15 text-white' :
+          attention ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700')}>
+          <Icon aria-hidden="true" className="size-[18px]" />
+        </span>
       </div>
-      <div className="min-w-0">
-        <div
-          className={cn(
-            'truncate text-lg sm:text-2xl font-bold',
-            highlight ? 'text-red-600' : 'text-gray-900'
-          )}
-          title={typeof value === 'string' ? value : undefined}
-        >
-          {value}
-        </div>
-        {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
-      </div>
-    </Link>
-  );
-}
-
-function QuickAction({
-  href,
-  label,
-  description,
-  colorClass,
-  labelClass,
-  descClass,
-  icon,
-}: {
-  href: string;
-  label: string;
-  description: string;
-  colorClass: string;
-  labelClass: string;
-  descClass: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-3 p-4 rounded-xl border transition-colors',
-        colorClass
-      )}
-    >
-      <div className="shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <p className={cn('text-sm font-semibold', labelClass)}>{label}</p>
-        <p className={cn('text-xs truncate', descClass)}>{description}</p>
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 ml-auto" />
+      <span className={cn('mt-3 break-words text-2xl font-bold tracking-tight tabular-nums sm:text-[1.75rem]',
+        attention && 'text-red-700')}>{value}</span>
+      <span className={cn('mt-1 text-sm', featured ? 'text-blue-100' : 'text-slate-600')}>{detail}</span>
     </Link>
   );
 }

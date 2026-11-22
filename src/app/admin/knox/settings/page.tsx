@@ -1,5 +1,7 @@
 'use client';
 
+import SectionHeading from "@/components/shared/SectionHeading";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -150,6 +152,7 @@ export default function KnoxSettingsPage() {
 
   return (
     <div className="space-y-6">
+      <SectionHeading title="Device policy and lock screen" />
       {/* Dry-run warning */}
       {dryRun && (
         <div className="flex items-start gap-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">

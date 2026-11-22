@@ -169,7 +169,7 @@ export default function ImportPage() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 workspace-heading workspace-heading--settings">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           Excel Import
         </h1>

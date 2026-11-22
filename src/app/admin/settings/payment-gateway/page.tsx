@@ -170,7 +170,7 @@ export default function PaymentGatewayPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 workspace-heading workspace-heading--settings">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
             <Landmark className="h-6 w-6 text-primary" aria-hidden="true" /> Payment gateway
