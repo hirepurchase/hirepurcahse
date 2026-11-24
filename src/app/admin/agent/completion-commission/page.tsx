@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Gift, Loader2, Lock, Save, Undo2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Gift, Loader2, Lock, Save, Send, Undo2 } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/permissions';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import PayoutAccountLine, { PayoutAccountInfo } from '@/components/admin/PayoutAccountLine';
+import SendPayoutsDialog from '@/components/admin/SendPayoutsDialog';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Monthly completion commission for agents: once an agent's customers who
@@ -66,6 +68,9 @@ export default function AgentCompletionCommissionPage() {
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const canEditSettings = hasPermission(PERMISSIONS.MANAGE_COMMISSION_SETTINGS);
+  const { user } = useAuth();
+  const isSuperAdmin = (user as { role?: string } | null)?.role === 'SUPER_ADMIN';
+  const [sendOpen, setSendOpen] = useState(false);
   const [month, setMonth] = useState(thisMonth);
   const [data, setData] = useState<MonthView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -241,6 +246,11 @@ export default function AgentCompletionCommissionPage() {
                 {data.canClose ? 'Close month' : data.closeBlock ?? 'Cannot close yet'}
               </Button>
             )}
+            {data.status === 'APPROVED' && isSuperAdmin && data.totals.total > data.totals.paid && (
+              <Button className={PRIMARY} onClick={() => setSendOpen(true)}>
+                <Send className="h-4 w-4" /> Send payments
+              </Button>
+            )}
             {data.status === 'CLOSED' && (
               <>
                 <Button className={PRIMARY} disabled={busy === 'approve'} onClick={() => act('approve', `/agent-completion-pay/${month}/approve`, undefined, 'Approved for payment')}>
@@ -335,6 +345,7 @@ export default function AgentCompletionCommissionPage() {
           </div>
         </div>
       )}
+      <SendPayoutsDialog kind="AGENT_COMPLETION" month={month} monthLabel={monthLabel(month)} open={sendOpen} onClose={() => setSendOpen(false)} onChanged={load} />
     </div>
   );
 }

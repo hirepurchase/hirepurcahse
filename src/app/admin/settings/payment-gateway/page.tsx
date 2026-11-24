@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import PayoutGatewayCard from "@/components/admin/PayoutGatewayCard";
 
 /**
  * Which gateway sends Mobile Money prompts for payments started on the web or
@@ -296,6 +297,8 @@ export default function PaymentGatewayPage() {
         <p className="mt-1.5 flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> Older app versions always use Hubtel, because Paystack can ask payers for a one-time code that those versions can&apos;t ask for.</p>
         <p className="mt-1.5 flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /> Payments already waiting finish on the gateway they started on.</p>
       </div>
+
+      <PayoutGatewayCard />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-slate-500">

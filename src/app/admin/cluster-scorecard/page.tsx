@@ -4,7 +4,7 @@ import SectionHeading from "@/components/shared/SectionHeading";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, Lock, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Loader2, Lock, Send, ShieldAlert } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import type { ExportOptions } from '@/lib/exportUtils';
 import { useToast } from '@/hooks/useToast';
 import { formatDateTime } from '@/lib/utils';
 import PayoutAccountLine from '@/components/admin/PayoutAccountLine';
+import SendPayoutsDialog from '@/components/admin/SendPayoutsDialog';
+import { useAuth } from '@/hooks/useAuth';
 import { LeaderCard, MonthData, errorText, formatValue, ghs, monthLabel, shiftMonth, thisMonth } from './types';
 
 const PRIMARY = 'bg-emerald-600 text-white hover:bg-emerald-700';
@@ -26,6 +28,9 @@ export default function ClusterScorecardPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [payFor, setPayFor] = useState<LeaderCard | null>(null);
   const [reference, setReference] = useState('');
+  const { user } = useAuth();
+  const isSuperAdmin = (user as { role?: string } | null)?.role === 'SUPER_ADMIN';
+  const [sendOpen, setSendOpen] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
@@ -154,6 +159,11 @@ export default function ClusterScorecardPage() {
                   {data.canClose ? 'Close month' : data.beforeEffective ? 'Before leader pay started' : 'Closes after the month ends'}
                 </Button>
               )}
+              {data.status === 'APPROVED' && isSuperAdmin && data.totals.total > data.totals.paid && (
+                <Button className={PRIMARY} onClick={() => setSendOpen(true)}>
+                  <Send className="h-4 w-4" /> Send payments
+                </Button>
+              )}
               {data.status === 'CLOSED' && (
                 <>
                   <Button className={PRIMARY} disabled={busy === 'approve'} onClick={() => act('approve', `/cluster-scorecard/${month}/approve`, undefined, 'Approved for payment')}>
@@ -264,6 +274,8 @@ export default function ClusterScorecardPage() {
           )}
         </>
       )}
+
+      <SendPayoutsDialog kind="CLUSTER_LEADER" month={month} monthLabel={monthLabel(month)} open={sendOpen} onClose={() => setSendOpen(false)} onChanged={load} />
 
       {payFor && (
         <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center">
