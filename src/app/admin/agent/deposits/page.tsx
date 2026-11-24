@@ -10,6 +10,8 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { ExportButtons } from '@/components/admin/ExportButtons';
 import { ExportOptions } from '@/lib/exportUtils';
 import MyCompletionCommissionsCard from '@/components/admin/MyCompletionCommissionsCard';
+import MyCompletionPayCard from '@/components/admin/MyCompletionPayCard';
+import PayoutNumberPrompt from '@/components/admin/PayoutNumberPrompt';
 import {
   Loader2,
   Wallet,
@@ -332,6 +334,8 @@ export default function AgentDepositsPage() {
         </div>
       )}
 
+      <PayoutNumberPrompt />
+      <MyCompletionPayCard />
       <MyCompletionCommissionsCard />
 
       {/* Filters */}

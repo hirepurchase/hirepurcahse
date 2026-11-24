@@ -29,6 +29,8 @@ export interface ScorecardSettings {
   parGateCeiling: number;
   gateWithholdsBase: boolean;
   depositRemitDays: number;
+  /** YYYY-MM: the first month leaders are paid for. */
+  effectiveMonth?: string;
 }
 
 export interface Line {
@@ -43,6 +45,7 @@ export interface LeaderCard {
   leaderId: string;
   name: string;
   phone: string | null;
+  payout?: { number: string; network: string | null; registeredName: string | null; check: string | null } | null;
   agentCount: number;
   lines: Line[];
   base: number;
@@ -60,6 +63,8 @@ export interface MonthData {
   month: string;
   status: 'PREVIEW' | 'CLOSED' | 'APPROVED';
   canClose: boolean;
+  beforeEffective?: boolean;
+  effectiveMonth?: string | null;
   closedAt: string | null;
   approvedAt: string | null;
   rules: { indicators: IndicatorRule[]; settings: ScorecardSettings };

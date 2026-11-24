@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, KeyRound, ChevronDown, ChevronRight, Menu } from "lucide-react";
+import { LogOut, KeyRound, ChevronDown, ChevronRight, Menu, Smartphone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { AdminUser } from "@/types";
@@ -153,6 +153,16 @@ function UserMenu({ user, onLogout }: { user: AdminUser; onLogout: () => void })
 
               {/* Actions */}
               <div className="p-1.5 space-y-0.5">
+                {['AGENT', 'SALES_AGENT', 'CLUSTER_AGENT'].includes(user.role) && (
+                <Link
+                  href="/admin/account/payout"
+                  onClick={() => setOpen(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <Smartphone className="h-4 w-4 text-gray-400" />
+                  Payout MoMo number
+                </Link>
+                )}
                 <button
                   onClick={() => { setOpen(false); setShowPw(true); }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"

@@ -64,6 +64,7 @@ import {
   ChartLine,
   MessagesSquare,
   Settings,
+  CalendarRange,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -216,6 +217,7 @@ const navGroups: NavGroup[] = [
       },
       // Customer service have it in their own menu.
       { name: "Welcome Calls", href: "/admin/customer-service/verification", icon: PhoneIncoming, permissions: [PERMISSIONS.VERIFY_CUSTOMER], hideForRoles: ["CUSTOMER_SERVICE"] },
+      { name: "Reschedules", href: "/admin/reschedules", icon: CalendarRange, permissions: [PERMISSIONS.EDIT_CONTRACT_VALUES] },
     ],
   },
   {
@@ -232,7 +234,8 @@ const navGroups: NavGroup[] = [
       },
       { name: "Failed Payments", href: "/admin/failed-payments", icon: AlertCircle, permissions: [PERMISSIONS.VIEW_FAILED_PAYMENTS] },
       { name: "Agent Deposits", href: "/admin/agent/admin-ledger", icon: BookOpen, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
-      { name: "Completion Pay", href: "/admin/agent/completion-commissions", icon: Gift, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
+      { name: "Completion Commission", href: "/admin/agent/completion-commission", icon: Medal, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
+      { name: "Completion Pay (per sale)", href: "/admin/agent/completion-commissions", icon: Gift, permissions: [PERMISSIONS.MANAGE_AGENT_LEDGER] },
     ],
   },
   {
@@ -305,6 +308,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Payment Gateway", href: "/admin/settings/payment-gateway", icon: Landmark, permissions: [PERMISSIONS.MANAGE_SETTINGS], onlyForRoles: ["SUPER_ADMIN"] },
       { name: "Payment Retries", href: "/admin/settings/retry-settings", icon: RefreshCw, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
+      { name: "Reschedule Rules", href: "/admin/settings/reschedules", icon: CalendarRange, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
       { name: "Commissions", href: "/admin/settings/commission", icon: DollarSign, permissions: [PERMISSIONS.MANAGE_COMMISSION_SETTINGS] },
       { name: "Expiry Penalties", href: "/admin/settings/penalties", icon: CalendarX, permissions: [PERMISSIONS.MANAGE_SETTINGS] },
       { name: "Notifications", href: "/admin/settings/notifications", icon: Bell, permissions: [PERMISSIONS.MANAGE_SETTINGS] },

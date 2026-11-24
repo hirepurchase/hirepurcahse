@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { adminHasAnyPermission, PERMISSIONS } from '@/lib/permissions';
 import type { AdminUser } from '@/types';
 import { TemporaryUnlockCard } from '@/components/admin/TemporaryUnlockCard';
+import { RescheduleBalanceCard } from '@/components/admin/RescheduleBalance';
 
 interface KnoxEnrollmentDefaults {
   disclosureVersion: string;
@@ -887,6 +888,14 @@ export default function ContractDetailsPage() {
       </div>
 
       {canTakeUnlockCash && <TemporaryUnlockCard contractId={String(params.id)} onPaid={() => void loadContract()} />}
+
+      <RescheduleBalanceCard
+        contract={contract}
+        userId={adminUser?.id}
+        canAsk={adminHasAnyPermission(adminUser, [PERMISSIONS.UPDATE_CONTRACT, PERMISSIONS.EDIT_CONTRACT_VALUES])}
+        canDecide={canEditContractValues}
+        onChanged={() => void loadContract()}
+      />
 
       {canViewDeviceControl && (
         <Card>

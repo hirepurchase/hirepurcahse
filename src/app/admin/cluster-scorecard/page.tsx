@@ -12,6 +12,7 @@ import { ExportButtons } from '@/components/admin/ExportButtons';
 import type { ExportOptions } from '@/lib/exportUtils';
 import { useToast } from '@/hooks/useToast';
 import { formatDateTime } from '@/lib/utils';
+import PayoutAccountLine from '@/components/admin/PayoutAccountLine';
 import { LeaderCard, MonthData, errorText, formatValue, ghs, monthLabel, shiftMonth, thisMonth } from './types';
 
 const PRIMARY = 'bg-emerald-600 text-white hover:bg-emerald-700';
@@ -118,6 +119,11 @@ export default function ClusterScorecardPage() {
 
       {data && (
         <>
+          {data.beforeEffective && (
+            <div role="status" className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+              Leader pay starts with {monthLabel(data.effectiveMonth ?? '')}. This month&apos;s figures are shown for reference only; nothing is paid for it.
+            </div>
+          )}
           {enabledKeys.size === 0 && data.rules.settings.baseAmount === 0 && data.status === 'PREVIEW' && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               No indicator is being paid yet.{' '}
@@ -145,7 +151,7 @@ export default function ClusterScorecardPage() {
                   onClick={() => act('close', `/cluster-scorecard/${month}/close`, undefined, 'Month closed — figures frozen')}
                 >
                   {busy === 'close' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                  {data.canClose ? 'Close month' : 'Closes after the month ends'}
+                  {data.canClose ? 'Close month' : data.beforeEffective ? 'Before leader pay started' : 'Closes after the month ends'}
                 </Button>
               )}
               {data.status === 'CLOSED' && (
@@ -196,6 +202,7 @@ export default function ClusterScorecardPage() {
 
                   {open === l.leaderId && (
                     <div className="space-y-3 border-t border-gray-100 px-4 py-3">
+                      {data.canManage && <PayoutAccountLine payout={l.payout} />}
                       {l.gated && l.gateReason && (
                         <p className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
                           <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {l.gateReason}.
@@ -264,6 +271,7 @@ export default function ClusterScorecardPage() {
           <div className="relative z-10 w-full max-w-md space-y-3 rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl">
             <h2 className="text-base font-semibold text-gray-900">Record payment to {payFor.name}</h2>
             <p className="text-sm text-gray-600">{ghs(payFor.total)} for {monthLabel(month)}.</p>
+            <PayoutAccountLine payout={payFor.payout} />
             <Input placeholder="MoMo or bank reference" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={100} />
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setPayFor(null)}>Cancel</Button>

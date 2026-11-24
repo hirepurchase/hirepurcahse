@@ -104,6 +104,15 @@ function RatesEditor() {
 
       <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-900">Base pay and PAR gate</h2>
+        <Field label="Leader pay starts with (month)">
+          <input
+            type="month"
+            value={settings.effectiveMonth ?? ''}
+            onChange={(e) => e.target.value && updateSettings({ effectiveMonth: e.target.value })}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          />
+          <span className="mt-1 block text-xs text-gray-500">Earlier months show their figures but pay nothing and cannot be closed.</span>
+        </Field>
         <Field label="Monthly base amount per leader (GHS)">
           <NumberInput value={settings.baseAmount} onChange={(v) => updateSettings({ baseAmount: v ?? 0 })} />
         </Field>

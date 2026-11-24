@@ -21,6 +21,7 @@ import { AdminUser } from "@/types";
 import MyScorecardCard from "@/components/admin/MyScorecardCard";
 import { PaymentPinCard } from "@/components/admin/PaymentPinCard";
 import OwingAfterUnlockCard from "@/components/admin/OwingAfterUnlockCard";
+import PayoutNumberPrompt from '@/components/admin/PayoutNumberPrompt';
 
 type ClusterAgent = {
   id: string;
@@ -126,6 +127,7 @@ export default function ClusterDashboardPage() {
 
   return (
     <div className="space-y-6 pb-10">
+      <PayoutNumberPrompt />
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 workspace-heading workspace-heading--work">
         <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
           {adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : "Cluster"}

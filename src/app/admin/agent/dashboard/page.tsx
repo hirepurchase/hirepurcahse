@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/authStore';
 import { AdminUser } from '@/types';
 import { PaymentPinCard } from '@/components/admin/PaymentPinCard';
 import OwingAfterUnlockCard from '@/components/admin/OwingAfterUnlockCard';
+import PayoutNumberPrompt from '@/components/admin/PayoutNumberPrompt';
 
 interface Portfolio {
   totalContracts: number;
@@ -212,6 +213,7 @@ export default function AgentDashboardPage() {
     <div className="space-y-6 pb-10">
 
       {/* ── HEADER ── */}
+      <PayoutNumberPrompt />
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 workspace-heading workspace-heading--work">
           <div className="flex items-center gap-4 flex-1 min-w-0">
