@@ -6,11 +6,11 @@ import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
 interface Progress {
-  settings: { amountPerCompletion: number; threshold: number; startMonth: string };
+  settings: { amountPerCompletion: number; threshold: number; startMonth: string; maxPerMonth?: number };
   completedToDate: number;
   qualified: boolean;
   toGo: number;
-  thisMonth: { month: string; count: number; total: number };
+  thisMonth: { month: string; count: number; carriedOver?: number; total: number };
   history: Array<{ month: string | null; approved: boolean; count: number; total: number; status: string; paidAt: string | null; reference: string | null }>;
 }
 
@@ -58,6 +58,7 @@ export default function MyCompletionPayCard() {
         {p.qualified && (
           <p className="mt-2 text-xs text-gray-600">
             This month so far: {p.thisMonth.count} to be paid ({formatCurrency(p.thisMonth.total)}), paid after the month is closed and approved.
+            {!!p.thisMonth.carriedOver && ` ${p.thisMonth.carriedOver} more will be paid next month (up to ${p.settings.maxPerMonth} are paid each month).`}
           </p>
         )}
       </div>

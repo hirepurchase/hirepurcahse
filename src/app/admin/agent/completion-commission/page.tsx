@@ -24,6 +24,7 @@ interface Settings {
   amountPerCompletion: number;
   threshold: number;
   startMonth: string;
+  maxPerMonth?: number;
   updatedAt?: string | null;
 }
 
@@ -38,6 +39,7 @@ interface AgentLine {
   qualified: boolean;
   toGo: number;
   count: number;
+  carriedOver?: number;
   rate: number;
   total: number;
   contracts: Array<{ id: string; contractNumber: string; completedAt: string }>;
@@ -54,7 +56,7 @@ interface MonthView {
   beforeStart: boolean;
   settings: Settings;
   agents: AgentLine[];
-  totals: { agents: number; qualified: number; count: number; total: number; paid: number };
+  totals: { agents: number; qualified: number; count: number; carriedOver?: number; total: number; paid: number };
 }
 
 const PRIMARY = 'bg-emerald-600 text-white hover:bg-emerald-700';
@@ -78,7 +80,7 @@ export default function AgentCompletionCommissionPage() {
   const [open, setOpen] = useState<string | null>(null);
   const [payFor, setPayFor] = useState<AgentLine | null>(null);
   const [reference, setReference] = useState('');
-  const [form, setForm] = useState<{ amountPerCompletion: string; threshold: string; startMonth: string } | null>(null);
+  const [form, setForm] = useState<{ amountPerCompletion: string; threshold: string; startMonth: string; maxPerMonth: string } | null>(null);
   const [showOnlyPaid, setShowOnlyPaid] = useState(true);
   const [numbers, setNumbers] = useState<{ total: number; withNumber: number; nameMismatch: number; missing: Array<{ id: string; name: string; phone: string | null; role: string }> } | null>(null);
   useEffect(() => {
@@ -96,7 +98,7 @@ export default function AgentCompletionCommissionPage() {
 
   const loadSettings = useCallback(() => {
     api.get('/agent-completion-pay/settings')
-      .then(({ data }) => setForm({ amountPerCompletion: String(data.settings.amountPerCompletion), threshold: String(data.settings.threshold), startMonth: data.settings.startMonth }))
+      .then(({ data }) => setForm({ amountPerCompletion: String(data.settings.amountPerCompletion), threshold: String(data.settings.threshold), startMonth: data.settings.startMonth, maxPerMonth: String(data.settings.maxPerMonth ?? 10) }))
       .catch(() => setForm(null));
   }, []);
   useEffect(() => { loadSettings(); }, [loadSettings]);
@@ -124,6 +126,7 @@ export default function AgentCompletionCommissionPage() {
         amountPerCompletion: Number(form.amountPerCompletion),
         threshold: Number(form.threshold),
         startMonth: form.startMonth,
+        maxPerMonth: Number(form.maxPerMonth),
       });
       toast({ title: 'Saved', description: 'Applies to months not yet closed.' });
       loadSettings();
@@ -152,7 +155,7 @@ export default function AgentCompletionCommissionPage() {
       {form && (
         <section className="operations-panel space-y-3 p-4">
           <h2 className="text-sm font-semibold text-gray-900">How it is paid</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-sm text-gray-700">
               Amount per completed customer (GHS)
               <Input type="number" min={0} step="0.01" value={form.amountPerCompletion} disabled={!canEditSettings}
@@ -168,11 +171,17 @@ export default function AgentCompletionCommissionPage() {
               <Input type="month" value={form.startMonth} disabled={!canEditSettings}
                 onChange={(e) => e.target.value && setForm({ ...form, startMonth: e.target.value })} className="mt-1" />
             </label>
+            <label className="text-sm text-gray-700">
+              Most paid per agent in a month
+              <Input type="number" min={1} step="1" value={form.maxPerMonth} disabled={!canEditSettings}
+                onChange={(e) => setForm({ ...form, maxPerMonth: e.target.value })} className="mt-1" />
+            </label>
           </div>
           <p className="text-xs text-gray-500">
             Customers who finished paying from {monthLabel(form.startMonth)} count, whether or not they paid within their contract period.
-            When an agent reaches {form.threshold || '…'}, all of them are paid, and every one after that in the month it happens.
-            A closed month keeps the amount it was closed with.
+            When an agent reaches {form.threshold || '…'}, those completions become payable, and so does every one after that.
+            No agent is paid for more than {form.maxPerMonth || '…'} in one month: any more are carried to the next month, oldest first, so nothing is lost.
+            A closed month keeps the amount and limit it was closed with.
           </p>
           {canEditSettings && (
             <Button size="sm" className={PRIMARY} disabled={busy === 'settings'} onClick={() => void saveSettings()}>
@@ -234,7 +243,7 @@ export default function AgentCompletionCommissionPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="To pay this month" value={ghs(data.totals.total)} strong />
             <Stat label="Paid" value={ghs(data.totals.paid)} />
-            <Stat label="Completions paid" value={String(data.totals.count)} />
+            <Stat label="Completions paid" value={data.totals.carriedOver ? `${data.totals.count} (+${data.totals.carriedOver} next month)` : String(data.totals.count)} />
             <Stat label="Agents qualified" value={`${data.totals.qualified} of ${data.totals.agents}`} />
           </div>
 
@@ -284,6 +293,7 @@ export default function AgentCompletionCommissionPage() {
                         {a.completedToDate} completed since {monthLabel(data.settings.startMonth)} · {a.completedThisMonth} this month
                         {a.qualified ? <span className="ml-1 font-semibold text-emerald-700">· qualified</span> : <span className="ml-1">· {a.toGo} more to qualify</span>}
                       </p>
+                      {!!a.carriedOver && <p className="text-xs font-medium text-blue-700">{a.carriedOver} more carried to next month (limit {data.settings.maxPerMonth ?? '—'} a month)</p>}
                       {a.total > 0 && !a.payout && <p className="text-xs font-medium text-amber-800">No payout number yet</p>}
                     </div>
                     <div className="text-right">
