@@ -145,6 +145,10 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Dashboard", href: "/admin/agent/dashboard", icon: LayoutDashboard },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Overdue", href: "/admin/agent/overdue", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Due Tomorrow", href: "/admin/agent/upcoming", icon: CalendarClock, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Completed", href: "/admin/agent/completed", icon: ClipboardCheck, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "My Earnings", href: "/admin/agent/earnings", icon: Banknote, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "My KPIs", href: "/admin/kpi", icon: Target },
       { name: "Price Chart", href: "/admin/price-chart", icon: Tags },
@@ -159,6 +163,7 @@ const navGroups: NavGroup[] = [
       { name: "Cluster Contracts", href: "/admin/contracts", icon: FileText, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "Overdue", href: "/admin/agent/overdue", icon: AlertTriangle, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Due Tomorrow", href: "/admin/agent/upcoming", icon: CalendarClock, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
+      { name: "Completed", href: "/admin/agent/completed", icon: ClipboardCheck, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Stock by Agent", href: "/admin/cluster/stock", icon: Boxes, permissions: [PERMISSIONS.VIEW_ASSIGNED_CONTRACTS] },
       { name: "Temporary Unlocks", href: "/admin/temporary-unlocks", icon: Unlock, permissions: [PERMISSIONS.REQUEST_TEMPORARY_UNLOCK] },
     ],
@@ -168,6 +173,7 @@ const navGroups: NavGroup[] = [
     icon: TrendingUp,
     roles: ["CLUSTER_AGENT"],
     items: [
+      { name: "My Earnings", href: "/admin/agent/earnings", icon: Banknote, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "My Contracts", href: "/admin/agent/contracts", icon: Briefcase, permissions: [PERMISSIONS.VIEW_OWN_CONTRACTS] },
       { name: "Deposit Ledger", href: "/admin/agent/deposits", icon: Wallet, permissions: [PERMISSIONS.VIEW_AGENT_COMMISSIONS] },
       { name: "My KPIs", href: "/admin/kpi", icon: Target },

@@ -13,6 +13,7 @@ import NotificationBell from "./NotificationBell";
 import ContractApprovalBell from "./ContractApprovalBell";
 import AnnouncementBell from "./AnnouncementBell";
 import DeviceIssueBell from "./DeviceIssueBell";
+import GlobalSearch from "./GlobalSearch";
 
 // ─── Change Password Modal ───────────────────────────────────────────────────
 
@@ -284,6 +285,7 @@ export default function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) 
 
       {/* Right: bells + user menu */}
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <GlobalSearch />
         {/* Notification bells — shown on desktop only (mobile has "More" sheet) */}
         <div className="hidden lg:flex items-center gap-1">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-100 transition-colors text-gray-500">

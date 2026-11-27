@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
+import WhatsAppLink from "@/components/admin/WhatsAppLink";
 
 type OverdueRow = {
   contractId: string;
@@ -171,13 +172,16 @@ export default function AgentOverdueInstallmentsPage() {
                       </Badge>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2">
-                      <a
+                      <span className="flex flex-wrap items-center gap-2">
+<a
                         href={`tel:${r.customer.phone}`}
                         className="flex items-center gap-1.5 text-sm font-medium text-cyan-700"
                       >
                         <Phone className="h-3.5 w-3.5" />
                         {r.customer.phone}
                       </a>
+<WhatsAppLink phone={r.customer.phone} message={`Hello ${r.customer.name}, this is a reminder that your payment of ${formatCurrency(r.amountOverdue)} for contract ${r.contractNumber} was due on ${formatDate(r.dueDate)}. Please pay today to keep your phone working. Thank you.`} />
+</span>
                       <span className="text-sm font-bold text-red-600">{formatCurrency(r.amountOverdue)}</span>
                     </div>
                     <div className="mt-1.5 flex items-center justify-between text-xs text-gray-400">
@@ -216,13 +220,16 @@ export default function AgentOverdueInstallmentsPage() {
                           <TableCell className="text-sm text-blue-700">{r.agentName}</TableCell>
                         )}
                         <TableCell>
-                          <a
+                          <span className="flex flex-wrap items-center gap-2">
+<a
                             href={`tel:${r.customer.phone}`}
                             className="flex items-center gap-1.5 text-cyan-700 font-medium hover:underline"
                           >
                             <Phone className="h-3.5 w-3.5" />
                             {r.customer.phone}
                           </a>
+<WhatsAppLink phone={r.customer.phone} message={`Hello ${r.customer.name}, this is a reminder that your payment of ${formatCurrency(r.amountOverdue)} for contract ${r.contractNumber} was due on ${formatDate(r.dueDate)}. Please pay today to keep your phone working. Thank you.`} />
+</span>
                         </TableCell>
                         <TableCell>
                           <p className="font-mono text-sm">{r.contractNumber}</p>

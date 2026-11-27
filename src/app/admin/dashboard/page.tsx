@@ -12,6 +12,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { AdminUser } from '@/types';
+import NeedsAttentionPanel from '@/components/admin/NeedsAttentionPanel';
 
 interface RecentContract {
   id: string;
@@ -139,6 +140,8 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
+          <NeedsAttentionPanel />
+
           <section aria-label="Portfolio metrics" className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
             <Metric title="Collected this month" value={formatCurrency(stats.totalRevenue)}
               detail={`${stats.monthlyPayments.toLocaleString()} successful payments`} icon={Banknote}
